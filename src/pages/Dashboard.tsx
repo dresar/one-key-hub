@@ -4,6 +4,8 @@ import { Server, KeyRound, Activity, AlertTriangle, TrendingUp } from 'lucide-re
 import AppHeader from '@/components/AppHeader';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
+import UsageChart from '@/components/UsageChart';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -33,6 +35,9 @@ export default function Dashboard() {
   });
   const [recentLogs, setRecentLogs] = useState<RecentLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Enable realtime notifications
+  useRealtimeNotifications({ enabled: true });
 
   useEffect(() => {
     fetchDashboardData();
@@ -149,6 +154,9 @@ export default function Dashboard() {
             icon={AlertTriangle}
           />
         </div>
+
+        {/* Usage Chart */}
+        <UsageChart />
 
         {/* Recent Activity */}
         <div className="glass rounded-xl overflow-hidden">

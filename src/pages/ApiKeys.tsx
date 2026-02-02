@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { 
   KeyRound, Plus, Edit2, Trash2, Power, PowerOff, Loader2, 
-  Upload, Download, GripVertical, Star, ChevronDown 
+  Upload, Download, GripVertical, Star, ChevronDown, PlayCircle, 
+  CheckCircle, XCircle, AlertCircle
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
@@ -41,6 +42,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -70,6 +76,8 @@ interface ApiKey {
   provider_models?: ProviderModel;
 }
 
+type KeyStatus = 'active' | 'warning' | 'error' | 'testing' | 'unknown';
+
 const DEFAULT_MODELS = [
   { name: 'Gemini 2.5 Flash', model_id: 'gemini-2.5-flash' },
   { name: 'Gemini 2.5 Pro', model_id: 'gemini-2.5-pro' },
@@ -89,6 +97,8 @@ export default function ApiKeys() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testingKeys, setTestingKeys] = useState<Set<string>>(new Set());
+  const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -107,6 +117,28 @@ export default function ApiKeys() {
       fetchApiKeys();
       fetchModels();
     }
+  }, [selectedProviderId]);
+
+  // Realtime subscription for API key updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('apikeys-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'provider_api_keys' },
+        (payload) => {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            fetchApiKeys();
+          } else if (payload.eventType === 'DELETE') {
+            fetchApiKeys();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedProviderId]);
 
   const fetchProviders = async () => {
@@ -160,8 +192,151 @@ export default function ApiKeys() {
 
       if (error) throw error;
       setApiKeys(data || []);
+      
+      // Update key statuses
+      const statuses: Record<string, KeyStatus> = {};
+      for (const key of data || []) {
+        statuses[key.id] = getKeyStatus(key);
+      }
+      setKeyStatuses(statuses);
     } catch (error) {
       console.error('Error fetching API keys:', error);
+    }
+  };
+
+  const getKeyStatus = (key: ApiKey): KeyStatus => {
+    if (!key.is_active) return 'unknown';
+    if (key.last_error) {
+      if (key.last_error.includes('429') || key.last_error.toLowerCase().includes('quota')) {
+        return 'warning';
+      }
+      return 'error';
+    }
+    if (key.failed_requests > 5) return 'warning';
+    if (key.failed_requests > 10) return 'error';
+    return 'active';
+  };
+
+  const getStatusIndicator = (keyId: string, key: ApiKey) => {
+    if (testingKeys.has(keyId)) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/20 text-primary border border-primary/30">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Testing...
+        </span>
+      );
+    }
+
+    const status = keyStatuses[keyId] || getKeyStatus(key);
+    
+    switch (status) {
+      case 'active':
+        return (
+          <Tooltip>
+            <TooltipTrigger>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs status-active">
+                <span className="w-2 h-2 rounded-full bg-success" />
+                Aktif
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>API key berfungsi normal</TooltipContent>
+          </Tooltip>
+        );
+      case 'warning':
+        return (
+          <Tooltip>
+            <TooltipTrigger>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs status-warning">
+                <span className="w-2 h-2 rounded-full bg-warning" />
+                Hampir Habis
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{key.last_error || 'Quota hampir habis'}</TooltipContent>
+          </Tooltip>
+        );
+      case 'error':
+        return (
+          <Tooltip>
+            <TooltipTrigger>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs status-error">
+                <span className="w-2 h-2 rounded-full bg-destructive pulse-dot" />
+                Error
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{key.last_error || 'API key error'}</TooltipContent>
+          </Tooltip>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs status-inactive">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+            Nonaktif
+          </span>
+        );
+    }
+  };
+
+  const testApiKey = async (key: ApiKey) => {
+    setTestingKeys(prev => new Set(prev).add(key.id));
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-api-key`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            api_key_id: key.id,
+            provider_id: key.provider_id,
+            model_id: key.provider_models?.model_id || 'gemini-2.5-flash',
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('✅ API Key Berfungsi', {
+          description: `Response time: ${result.response_time_ms}ms`,
+        });
+        setKeyStatuses(prev => ({ ...prev, [key.id]: 'active' }));
+      } else {
+        const statusMap: Record<string, KeyStatus> = {
+          'invalid': 'error',
+          'quota_exceeded': 'warning',
+          'provider_error': 'error',
+          'network_error': 'error',
+        };
+        setKeyStatuses(prev => ({ ...prev, [key.id]: statusMap[result.status] || 'error' }));
+        
+        if (result.status === 'quota_exceeded') {
+          toast.warning('⚠️ Quota Habis', {
+            description: result.error,
+          });
+        } else if (result.status === 'invalid') {
+          toast.error('❌ API Key Invalid', {
+            description: 'Key tidak valid atau sudah expired',
+          });
+        } else {
+          toast.error('❌ Test Gagal', {
+            description: result.error,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error testing API key:', error);
+      toast.error('Gagal menguji API key');
+      setKeyStatuses(prev => ({ ...prev, [key.id]: 'error' }));
+    } finally {
+      setTestingKeys(prev => {
+        const next = new Set(prev);
+        next.delete(key.id);
+        return next;
+      });
+      fetchApiKeys();
     }
   };
 
@@ -541,13 +716,9 @@ export default function ApiKeys() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono text-sm">{maskApiKey(key.api_key)}</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
-                          key.is_active ? 'status-active' : 'status-inactive'
-                        }`}>
-                          {key.is_active ? 'Aktif' : 'Nonaktif'}
-                        </span>
+                        {getStatusIndicator(key.id, key)}
                         {key.failed_requests > 0 && (
                           <span className="status-warning px-2 py-0.5 rounded-full text-xs border">
                             {key.failed_requests} gagal
@@ -564,6 +735,26 @@ export default function ApiKeys() {
                     </div>
 
                     <div className="flex items-center gap-1">
+                      {/* Test Button */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => testApiKey(key)}
+                            disabled={testingKeys.has(key.id)}
+                            className="text-muted-foreground hover:text-primary"
+                          >
+                            {testingKeys.has(key.id) ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <PlayCircle className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Uji API Key</TooltipContent>
+                      </Tooltip>
+                      
                       <Button
                         variant="ghost"
                         size="icon"

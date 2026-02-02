@@ -1,1 +1,10 @@
 project_id = "svjwquypljjclhjuxbym"
+
+[functions.unified-chat]
+verify_jwt = false
+
+[functions.test-api-key]
+verify_jwt = false
+
+[functions.analytics]
+verify_jwt = false
