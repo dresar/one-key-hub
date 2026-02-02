@@ -125,11 +125,15 @@
   }
 
   .status-inactive {
-    @apply bg-destructive/20 text-destructive border-destructive/30;
+    @apply bg-muted/50 text-muted-foreground border-muted-foreground/30;
   }
 
   .status-warning {
     @apply bg-warning/20 text-warning border-warning/30;
+  }
+
+  .status-error {
+    @apply bg-destructive/20 text-destructive border-destructive/30;
   }
 
   /* Stat card */
