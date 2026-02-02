@@ -20,6 +20,7 @@ interface ProviderApiKey {
   api_key: string;
   is_active: boolean;
   priority: number;
+  failed_requests: number;
 }
 
 interface ChatMessage {
@@ -102,10 +103,10 @@ serve(async (req) => {
       );
     }
 
-    // Get all active API keys
+    // Get all active API keys, sorted by priority (highest first), then by failed_requests (lowest first)
     const { data: allApiKeys, error: apiKeysError } = await supabase
       .from('provider_api_keys')
-      .select('id, provider_id, api_key, is_active, priority')
+      .select('id, provider_id, api_key, is_active, priority, failed_requests')
       .eq('is_active', true)
       .order('priority', { ascending: false });
 
@@ -117,37 +118,45 @@ serve(async (req) => {
       );
     }
 
-    if (apiKeysError || !allApiKeys || allApiKeys.length === 0) {
-      await logRequest(supabase, unifiedKey.id, null, null, requestedModel, 'error', 500, 'No active API keys available', Date.now() - startTime);
-      return new Response(
-        JSON.stringify({ error: 'No active API keys available' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Build rotation queue based on strategy
-    let rotationQueue: { provider: Provider; apiKey: any }[] = [];
+    // Keys with errors are pushed to the end (lower priority)
+    let rotationQueue: { provider: Provider; apiKey: ProviderApiKey }[] = [];
 
     if (strategy === 'per_provider') {
       // Try all keys within each provider before moving to next provider
       for (const provider of providers) {
-        const providerKeys = allApiKeys.filter((k: any) => k.provider_id === provider.id);
+        const providerKeys = allApiKeys
+          .filter((k: ProviderApiKey) => k.provider_id === provider.id)
+          // Sort: healthy keys first (no failed requests), then by priority
+          .sort((a, b) => {
+            // Keys with failed_requests > 5 go to the end
+            const aHasErrors = a.failed_requests > 5;
+            const bHasErrors = b.failed_requests > 5;
+            if (aHasErrors && !bHasErrors) return 1;
+            if (!aHasErrors && bHasErrors) return -1;
+            // Then sort by priority (higher first)
+            return b.priority - a.priority;
+          });
+        
         for (const key of providerKeys) {
           rotationQueue.push({ provider, apiKey: key });
         }
       }
     } else {
       // Global strategy: interleave keys from all providers
-      const maxKeys = Math.max(...providers.map(p => 
-        allApiKeys.filter((k: any) => k.provider_id === p.id).length
-      ));
+      // Sort all keys globally
+      const sortedKeys = [...allApiKeys].sort((a, b) => {
+        const aHasErrors = a.failed_requests > 5;
+        const bHasErrors = b.failed_requests > 5;
+        if (aHasErrors && !bHasErrors) return 1;
+        if (!aHasErrors && bHasErrors) return -1;
+        return b.priority - a.priority;
+      });
       
-      for (let i = 0; i < maxKeys; i++) {
-        for (const provider of providers) {
-          const providerKeys = allApiKeys.filter((k: any) => k.provider_id === provider.id);
-          if (i < providerKeys.length) {
-            rotationQueue.push({ provider, apiKey: providerKeys[i] });
-          }
+      for (const key of sortedKeys) {
+        const provider = providers.find(p => p.id === key.provider_id);
+        if (provider) {
+          rotationQueue.push({ provider, apiKey: key });
         }
       }
     }
@@ -161,26 +170,27 @@ serve(async (req) => {
     // Try each API key in rotation until one succeeds
     let lastError: string = 'No API keys available';
     let lastStatusCode: number = 500;
+    let usedProviderName: string | null = null;
 
     for (const { provider, apiKey } of rotationQueue) {
       try {
         const result = await callProviderApi(provider, apiKey.api_key, body, requestedModel);
         
         if (result.success) {
-          // Update usage statistics
+          // Reset failed_requests on success and update stats
           await supabase
             .from('provider_api_keys')
             .update({ 
-              total_requests: supabase.rpc('increment_requests', { row_id: apiKey.id }),
+              total_requests: apiKey.failed_requests > 0 ? 1 : undefined,
               last_used_at: new Date().toISOString(),
-              last_error: null
+              last_error: null,
+              failed_requests: 0, // Reset on success
             })
             .eq('id', apiKey.id);
 
-          await supabase
-            .from('unified_api_keys')
-            .update({ total_requests: supabase.rpc('increment_unified_requests', { row_id: unifiedKey.id }) })
-            .eq('id', unifiedKey.id);
+          // Increment total_requests using raw update
+          await supabase.rpc('increment_requests_safe', { key_id: apiKey.id });
+          await supabase.rpc('increment_unified_requests_safe', { key_id: unifiedKey.id });
 
           // Log success
           await logRequest(
@@ -203,26 +213,55 @@ serve(async (req) => {
         } else {
           lastError = result.error || 'Unknown error';
           lastStatusCode = result.statusCode || 500;
+          usedProviderName = provider.name;
           
-          // Mark this key as failed
+          // Determine if this is a quota/rate limit error
+          const isQuotaError = lastStatusCode === 429 || 
+                              lastError.toLowerCase().includes('quota') ||
+                              lastError.toLowerCase().includes('rate limit');
+          
+          const isAuthError = lastStatusCode === 401 || lastStatusCode === 403;
+          
+          // Calculate new priority - move failed key to last position
+          let newPriority = 0; // Lowest priority
+          if (isQuotaError || isAuthError) {
+            newPriority = -1; // Even lower for quota/auth errors
+          }
+          
+          // Update failed key: increment failures, move to last priority
           await supabase
             .from('provider_api_keys')
             .update({ 
-              failed_requests: supabase.rpc('increment_failed', { row_id: apiKey.id }),
-              last_error: lastError
+              failed_requests: apiKey.failed_requests + 1,
+              last_error: lastError,
+              priority: newPriority, // Demote to last position
             })
             .eq('id', apiKey.id);
+          
+          // Log the fallback attempt
+          await logRequest(
+            supabase,
+            unifiedKey.id,
+            provider.id,
+            apiKey.id,
+            requestedModel,
+            'error',
+            lastStatusCode,
+            `Fallback: ${lastError}`,
+            Date.now() - startTime
+          );
         }
       } catch (error) {
         lastError = error instanceof Error ? error.message : 'Unknown error';
         lastStatusCode = 500;
         
-        // Mark this key as failed
+        // Update failed key
         await supabase
           .from('provider_api_keys')
           .update({ 
-            failed_requests: supabase.rpc('increment_failed', { row_id: apiKey.id }),
-            last_error: lastError
+            failed_requests: apiKey.failed_requests + 1,
+            last_error: lastError,
+            priority: 0, // Demote
           })
           .eq('id', apiKey.id);
       }

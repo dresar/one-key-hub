@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Key, Loader2, AlertCircle } from 'lucide-react';
+import { Key, Loader2, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -32,6 +33,21 @@ export default function Login() {
       navigate('/dashboard');
     } else {
       setError(result.error || 'Login gagal');
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    setIsDemoLoading(true);
+    
+    // Use the same login function with demo credentials
+    const result = await login('admin', 'admin');
+    setIsDemoLoading(false);
+
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Login demo gagal. Pastikan akun admin sudah ada di database.');
     }
   };
 
@@ -66,6 +82,46 @@ export default function Login() {
             </p>
           </div>
 
+          {/* Demo Login Button */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mb-6"
+          >
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDemoLogin}
+              disabled={isDemoLoading || isSubmitting}
+              className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+            >
+              {isDemoLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Masuk...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  Login Cepat (Demo)
+                </>
+              )}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              Gunakan akun demo: admin / admin
+            </p>
+          </motion.div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">atau login manual</span>
+            </div>
+          </div>
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -76,7 +132,7 @@ export default function Login() {
                 placeholder="Masukkan username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isDemoLoading}
                 className="bg-secondary/50 border-border focus:border-primary"
               />
             </div>
@@ -89,7 +145,7 @@ export default function Login() {
                 placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isDemoLoading}
                 className="bg-secondary/50 border-border focus:border-primary"
               />
             </div>
@@ -108,7 +164,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isDemoLoading}
             >
               {isSubmitting ? (
                 <>
@@ -120,11 +176,6 @@ export default function Login() {
               )}
             </Button>
           </form>
-
-          {/* Footer */}
-          <div className="mt-6 text-center text-xs text-muted-foreground">
-            <p>Default: admin / admin</p>
-          </div>
         </div>
       </motion.div>
     </div>
