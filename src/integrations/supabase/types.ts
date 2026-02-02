@@ -289,7 +289,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_requests_safe: { Args: { key_id: string }; Returns: undefined }
+      increment_unified_requests_safe: {
+        Args: { key_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

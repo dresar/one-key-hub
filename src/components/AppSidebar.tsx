@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Key,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const menuItems = [
   { path: '/unified-api', label: 'Unified API', icon: Link2 },
   { path: '/logs', label: 'Log Aktivitas', icon: ScrollText },
   { path: '/settings', label: 'Profil & Pengaturan', icon: Settings },
+  { path: '/docs', label: 'Dokumentasi', icon: BookOpen },
 ];
 
 export default function AppSidebar({ isCollapsed, onToggle }: AppSidebarProps) {

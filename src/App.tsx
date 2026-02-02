@@ -13,6 +13,7 @@ import ApiKeys from "./pages/ApiKeys";
 import UnifiedApi from "./pages/UnifiedApi";
 import Logs from "./pages/Logs";
 import ProfileSettings from "./pages/ProfileSettings";
+import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="unified-api" element={<UnifiedApi />} />
               <Route path="logs" element={<Logs />} />
               <Route path="settings" element={<ProfileSettings />} />
+              <Route path="docs" element={<Documentation />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
