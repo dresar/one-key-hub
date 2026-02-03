@@ -893,6 +893,9 @@ export default function ApiKeys() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <ShuffleText text={key.api_key} isShuffling={isShuffling} />
+                        <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded border border-border/50" title="API Key ID">
+                            {key.id.slice(0, 8)}...
+                        </span>
                         {getStatusIndicator(key.id, key)}
                         {key.failed_requests > 0 && (
                           <span className="status-warning px-2 py-0.5 rounded-full text-xs border">
