@@ -14,6 +14,7 @@ import UnifiedApi from "./pages/UnifiedApi";
 import Logs from "./pages/Logs";
 import ProfileSettings from "./pages/ProfileSettings";
 import Documentation from "./pages/Documentation";
+import Playground from "./pages/Playground";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="providers" element={<Providers />} />
               <Route path="api-keys" element={<ApiKeys />} />
               <Route path="unified-api" element={<UnifiedApi />} />
+              <Route path="playground" element={<Playground />} />
               <Route path="logs" element={<Logs />} />
               <Route path="settings" element={<ProfileSettings />} />
               <Route path="docs" element={<Documentation />} />
