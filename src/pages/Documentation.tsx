@@ -1,9 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson } from 'lucide-react';
+import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson, AlertTriangle, ShieldCheck, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export default function Documentation() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -32,13 +41,50 @@ export default function Documentation() {
         "bodyParameters": {
           "parameters": [
             { "name": "model", "value": "gemini-1.5-flash" },
-            { "name": "messages", "value": "[{\"role\": \"user\", \"content\": \"Halo!\"}]" }
+            { "name": "messages", "value": "[{\"role\": \"user\", \"content\": \"Halo, apa kabar?\"}]" },
+            { "name": "temperature", "value": "0.7" }
           ]
         },
-        "options": {}
+        "options": {
+          "responseFormat": "json"
+        }
       }
     }
   ], null, 2);
+
+  const examplePayload = JSON.stringify({
+    "model": "gemini-1.5-flash",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Jelaskan tentang n8n dalam satu kalimat."
+      }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 1000
+  }, null, 2);
+
+  const exampleErrorHandling = `try {
+  // Request ke One Key Hub
+  const response = await axios.post(
+    'https://one.apprentice.cyou/api/v1/chat/completions',
+    payload,
+    { headers: { Authorization: \`Bearer \${apiKey}\` } }
+  );
+  return response.data;
+} catch (error) {
+  if (error.response) {
+    // 401: Invalid Key, 429: Rate Limit/Quota
+    console.error('API Error:', error.response.status, error.response.data);
+  } else {
+    // Network Error
+    console.error('Connection Failed:', error.message);
+  }
+}`;
 
   return (
     <div className="min-h-screen">
@@ -291,75 +337,261 @@ export default function Documentation() {
             <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
               <Workflow className="w-5 h-5 text-pink-500" />
             </div>
-            <h2 className="text-xl font-bold">Integrasi n8n</h2>
+            <h2 className="text-xl font-bold">Integrasi n8n & External Apps</h2>
           </div>
           
-          <div className="space-y-6 text-muted-foreground">
-            <p className="leading-relaxed">
-              Gunakan One Key Hub langsung di dalam workflow automation Anda. 
-              Berikut adalah konfigurasi node HTTP Request yang siap pakai.
-            </p>
+          <Tabs defaultValue="setup" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="setup">Setup</TabsTrigger>
+              <TabsTrigger value="payload">Request Body</TabsTrigger>
+              <TabsTrigger value="handling">Handling & Error</TabsTrigger>
+              <TabsTrigger value="testing">Testing</TabsTrigger>
+            </TabsList>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-secondary/30 space-y-3">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-yellow-500" />
-                    Konfigurasi Cepat
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Method</span>
-                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">POST</code>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>URL</span>
-                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground text-xs">https://one.apprentice.cyou/api/v1...</code>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Auth Type</span>
-                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Header Auth</code>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Header</span>
-                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Authorization: Bearer sk-...</code>
+            {/* Tab: Setup */}
+            <TabsContent value="setup" className="space-y-6 text-muted-foreground">
+              <p className="leading-relaxed">
+                Gunakan One Key Hub langsung di dalam workflow automation Anda. 
+                Berikut adalah konfigurasi node HTTP Request yang siap pakai.
+              </p>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-secondary/30 space-y-3">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                      Konfigurasi Dasar
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Method</span>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground">POST</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>URL Endpoint</span>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground text-xs">https://one.apprentice.cyou/api/v1/chat/completions</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Auth Type</span>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Header Auth</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Header Name</span>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Authorization</code>
+                      </div>
+                       <div className="flex justify-between">
+                        <span>Value Format</span>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Bearer sk-unified-...</code>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2">
+                      <FileJson className="w-4 h-4 text-blue-500" />
+                      Copy-Paste Node JSON
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-2"
+                      onClick={() => copyToClipboard(n8nNodeJson, 'n8n-json')}
+                    >
+                      {copiedId === 'n8n-json' ? (
+                        <Check className="w-3 h-3 text-green-500" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      {copiedId === 'n8n-json' ? 'Disalin!' : 'Salin JSON'}
+                    </Button>
+                  </div>
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950">
+                    <pre className="p-4 text-xs font-mono text-slate-50 overflow-auto h-[180px]">
+                      {n8nNodeJson}
+                    </pre>
+                    <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-20px_20px_-10px_rgba(0,0,0,0.5)]" />
+                  </div>
+                  <p className="text-xs">
+                    *Salin JSON di atas dan paste langsung (Ctrl+V) ke canvas n8n untuk membuat node otomatis.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab: Request Body */}
+            <TabsContent value="payload" className="space-y-6">
+               <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Terminal className="w-4 h-4" />
+                    Contoh Payload JSON
+                  </h3>
+                  <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950">
+                    <pre className="p-4 text-xs font-mono text-slate-50 overflow-auto h-[300px]">
+                      {examplePayload}
+                    </pre>
+                     <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6 text-slate-400 hover:text-white hover:bg-slate-800"
+                      onClick={() => copyToClipboard(examplePayload, 'payload')}
+                    >
+                      {copiedId === 'payload' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" />
+                    Spesifikasi Parameter
+                  </h3>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[100px]">Param</TableHead>
+                          <TableHead>Tipe</TableHead>
+                          <TableHead>Keterangan</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs">model</TableCell>
+                          <TableCell className="text-xs">string</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">ID Model (contoh: gemini-1.5-flash, gpt-4o)</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs">messages</TableCell>
+                          <TableCell className="text-xs">array</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">List pesan percakapan (role: system/user/assistant)</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs">temperature</TableCell>
+                          <TableCell className="text-xs">float</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">0.0 - 2.0. Kreativitas output (Default: 0.7)</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs">max_tokens</TableCell>
+                          <TableCell className="text-xs">integer</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Batas maksimum token output</TableCell>
+                        </TableRow>
+                         <TableRow>
+                          <TableCell className="font-mono text-xs">stream</TableCell>
+                          <TableCell className="text-xs">boolean</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">false (Stream belum didukung penuh di Unified API)</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab: Handling & Error */}
+            <TabsContent value="handling" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                   <h3 className="font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    Kode Error & Solusi
+                  </h3>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[60px]">Kode</TableHead>
+                          <TableHead>Penyebab</TableHead>
+                          <TableHead>Solusi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs font-bold text-destructive">401</TableCell>
+                          <TableCell className="text-xs">Unauthorized</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Cek Unified API Key Anda. Pastikan format "Bearer sk-..."</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs font-bold text-warning">429</TableCell>
+                          <TableCell className="text-xs">Rate Limit</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Semua key provider habis kuota. Tunggu reset atau tambah key baru.</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-mono text-xs font-bold text-destructive">500</TableCell>
+                          <TableCell className="text-xs">Server Error</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Masalah internal server One Key Hub. Cek Logs server.</TableCell>
+                        </TableRow>
+                         <TableRow>
+                          <TableCell className="font-mono text-xs font-bold text-destructive">502</TableCell>
+                          <TableCell className="text-xs">Bad Gateway</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">Koneksi ke Provider AI gagal (Timeout/Down).</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Terminal className="w-4 h-4" />
+                    Contoh Error Handling (JS/TS)
+                  </h3>
+                   <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950">
+                    <pre className="p-4 text-xs font-mono text-slate-50 overflow-auto h-[300px]">
+                      {exampleErrorHandling}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab: Testing */}
+             <TabsContent value="testing" className="space-y-6 text-muted-foreground">
+              <div className="p-4 rounded-lg bg-secondary/20 border border-border">
+                <h3 className="font-semibold text-foreground mb-3">Protokol Testing Integrasi</h3>
+                <ol className="space-y-4 list-decimal list-inside">
+                  <li className="pl-2">
+                    <strong className="text-foreground">Verifikasi Koneksi Dasar:</strong>
+                    <p className="text-sm mt-1 ml-6">
+                      Kirim request sederhana ("Hello") menggunakan CURL atau Postman ke endpoint. Pastikan status 200 OK.
+                    </p>
+                  </li>
+                  <li className="pl-2">
+                    <strong className="text-foreground">Test Invalid Key:</strong>
+                    <p className="text-sm mt-1 ml-6">
+                      Ubah sedikit API Key (misal tambah karakter 'x'). Pastikan mendapat respons 401 Unauthorized.
+                    </p>
+                  </li>
+                  <li className="pl-2">
+                    <strong className="text-foreground">Test Payload Validation:</strong>
+                    <p className="text-sm mt-1 ml-6">
+                      Kirim request tanpa field `model`. Pastikan mendapat respons 400 Bad Request dengan pesan error yang jelas.
+                    </p>
+                  </li>
+                  <li className="pl-2">
+                    <strong className="text-foreground">Cek Dashboard Logs:</strong>
+                    <p className="text-sm mt-1 ml-6">
+                      Setiap request n8n harus muncul di menu <strong>Log Aktivitas</strong> One Key Hub. Verifikasi token usage dan response time.
+                    </p>
+                  </li>
+                </ol>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <FileJson className="w-4 h-4 text-blue-500" />
-                    Copy-Paste Node JSON
-                  </h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-2"
-                    onClick={() => copyToClipboard(n8nNodeJson, 'n8n-json')}
-                  >
-                    {copiedId === 'n8n-json' ? (
-                      <Check className="w-3 h-3 text-green-500" />
-                    ) : (
-                      <Copy className="w-3 h-3" />
-                    )}
-                    {copiedId === 'n8n-json' ? 'Disalin!' : 'Salin JSON'}
-                  </Button>
-                </div>
-                <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950">
-                  <pre className="p-4 text-xs font-mono text-slate-50 overflow-auto h-[180px]">
-                    {n8nNodeJson}
-                  </pre>
-                  <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-20px_20px_-10px_rgba(0,0,0,0.5)]" />
-                </div>
-                <p className="text-xs">
-                  *Salin JSON di atas dan paste langsung (Ctrl+V) ke canvas n8n untuk membuat node otomatis.
-                </p>
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <h4 className="font-semibold text-blue-500 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Troubleshooting Umum
+                </h4>
+                <ul className="space-y-2 text-sm text-foreground">
+                  <li>• <strong>Connection Refused:</strong> Pastikan One Key Hub berjalan dan port terekspos jika n8n ada di server berbeda.</li>
+                  <li>• <strong>Timeout:</strong> Model AI mungkin sedang lambat. Naikkan timeout di n8n node settings (default biasanya 30s).</li>
+                  <li>• <strong>Empty Response:</strong> Cek apakah format response n8n diset ke JSON dan tidak di-parse ganda.</li>
+                </ul>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </motion.section>
 
       </div>
