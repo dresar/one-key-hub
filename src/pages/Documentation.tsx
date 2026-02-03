@@ -1,8 +1,45 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight } from 'lucide-react';
+import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson } from 'lucide-react';
+import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
+import { Button } from '@/components/ui/button';
 
 export default function Documentation() {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success('Disalin ke clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const n8nNodeJson = JSON.stringify([
+    {
+      "id": "onekey-request",
+      "name": "One Key Hub Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 340],
+      "parameters": {
+        "method": "POST",
+        "url": "https://one.apprentice.cyou/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "gemini-1.5-flash" },
+            { "name": "messages", "value": "[{\"role\": \"user\", \"content\": \"Halo!\"}]" }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ], null, 2);
+
   return (
     <div className="min-h-screen">
       <AppHeader title="Dokumentasi" subtitle="Panduan penggunaan One Key" />
