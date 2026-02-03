@@ -170,13 +170,15 @@ export default function ApiKeys() {
 
   useEffect(() => {
     fetchProviders();
-    // Start shuffle effect
+    triggerShuffle();
+  }, []);
+
+  const triggerShuffle = () => {
     setIsShuffling(true);
-    const timer = setTimeout(() => {
+    setTimeout(() => {
         setIsShuffling(false);
     }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+  };
 
   useEffect(() => {
     if (selectedProviderId) {
@@ -733,6 +735,15 @@ export default function ApiKeys() {
               Import
             </Button>
             
+            <Button
+              variant="outline"
+              onClick={triggerShuffle}
+              disabled={isShuffling || apiKeys.length === 0}
+            >
+              <PlayCircle className={`w-4 h-4 mr-2 ${isShuffling ? 'animate-spin' : ''}`} />
+              Acak
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={apiKeys.length === 0}>
