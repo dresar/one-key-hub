@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Plus, Copy, Check, Loader2, Activity, Server, KeyRound, PlayCircle, AlertCircle, MessageSquare, Clock } from 'lucide-react';
+import { Link2, Plus, Copy, Check, Loader2, Activity, Server, KeyRound, PlayCircle, AlertCircle, MessageSquare, Clock, Trash2 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import api from '@/services/api';
+import api, { API_URL, SOCKET_URL } from '@/services/api';
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -86,7 +86,7 @@ export default function UnifiedApi() {
   useEffect(() => {
     fetchData();
 
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
     
     socket.on('connect', () => {
       console.log('Connected to socket server for unified keys');
@@ -194,7 +194,7 @@ export default function UnifiedApi() {
 
     try {
         // Use direct axios call to avoid auth interceptor (we use the unified key)
-        const response = await axios.post('http://localhost:3000/api/v1/chat/completions', {
+        const response = await axios.post(`${API_URL}/v1/chat/completions`, {
             model: selectedTestModelId,
             messages: [{ role: 'user', content: testPrompt }]
         }, {
@@ -243,7 +243,18 @@ export default function UnifiedApi() {
 
   const copyToClipboard = async (key: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(key);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(key);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = key;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setCopiedId(id);
       toast.success('API Key disalin ke clipboard');
       setTimeout(() => setCopiedId(null), 2000);
@@ -253,7 +264,7 @@ export default function UnifiedApi() {
   };
 
   const getEndpointUrl = () => {
-    return `${window.location.origin}/api/v1/chat/completions`;
+    return `${API_URL}/v1/chat/completions`;
   };
 
   const formatDate = (dateString: string | null) => {
@@ -270,6 +281,18 @@ export default function UnifiedApi() {
       if (hours < 24) return `${hours} jam yang lalu`;
       
       return date.toLocaleDateString();
+  };
+
+  const handleDeleteKey = async (key: UnifiedKey) => {
+    if (!window.confirm('Yakin ingin menghapus Unified API Key ini?')) return;
+    try {
+      await api.delete(`/unified/keys/${key.id}`);
+      toast.success('Unified API Key berhasil dihapus');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting unified key:', error);
+      toast.error('Gagal menghapus Unified API Key');
+    }
   };
 
   return (
@@ -467,6 +490,14 @@ export default function UnifiedApi() {
                         ) : (
                         <Copy className="w-4 h-4" />
                         )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteKey(key)}
+                        title="Hapus Key"
+                    >
+                        <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
                 </motion.div>

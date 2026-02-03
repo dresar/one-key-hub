@@ -7,7 +7,7 @@ import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import UsageChart from '@/components/UsageChart';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -43,7 +43,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
 
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
     
     socket.on('logs:insert', () => fetchDashboardData());
     socket.on('providers:update', () => fetchDashboardData());

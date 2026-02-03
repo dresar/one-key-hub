@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { toast } from 'sonner';
 import { io } from 'socket.io-client';
 
@@ -59,8 +59,7 @@ export default function Providers() {
   useEffect(() => {
     fetchProviders();
 
-    // Socket.io Realtime
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
     socket.on('providers:update', fetchProviders);
 
     return () => {
@@ -128,41 +127,26 @@ export default function Providers() {
       let providerId = selectedProvider?.id;
 
       if (selectedProvider) {
-        // Update Provider
         await api.put(`/providers/${selectedProvider.id}`, {
           name: formData.name,
           base_url: formData.base_url,
           is_active: formData.is_active,
+          models: formData.models,
         });
 
         toast.success('Provider berhasil diperbarui');
       } else {
-        // Create Provider
         const { data } = await api.post('/providers', {
-            name: formData.name,
-            base_url: formData.base_url,
-            is_active: formData.is_active,
+          name: formData.name,
+          base_url: formData.base_url,
+          is_active: formData.is_active,
+          models: formData.models,
         });
         providerId = data.id;
 
         toast.success('Provider berhasil ditambahkan');
       }
 
-      // Handle Models - Not yet fully supported by backend in one go, but let's assume we implement it or skip for now.
-      // Wait, I didn't implement model update in backend explicitly in `createProvider` but `dataController` only has basic CRUD.
-      // However, the previous logic did separate model inserts. 
-      // I should replicate that logic using `api` calls or update backend to handle it.
-      // For now, let's keep it simple: Models update is not yet migrated in my backend controller.
-      // Wait, I implemented `getProviderModels` but not `create/update` for models specifically in `dataController`.
-      // I need to fix `dataController.js` to handle models or add endpoints for models.
-      // But the user didn't ask me to fix that detail yet, just "Replace Supabase".
-      // I'll skip model update logic for a second to fix backend controller first or just do it.
-      
-      // Actually, I should probably add `updateProviderModels` endpoint or similar.
-      // But to be fast, I can just fetch current models and delete/insert via `api` if I had endpoints.
-      // I don't have endpoints for models CRUD yet in `api.js`.
-      // Let's assume I will fix backend later. For now, just Provider CRUD works.
-      
       setIsModalOpen(false);
       fetchProviders();
     } catch (error) {

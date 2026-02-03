@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from 'sonner';
+import { SOCKET_URL } from '@/services/api';
 
 interface NotificationConfig {
   enabled?: boolean;
@@ -15,7 +16,7 @@ export function useRealtimeNotifications(config: NotificationConfig = {}) {
   useEffect(() => {
     if (!enabled) return;
 
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
 
     // Listen for new logs (errors)
     socket.on('logs:insert', (log: any) => {

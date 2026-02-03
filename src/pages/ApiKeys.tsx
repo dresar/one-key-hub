@@ -49,7 +49,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { toast } from 'sonner';
 
 interface Provider {
@@ -155,7 +155,7 @@ export default function ApiKeys() {
 
   // Realtime subscription for API key updates
   useEffect(() => {
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
     
     socket.on('apikeys:update', () => {
       if (selectedProviderId) {
@@ -375,6 +375,13 @@ export default function ApiKeys() {
     setSelectedKey(key);
     setChatResponse(null);
     setChatMessage('Hello, are you working?');
+    if (key.provider_models?.model_id) {
+      setSelectedChatModelId(key.provider_models.model_id);
+    } else if (models.length > 0) {
+      setSelectedChatModelId(models[0].model_id);
+    } else {
+      setSelectedChatModelId('');
+    }
     setIsChatModalOpen(true);
   };
 
@@ -388,7 +395,7 @@ export default function ApiKeys() {
       const response = await api.post('/api-keys/test', {
         api_key_id: selectedKey.id,
         provider_id: selectedKey.provider_id,
-        model_id: selectedKey.provider_models?.model_id || 'unknown',
+        model_id: selectedChatModelId || selectedKey.provider_models?.model_id || undefined,
         message: chatMessage
       });
 
@@ -944,7 +951,7 @@ export default function ApiKeys() {
                 </SelectTrigger>
                 <SelectContent>
                   {models.map((model) => (
-                    <SelectItem key={model.model_id} value={model.model_id}>
+                    <SelectItem key={model.id} value={model.id}>
                       {model.name}
                     </SelectItem>
                   ))}

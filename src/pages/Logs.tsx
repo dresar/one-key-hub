@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import api from '@/services/api';
+import api, { SOCKET_URL } from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -29,6 +29,7 @@ interface Log {
   tokens_used: number | null;
   provider_name?: string;
   api_key_name?: string;
+  unified_key_name?: string;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -44,7 +45,7 @@ export default function Logs() {
   useEffect(() => {
     fetchLogs();
 
-    const socket = io('http://localhost:3000');
+    const socket = io(SOCKET_URL);
 
     socket.on('connect', () => {
       console.log('Connected to socket server for logs');
@@ -74,6 +75,7 @@ export default function Logs() {
         ...log,
         provider_name: log.provider?.name,
         api_key_name: log.api_key?.name,
+        unified_key_name: log.unified_key?.name,
       }));
 
       if (page === 0) {
@@ -182,6 +184,7 @@ export default function Logs() {
                 <thead>
                   <tr>
                     <th>Waktu</th>
+                    <th>Unified Key</th>
                     <th>Provider</th>
                     <th>Model</th>
                     <th>Status</th>
@@ -201,6 +204,7 @@ export default function Logs() {
                       <td className="text-sm text-muted-foreground whitespace-nowrap">
                         {format(new Date(log.created_at), 'dd MMM HH:mm:ss', { locale: idLocale })}
                       </td>
+                      <td className="text-sm">{log.unified_key_name || '-'}</td>
                       <td>{log.provider_name || '-'}</td>
                       <td className="font-mono text-sm">{log.model_name || '-'}</td>
                       <td>
