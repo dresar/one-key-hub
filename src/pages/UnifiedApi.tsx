@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link2, Plus, Copy, Check, Loader2, Activity, Server, KeyRound } from 'lucide-react';
+import { Link2, Plus, Copy, Check, Loader2, Activity, Server, KeyRound, PlayCircle, AlertCircle, MessageSquare, Clock } from 'lucide-react';
+import { io } from 'socket.io-client';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +16,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import api from '@/services/api';
+import axios from 'axios';
 import { toast } from 'sonner';
 
 interface UnifiedKey {
@@ -23,6 +33,8 @@ interface UnifiedKey {
   name: string | null;
   is_active: boolean;
   total_requests: number;
+  failed_requests: number;
+  last_used_at: string | null;
   created_at: string;
 }
 
@@ -30,6 +42,17 @@ interface UsageStats {
   totalProviders: number;
   totalActiveKeys: number;
   totalRequests: number;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+}
+
+interface ProviderModel {
+  id: string;
+  name: string;
+  model_id: string;
 }
 
 export default function UnifiedApi() {
@@ -40,57 +63,55 @@ export default function UnifiedApi() {
     totalRequests: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [keyName, setKeyName] = useState('');
+
+  // Test Modal State
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+  const [testKey, setTestKey] = useState<UnifiedKey | null>(null);
+  const [testProviders, setTestProviders] = useState<Provider[]>([]);
+  const [testModels, setTestModels] = useState<ProviderModel[]>([]);
+  const [selectedTestProviderId, setSelectedTestProviderId] = useState<string>('');
+  const [selectedTestModelId, setSelectedTestModelId] = useState<string>('');
+  const [testPrompt, setTestPrompt] = useState('Hello, tell me a joke.');
+  const [testResponse, setTestResponse] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
 
-    const channel = supabase
-      .channel('unified-keys-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'unified_api_keys' },
-        () => fetchData()
-      )
-      .subscribe();
+    const socket = io('http://localhost:3000');
+    
+    socket.on('connect', () => {
+      console.log('Connected to socket server for unified keys');
+    });
+
+    socket.on('unified-keys:update', () => fetchData());
+    
+    // Also listen for provider updates to update stats
+    socket.on('providers:update', () => fetchData());
 
     return () => {
-      supabase.removeChannel(channel);
+      socket.disconnect();
     };
   }, []);
 
   const fetchData = async () => {
     try {
       // Fetch unified keys
-      const { data: keys, error: keysError } = await supabase
-        .from('unified_api_keys')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (keysError) throw keysError;
-      setUnifiedKeys(keys || []);
+      const keysResponse = await api.get('/unified/keys');
+      setUnifiedKeys(keysResponse.data || []);
 
       // Fetch usage stats
-      const { count: providersCount } = await supabase
-        .from('providers')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      const { count: activeKeysCount } = await supabase
-        .from('provider_api_keys')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      const totalRequests = (keys || []).reduce((sum, key) => sum + key.total_requests, 0);
-
-      setUsageStats({
-        totalProviders: providersCount || 0,
-        totalActiveKeys: activeKeysCount || 0,
-        totalRequests,
-      });
+      const statsResponse = await api.get('/unified/stats');
+      setUsageStats(statsResponse.data);
+      
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -98,37 +119,125 @@ export default function UnifiedApi() {
     }
   };
 
-  const generateKey = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = 'ok_';
-    for (let i = 0; i < 32; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
   const handleGenerateKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const newKey = generateKey();
-      const { error } = await supabase
-        .from('unified_api_keys')
-        .insert({
-          api_key: newKey,
-          name: keyName || null,
-        });
+      const response = await api.post('/unified/keys', {
+        name: keyName || null,
+      });
 
-      if (error) throw error;
       toast.success('Unified API Key berhasil dibuat');
       setIsModalOpen(false);
       setKeyName('');
+      fetchData(); // Refresh list
+      
+      // Open Test Modal immediately
+      openTestModal(response.data);
+
     } catch (error) {
       console.error('Error generating key:', error);
       toast.error('Gagal membuat API Key');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openTestModal = async (key: UnifiedKey) => {
+    setTestKey(key);
+    setTestResponse(null);
+    setTestError(null);
+    setIsTestModalOpen(true);
+    
+    // Fetch Providers for testing selection
+    try {
+        const { data } = await api.get('/providers');
+        const activeProviders = (data || []).filter((p: any) => p.is_active);
+        setTestProviders(activeProviders);
+        
+        // Auto select first provider if available
+        if (activeProviders.length > 0) {
+            setSelectedTestProviderId(activeProviders[0].id);
+        }
+    } catch (e) {
+        console.error("Failed to fetch providers for test", e);
+    }
+  };
+
+  // Fetch models when provider changes
+  useEffect(() => {
+    if (selectedTestProviderId && isTestModalOpen) {
+        const fetchModels = async () => {
+            try {
+                const { data } = await api.get(`/providers/${selectedTestProviderId}/models`);
+                setTestModels(data || []);
+                if (data && data.length > 0) {
+                    setSelectedTestModelId(data[0].model_id);
+                } else {
+                    setSelectedTestModelId('');
+                }
+            } catch (e) {
+                console.error("Failed to fetch models", e);
+            }
+        };
+        fetchModels();
+    }
+  }, [selectedTestProviderId, isTestModalOpen]);
+
+  const handleRunTest = async () => {
+    if (!testKey || !selectedTestModelId || !testPrompt.trim()) return;
+
+    setIsTesting(true);
+    setTestResponse(null);
+    setTestError(null);
+
+    try {
+        // Use direct axios call to avoid auth interceptor (we use the unified key)
+        const response = await axios.post('http://localhost:3000/api/v1/chat/completions', {
+            model: selectedTestModelId,
+            messages: [{ role: 'user', content: testPrompt }]
+        }, {
+            headers: {
+                'Authorization': `Bearer ${testKey.api_key}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 30000 // 30s timeout
+        });
+
+        // Format response
+        const content = response.data.choices?.[0]?.message?.content || JSON.stringify(response.data, null, 2);
+        setTestResponse(content);
+        toast.success('Test berhasil!');
+
+    } catch (error: any) {
+        console.error('Test failed:', error);
+        let errorMessage = "Terjadi kesalahan saat pengujian.";
+        
+        if (error.response) {
+            // Server responded with error
+            const status = error.response.status;
+            const data = error.response.data;
+            
+            if (status === 401 || status === 403) errorMessage = data?.error || "Token tidak valid.";
+            else if (status === 429) errorMessage = "Rate limit terlampaui. Coba lagi nanti.";
+            else if (status === 503) errorMessage = data?.error || "Layanan atau Model tidak tersedia.";
+            else if (status === 502) {
+                // Gateway Error (All providers failed)
+                errorMessage = data?.error || "Terjadi kesalahan pada semua provider.";
+            }
+            else if (data && data.error) errorMessage = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+        } else if (error.request) {
+            // No response received
+            errorMessage = "Tidak ada respon dari server. Periksa koneksi atau provider.";
+        } else {
+            errorMessage = error.message;
+        }
+
+        setTestError(errorMessage);
+        toast.error('Test Gagal');
+    } finally {
+        setIsTesting(false);
     }
   };
 
@@ -144,7 +253,23 @@ export default function UnifiedApi() {
   };
 
   const getEndpointUrl = () => {
-    return `${window.location.origin}/api/unified/chat`;
+    return `${window.location.origin}/api/v1/chat/completions`;
+  };
+
+  const formatDate = (dateString: string | null) => {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      // Simple relative time format
+      const diff = Date.now() - date.getTime();
+      const minutes = Math.floor(diff / 60000);
+      
+      if (minutes < 1) return 'Baru saja';
+      if (minutes < 60) return `${minutes} menit yang lalu`;
+      
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} jam yang lalu`;
+      
+      return date.toLocaleDateString();
   };
 
   return (
@@ -293,7 +418,7 @@ export default function UnifiedApi() {
                   transition={{ delay: index * 0.05 }}
                   className="px-6 py-4 flex items-center justify-between hover:bg-secondary/20 transition-colors"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <code className="font-mono text-sm">{key.api_key}</code>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
@@ -302,23 +427,48 @@ export default function UnifiedApi() {
                         {key.is_active ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      {key.name && <span>{key.name}</span>}
-                      <span>{key.total_requests} request</span>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      {key.name && <span className="font-medium text-foreground">{key.name}</span>}
+                      
+                      <span className="flex items-center gap-1.5" title="Total Request">
+                        <Activity className="w-3.5 h-3.5" />
+                        {key.total_requests}
+                      </span>
+
+                      <span className="flex items-center gap-1.5 text-destructive" title="Gagal">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {key.failed_requests || 0}
+                      </span>
+
+                      <span className="flex items-center gap-1.5" title="Terakhir Digunakan">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatDate(key.last_used_at)}
+                      </span>
                     </div>
                   </div>
                   
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(key.api_key, key.id)}
-                  >
-                    {copiedId === key.id ? (
-                      <Check className="w-4 h-4 text-success" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openTestModal(key)}
+                        title="Test Key"
+                    >
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(key.api_key, key.id)}
+                        title="Salin Key"
+                    >
+                        {copiedId === key.id ? (
+                        <Check className="w-4 h-4 text-success" />
+                        ) : (
+                        <Copy className="w-4 h-4" />
+                        )}
+                    </Button>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -364,6 +514,99 @@ export default function UnifiedApi() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Modal */}
+      <Dialog open={isTestModalOpen} onOpenChange={setIsTestModalOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Test Unified API Key</DialogTitle>
+            <DialogDescription>
+              Uji coba API Key langsung dengan memilih provider dan model.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select value={selectedTestProviderId} onValueChange={setSelectedTestProviderId}>
+                  <SelectTrigger className="bg-secondary/50">
+                    <SelectValue placeholder="Pilih Provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {testProviders.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Model</Label>
+                <Select value={selectedTestModelId} onValueChange={setSelectedTestModelId} disabled={!selectedTestProviderId}>
+                  <SelectTrigger className="bg-secondary/50">
+                    <SelectValue placeholder={testModels.length === 0 ? "Tidak ada model" : "Pilih Model"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {testModels.map(m => (
+                      <SelectItem key={m.model_id} value={m.model_id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Prompt Test</Label>
+                <Textarea 
+                    value={testPrompt}
+                    onChange={(e) => setTestPrompt(e.target.value)}
+                    placeholder="Masukkan pesan untuk ditest..."
+                    className="min-h-[100px] bg-secondary/50 font-mono text-sm"
+                />
+            </div>
+
+            {testError && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-sm text-destructive">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{testError}</span>
+                </div>
+            )}
+
+            {testResponse && (
+                <div className="space-y-2">
+                    <Label>Response</Label>
+                    <div className="p-3 bg-secondary/30 rounded-lg border border-border max-h-[200px] overflow-y-auto">
+                        <pre className="text-xs font-mono whitespace-pre-wrap">{testResponse}</pre>
+                    </div>
+                </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsTestModalOpen(false)}>
+              Tutup
+            </Button>
+            <Button 
+                onClick={handleRunTest} 
+                disabled={isTesting || !selectedTestModelId || !testPrompt.trim()} 
+                className="bg-primary hover:bg-primary/90"
+            >
+              {isTesting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Test API Key
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

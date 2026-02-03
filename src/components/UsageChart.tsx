@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import api from '@/services/api';
 import { format, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -36,27 +36,13 @@ export default function UsageChart() {
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('analytics', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        body: null,
+      const { data: result } = await api.get('/analytics', {
+        params: { period }
       });
-
-      // Use query params approach instead
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analytics?period=${period}`,
-        {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        const json = await response.json();
-        setData(json.data || []);
-        setSummary(json.summary || null);
+      
+      if (result) {
+        setData(result.data || []);
+        setSummary(result.summary || null);
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -80,7 +66,7 @@ export default function UsageChart() {
           <p className="font-medium mb-2">{formatDate(label)}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toLocaleString()}
+              {entry.name}: {entry.value?.toLocaleString() ?? 0}
             </p>
           ))}
         </div>
@@ -126,19 +112,19 @@ export default function UsageChart() {
       {summary && (
         <div className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-border">
           <div className="text-center">
-            <p className="text-2xl font-bold text-primary">{summary.total_requests.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-primary">{summary.total_requests?.toLocaleString() ?? 0}</p>
             <p className="text-xs text-muted-foreground">Total Request</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-success">{summary.success_requests.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-success">{summary.success_requests?.toLocaleString() ?? 0}</p>
             <p className="text-xs text-muted-foreground">Berhasil</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-destructive">{summary.error_requests.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-destructive">{summary.error_requests?.toLocaleString() ?? 0}</p>
             <p className="text-xs text-muted-foreground">Gagal</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-accent-foreground">{summary.success_rate}%</p>
+            <p className="text-2xl font-bold text-accent-foreground">{summary.success_rate ?? 0}%</p>
             <p className="text-xs text-muted-foreground">Success Rate</p>
           </div>
         </div>

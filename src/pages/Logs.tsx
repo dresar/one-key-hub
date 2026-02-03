@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollText, Filter, Loader2, RefreshCw } from 'lucide-react';
+import { io } from 'socket.io-client';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import api from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -43,52 +44,36 @@ export default function Logs() {
   useEffect(() => {
     fetchLogs();
 
-    const channel = supabase
-      .channel('logs-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'api_usage_logs' },
-        () => fetchLogs()
-      )
-      .subscribe();
+    const socket = io('http://localhost:3000');
+
+    socket.on('connect', () => {
+      console.log('Connected to socket server for logs');
+    });
+
+    socket.on('logs:insert', (newLog: Log) => {
+      setLogs(prev => [newLog, ...prev]);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      socket.disconnect();
     };
   }, [statusFilter, page]);
 
   const fetchLogs = async () => {
     try {
-      let query = supabase
-        .from('api_usage_logs')
-        .select(`
-          id,
-          created_at,
-          model_name,
-          request_path,
-          status,
-          status_code,
-          error_message,
-          response_time_ms,
-          tokens_used,
-          providers (name),
-          provider_api_keys (name)
-        `)
-        .order('created_at', { ascending: false })
-        .range(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE - 1);
+      const params: any = {
+        page: page + 1, // API usually 1-based
+        limit: ITEMS_PER_PAGE,
+        status: statusFilter !== 'all' ? statusFilter : undefined
+      };
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const response = await api.get('/logs', { params });
+      const { data, total } = response.data; // Assuming API returns { data: [], total: number }
 
       const formattedLogs = (data || []).map((log: any) => ({
         ...log,
-        provider_name: log.providers?.name,
-        api_key_name: log.provider_api_keys?.name,
+        provider_name: log.provider?.name,
+        api_key_name: log.api_key?.name,
       }));
 
       if (page === 0) {

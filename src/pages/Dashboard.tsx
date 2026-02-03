@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Server, KeyRound, Activity, AlertTriangle, TrendingUp } from 'lucide-react';
+import { io } from 'socket.io-client';
 import AppHeader from '@/components/AppHeader';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import UsageChart from '@/components/UsageChart';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { supabase } from '@/integrations/supabase/client';
+import api from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -42,75 +43,30 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
 
-    // Subscribe to realtime updates
-    const logsChannel = supabase
-      .channel('dashboard-logs')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'api_usage_logs' },
-        () => {
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
+    const socket = io('http://localhost:3000');
+    
+    socket.on('logs:insert', () => fetchDashboardData());
+    socket.on('providers:update', () => fetchDashboardData());
+    socket.on('apikeys:update', () => fetchDashboardData());
 
     return () => {
-      supabase.removeChannel(logsChannel);
+      socket.disconnect();
     };
   }, []);
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch providers count
-      const { count: providersCount } = await supabase
-        .from('providers')
-        .select('*', { count: 'exact', head: true });
+      const [statsRes, logsRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/logs', { params: { limit: 10 } })
+      ]);
 
-      // Fetch active API keys count
-      const { count: activeKeysCount } = await supabase
-        .from('provider_api_keys')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      // Fetch today's requests
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { count: requestsCount } = await supabase
-        .from('api_usage_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString());
-
-      // Fetch failed keys count
-      const { count: failedCount } = await supabase
-        .from('provider_api_keys')
-        .select('*', { count: 'exact', head: true })
-        .gt('failed_requests', 0);
-
-      // Fetch recent logs with provider info
-      const { data: logs } = await supabase
-        .from('api_usage_logs')
-        .select(`
-          id,
-          created_at,
-          model_name,
-          status,
-          status_code,
-          providers (name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      setStats({
-        totalProviders: providersCount || 0,
-        totalActiveKeys: activeKeysCount || 0,
-        requestsToday: requestsCount || 0,
-        failedKeys: failedCount || 0,
-      });
+      setStats(statsRes.data);
 
       setRecentLogs(
-        (logs || []).map((log: any) => ({
+        (logsRes.data.data || []).map((log: any) => ({
           ...log,
-          provider_name: log.providers?.name,
+          provider_name: log.provider?.name,
         }))
       );
     } catch (error) {

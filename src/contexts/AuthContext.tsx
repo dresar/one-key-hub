@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import bcrypt from 'bcryptjs';
+import api from '@/services/api';
 
 interface User {
   id: string;
@@ -17,68 +16,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SESSION_KEY = 'onekey_session';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const session = localStorage.getItem(SESSION_KEY);
-    if (session) {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
       try {
-        const userData = JSON.parse(session);
-        setUser(userData);
-      } catch {
-        localStorage.removeItem(SESSION_KEY);
+        const { data } = await api.get('/auth/me');
+        setUser(data.user);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
       }
     }
     setIsLoading(false);
-  }, []);
+  };
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
+      const { data } = await api.post('/auth/login', { username, password });
       
-      // Query the users table
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('id, username, password_hash')
-        .eq('username', username)
-        .limit(1);
-
-      if (error) {
-        console.error('Login query error:', error);
-        return { success: false, error: 'Terjadi kesalahan saat login' };
-      }
-
-      if (!users || users.length === 0) {
-        return { success: false, error: 'Username tidak ditemukan' };
-      }
-
-      const dbUser = users[0];
-      
-      // Verify password
-      const isValidPassword = await bcrypt.compare(password, dbUser.password_hash);
-      
-      if (!isValidPassword) {
-        return { success: false, error: 'Password salah' };
-      }
-
-      // Set user session
-      const userData: User = {
-        id: dbUser.id,
-        username: dbUser.username,
-      };
-
-      setUser(userData);
-      localStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      setUser(data.user);
       
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      return { success: false, error: 'Terjadi kesalahan saat login' };
+      return { success: false, error: err.response?.data?.error || 'Login failed' };
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   };
 
   return (
