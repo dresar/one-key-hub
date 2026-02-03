@@ -243,6 +243,88 @@ export default function Documentation() {
             </p>
           </div>
         </motion.section>
+        {/* n8n Integration */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="glass rounded-xl p-6"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+              <Workflow className="w-5 h-5 text-pink-500" />
+            </div>
+            <h2 className="text-xl font-bold">Integrasi n8n</h2>
+          </div>
+          
+          <div className="space-y-6 text-muted-foreground">
+            <p className="leading-relaxed">
+              Gunakan One Key Hub langsung di dalam workflow automation Anda. 
+              Berikut adalah konfigurasi node HTTP Request yang siap pakai.
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-secondary/30 space-y-3">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    Konfigurasi Cepat
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Method</span>
+                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">POST</code>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>URL</span>
+                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground text-xs">https://one.apprentice.cyou/api/v1...</code>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Auth Type</span>
+                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Header Auth</code>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Header</span>
+                      <code className="bg-secondary px-2 py-0.5 rounded text-foreground">Authorization: Bearer sk-...</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <FileJson className="w-4 h-4 text-blue-500" />
+                    Copy-Paste Node JSON
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-2"
+                    onClick={() => copyToClipboard(n8nNodeJson, 'n8n-json')}
+                  >
+                    {copiedId === 'n8n-json' ? (
+                      <Check className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    {copiedId === 'n8n-json' ? 'Disalin!' : 'Salin JSON'}
+                  </Button>
+                </div>
+                <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950">
+                  <pre className="p-4 text-xs font-mono text-slate-50 overflow-auto h-[180px]">
+                    {n8nNodeJson}
+                  </pre>
+                  <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-20px_20px_-10px_rgba(0,0,0,0.5)]" />
+                </div>
+                <p className="text-xs">
+                  *Salin JSON di atas dan paste langsung (Ctrl+V) ke canvas n8n untuk membuat node otomatis.
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
       </div>
     </div>
   );
