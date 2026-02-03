@@ -173,11 +173,37 @@ export default function ApiKeys() {
     triggerShuffle();
   }, []);
 
-  const triggerShuffle = () => {
+  const triggerShuffle = async () => {
+    if (apiKeys.length <= 1) return;
+    
     setIsShuffling(true);
-    setTimeout(() => {
-        setIsShuffling(false);
-    }, 3000);
+    
+    // Fisher-Yates shuffle
+    const shuffled = [...apiKeys];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    setApiKeys(shuffled);
+
+    try {
+        const updates = shuffled.map((key, index) => ({
+            id: key.id,
+            priority: shuffled.length - index,
+        }));
+        
+        await api.post('/api-keys/reorder', { updates });
+        toast.success('Urutan API Key berhasil diacak');
+    } catch (error) {
+        console.error('Error shuffling:', error);
+        toast.error('Gagal mengacak urutan');
+        fetchApiKeys(); // Revert on error
+    } finally {
+        setTimeout(() => {
+            setIsShuffling(false);
+        }, 1000);
+    }
   };
 
   useEffect(() => {
