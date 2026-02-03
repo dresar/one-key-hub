@@ -477,9 +477,14 @@ export default function ApiKeys() {
       setIsModalOpen(false);
       fetchApiKeys();
       fetchModels();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving API key:', error);
-      toast.error('Gagal menyimpan API Key');
+      // Handle conflict error specifically
+      if (error.response?.status === 409) {
+        toast.error(error.response.data.error || 'API Key sudah terdaftar (duplikat)');
+      } else {
+        toast.error('Gagal menyimpan API Key');
+      }
     } finally {
       setIsSubmitting(false);
     }
