@@ -52,6 +52,31 @@ import {
 import api, { SOCKET_URL } from '@/services/api';
 import { toast } from 'sonner';
 
+const ShuffleText = ({ text, isShuffling }: { text: string, isShuffling: boolean }) => {
+  const [displayText, setDisplayText] = useState('');
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  useEffect(() => {
+    if (!isShuffling) {
+      setDisplayText(text.length <= 8 ? '••••••••' : text.slice(0, 4) + '••••••••' + text.slice(-4));
+      return;
+    }
+
+    const interval = setInterval(() => {
+      let shuffled = '';
+      const len = Math.min(text.length, 16); 
+      for (let i = 0; i < len; i++) {
+        shuffled += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setDisplayText(shuffled);
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [isShuffling, text]);
+
+  return <span className="font-mono text-sm">{displayText}</span>;
+};
+
 interface Provider {
   id: string;
   name: string;
@@ -134,6 +159,7 @@ export default function ApiKeys() {
   const [testingKeys, setTestingKeys] = useState<Set<string>>(new Set());
   const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isShuffling, setIsShuffling] = useState(true);
 
   const [formData, setFormData] = useState({
     api_key: '',
@@ -144,6 +170,12 @@ export default function ApiKeys() {
 
   useEffect(() => {
     fetchProviders();
+    // Start shuffle effect
+    setIsShuffling(true);
+    const timer = setTimeout(() => {
+        setIsShuffling(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -823,7 +855,7 @@ export default function ApiKeys() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-mono text-sm">{maskApiKey(key.api_key)}</span>
+                        <ShuffleText text={key.api_key} isShuffling={isShuffling} />
                         {getStatusIndicator(key.id, key)}
                         {key.failed_requests > 0 && (
                           <span className="status-warning px-2 py-0.5 rounded-full text-xs border">
