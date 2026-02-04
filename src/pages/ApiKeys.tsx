@@ -440,6 +440,14 @@ export default function ApiKeys() {
         // Update key status to active on success
         if (selectedKey) {
             setKeyStatuses(prev => ({ ...prev, [selectedKey.id]: 'active' }));
+            
+            // Move to top on success
+            try {
+                await api.put(`/api-keys/${selectedKey.id}/primary`);
+                fetchApiKeys();
+            } catch (err) {
+                console.error('Failed to update priority on success:', err);
+            }
         }
       } else {
         // Handle error response from backend
