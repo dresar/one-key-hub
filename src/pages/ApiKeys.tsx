@@ -132,7 +132,6 @@ export default function ApiKeys() {
   const [testingKeys, setTestingKeys] = useState<Set<string>>(new Set());
   const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isShuffling, setIsShuffling] = useState(false);
 
   const [formData, setFormData] = useState({
     api_key: '',
@@ -149,8 +148,6 @@ export default function ApiKeys() {
   const triggerShuffle = async () => {
     if (apiKeys.length <= 1) return;
     
-    setIsShuffling(true);
-
     // Single definitive shuffle
     const shuffled = [...apiKeys];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -173,11 +170,6 @@ export default function ApiKeys() {
         console.error('Error shuffling:', error);
         toast.error('Gagal mengacak urutan');
         fetchApiKeys(); // Revert on error
-    } finally {
-        // Short delay to let the animation finish visually before stopping the text effect
-        setTimeout(() => {
-            setIsShuffling(false);
-        }, 500);
     }
   };
 
@@ -747,9 +739,9 @@ export default function ApiKeys() {
             <Button
               variant="outline"
               onClick={triggerShuffle}
-              disabled={isShuffling || apiKeys.length === 0}
+              disabled={apiKeys.length === 0}
             >
-              <PlayCircle className={`w-4 h-4 mr-2 ${isShuffling ? 'animate-spin' : ''}`} />
+              <PlayCircle className="w-4 h-4 mr-2" />
               Acak
             </Button>
 
@@ -840,15 +832,10 @@ export default function ApiKeys() {
             </div>
 
             <Reorder.Group values={apiKeys} onReorder={handleReorder} className="space-y-3">
-            <AnimatePresence>
               {apiKeys.map((key, index) => (
                 <Reorder.Item
                   key={key.id}
                   value={key}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.03 }}
                   className="glass rounded-xl p-4 cursor-grab active:cursor-grabbing"
                 >
                   <div className="flex items-center gap-4">
@@ -960,8 +947,7 @@ export default function ApiKeys() {
                   </div>
                 </Reorder.Item>
               ))}
-            </AnimatePresence>
-          </Reorder.Group>
+            </Reorder.Group>
           </>
         )}
       </div>
