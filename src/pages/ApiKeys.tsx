@@ -132,6 +132,7 @@ export default function ApiKeys() {
   const [testingKeys, setTestingKeys] = useState<Set<string>>(new Set());
   const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isShuffling, setIsShuffling] = useState(false);
 
   const [formData, setFormData] = useState({
     api_key: '',
@@ -146,8 +147,10 @@ export default function ApiKeys() {
   }, []);
 
   const triggerShuffle = async () => {
-    if (apiKeys.length <= 1) return;
+    if (apiKeys.length <= 1 || isShuffling) return;
     
+    setIsShuffling(true);
+
     // Single definitive shuffle
     const shuffled = [...apiKeys];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -155,7 +158,7 @@ export default function ApiKeys() {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     
-    // Update state once - Framer Motion will handle the visual reordering animation
+    // Update state once
     setApiKeys(shuffled);
 
     try {
@@ -170,6 +173,8 @@ export default function ApiKeys() {
         console.error('Error shuffling:', error);
         toast.error('Gagal mengacak urutan');
         fetchApiKeys(); // Revert on error
+    } finally {
+        setIsShuffling(false);
     }
   };
 
@@ -739,10 +744,10 @@ export default function ApiKeys() {
             <Button
               variant="outline"
               onClick={triggerShuffle}
-              disabled={apiKeys.length === 0}
+              disabled={apiKeys.length === 0 || isShuffling}
             >
-              <PlayCircle className="w-4 h-4 mr-2" />
-              Acak
+              <PlayCircle className={`w-4 h-4 mr-2 ${isShuffling ? 'animate-spin' : ''}`} />
+              {isShuffling ? 'Mengacak...' : 'Acak'}
             </Button>
 
             <DropdownMenu>
