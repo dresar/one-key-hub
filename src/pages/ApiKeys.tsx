@@ -177,33 +177,53 @@ export default function ApiKeys() {
     if (apiKeys.length <= 1) return;
     
     setIsShuffling(true);
-    
-    // Fisher-Yates shuffle
-    const shuffled = [...apiKeys];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    
-    setApiKeys(shuffled);
 
-    try {
-        const updates = shuffled.map((key, index) => ({
-            id: key.id,
-            priority: shuffled.length - index,
-        }));
+    // Visual shuffle loop
+    let iterations = 0;
+    const maxIterations = 15; // Run for about 1.5 seconds
+    
+    const interval = setInterval(async () => {
+        // Random visual shuffle
+        setApiKeys(prev => {
+            const shuffled = [...prev];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        });
+
+        iterations++;
         
-        await api.post('/api-keys/reorder', { updates });
-        toast.success('Urutan API Key berhasil diacak');
-    } catch (error) {
-        console.error('Error shuffling:', error);
-        toast.error('Gagal mengacak urutan');
-        fetchApiKeys(); // Revert on error
-    } finally {
-        setTimeout(() => {
-            setIsShuffling(false);
-        }, 1000);
-    }
+        if (iterations >= maxIterations) {
+            clearInterval(interval);
+            
+            // Final definitive shuffle
+            const finalShuffled = [...apiKeys]; // Use current state as base for final random
+             for (let i = finalShuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [finalShuffled[i], finalShuffled[j]] = [finalShuffled[j], finalShuffled[i]];
+            }
+            
+            setApiKeys(finalShuffled);
+            
+            try {
+                const updates = finalShuffled.map((key, index) => ({
+                    id: key.id,
+                    priority: finalShuffled.length - index,
+                }));
+                
+                await api.post('/api-keys/reorder', { updates });
+                toast.success('Urutan API Key berhasil diacak');
+                setIsShuffling(false); // Stop shuffling immediately after success
+            } catch (error) {
+                console.error('Error shuffling:', error);
+                toast.error('Gagal mengacak urutan');
+                setIsShuffling(false);
+                fetchApiKeys(); // Revert on error
+            }
+        }
+    }, 100);
   };
 
   useEffect(() => {
