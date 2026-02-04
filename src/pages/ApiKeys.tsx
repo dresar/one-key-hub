@@ -52,34 +52,7 @@ import {
 import api, { SOCKET_URL } from '@/services/api';
 import { toast } from 'sonner';
 
-const ShuffleText = ({ text, isShuffling }: { text: string, isShuffling: boolean }) => {
-  const [displayText, setDisplayText] = useState('');
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-  useEffect(() => {
-    if (!isShuffling) {
-      setDisplayText(text.length <= 8 ? '••••••••' : text.slice(0, 4) + '••••••••' + text.slice(-4));
-      return;
-    }
-
-    const interval = setInterval(() => {
-      let shuffled = '';
-      const len = Math.min(text.length, 16); 
-      for (let i = 0; i < len; i++) {
-        shuffled += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      setDisplayText(shuffled);
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [isShuffling, text]);
-
-  return <span className="font-mono text-sm">{displayText}</span>;
-};
-
 interface Provider {
-  id: string;
-  name: string;
 }
 
 interface ProviderModel {
@@ -159,7 +132,7 @@ export default function ApiKeys() {
   const [testingKeys, setTestingKeys] = useState<Set<string>>(new Set());
   const [keyStatuses, setKeyStatuses] = useState<Record<string, KeyStatus>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isShuffling, setIsShuffling] = useState(true);
+  const [isShuffling, setIsShuffling] = useState(false);
 
   const [formData, setFormData] = useState({
     api_key: '',
@@ -170,7 +143,7 @@ export default function ApiKeys() {
 
   useEffect(() => {
     fetchProviders();
-    triggerShuffle();
+    // Removed auto-shuffle on mount to prevent confusion
   }, []);
 
   const triggerShuffle = async () => {
@@ -178,52 +151,34 @@ export default function ApiKeys() {
     
     setIsShuffling(true);
 
-    // Visual shuffle loop
-    let iterations = 0;
-    const maxIterations = 15; // Run for about 1.5 seconds
+    // Single definitive shuffle
+    const shuffled = [...apiKeys];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     
-    const interval = setInterval(async () => {
-        // Random visual shuffle
-        setApiKeys(prev => {
-            const shuffled = [...prev];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        });
+    // Update state once - Framer Motion will handle the visual reordering animation
+    setApiKeys(shuffled);
 
-        iterations++;
+    try {
+        const updates = shuffled.map((key, index) => ({
+            id: key.id,
+            priority: shuffled.length - index,
+        }));
         
-        if (iterations >= maxIterations) {
-            clearInterval(interval);
-            
-            // Final definitive shuffle
-            const finalShuffled = [...apiKeys]; // Use current state as base for final random
-             for (let i = finalShuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [finalShuffled[i], finalShuffled[j]] = [finalShuffled[j], finalShuffled[i]];
-            }
-            
-            setApiKeys(finalShuffled);
-            
-            try {
-                const updates = finalShuffled.map((key, index) => ({
-                    id: key.id,
-                    priority: finalShuffled.length - index,
-                }));
-                
-                await api.post('/api-keys/reorder', { updates });
-                toast.success('Urutan API Key berhasil diacak');
-                setIsShuffling(false); // Stop shuffling immediately after success
-            } catch (error) {
-                console.error('Error shuffling:', error);
-                toast.error('Gagal mengacak urutan');
-                setIsShuffling(false);
-                fetchApiKeys(); // Revert on error
-            }
-        }
-    }, 100);
+        await api.post('/api-keys/reorder', { updates });
+        toast.success('Urutan API Key berhasil diacak');
+    } catch (error) {
+        console.error('Error shuffling:', error);
+        toast.error('Gagal mengacak urutan');
+        fetchApiKeys(); // Revert on error
+    } finally {
+        // Short delay to let the animation finish visually before stopping the text effect
+        setTimeout(() => {
+            setIsShuffling(false);
+        }, 500);
+    }
   };
 
   useEffect(() => {
@@ -912,7 +867,7 @@ export default function ApiKeys() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <ShuffleText text={key.api_key} isShuffling={isShuffling} />
+                        <span className="font-mono text-sm">{maskApiKey(key.api_key)}</span>
                         <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded border border-border/50" title="API Key ID">
                             {key.id.slice(0, 8)}...
                         </span>
