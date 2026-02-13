@@ -147,7 +147,7 @@ export default function ApiKeys() {
   }, []);
 
   const triggerShuffle = async () => {
-    if (apiKeys.length <= 1) return;
+    if (apiKeys.length <= 1 || isShuffling) return;
     
     setIsShuffling(true);
 
@@ -158,7 +158,7 @@ export default function ApiKeys() {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     
-    // Update state once - Framer Motion will handle the visual reordering animation
+    // Update state once
     setApiKeys(shuffled);
 
     try {
@@ -174,10 +174,7 @@ export default function ApiKeys() {
         toast.error('Gagal mengacak urutan');
         fetchApiKeys(); // Revert on error
     } finally {
-        // Short delay to let the animation finish visually before stopping the text effect
-        setTimeout(() => {
-            setIsShuffling(false);
-        }, 500);
+        setIsShuffling(false);
     }
   };
 
@@ -747,10 +744,10 @@ export default function ApiKeys() {
             <Button
               variant="outline"
               onClick={triggerShuffle}
-              disabled={isShuffling || apiKeys.length === 0}
+              disabled={apiKeys.length === 0 || isShuffling}
             >
               <PlayCircle className={`w-4 h-4 mr-2 ${isShuffling ? 'animate-spin' : ''}`} />
-              Acak
+              {isShuffling ? 'Mengacak...' : 'Acak'}
             </Button>
 
             <DropdownMenu>
@@ -840,15 +837,10 @@ export default function ApiKeys() {
             </div>
 
             <Reorder.Group values={apiKeys} onReorder={handleReorder} className="space-y-3">
-            <AnimatePresence>
               {apiKeys.map((key, index) => (
                 <Reorder.Item
                   key={key.id}
                   value={key}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.03 }}
                   className="glass rounded-xl p-4 cursor-grab active:cursor-grabbing"
                 >
                   <div className="flex items-center gap-4">
@@ -960,8 +952,7 @@ export default function ApiKeys() {
                   </div>
                 </Reorder.Item>
               ))}
-            </AnimatePresence>
-          </Reorder.Group>
+            </Reorder.Group>
           </>
         )}
       </div>

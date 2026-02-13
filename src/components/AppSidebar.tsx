@@ -40,7 +40,7 @@ export default function AppSidebar({ isCollapsed, onToggle }: AppSidebarProps) {
       initial={false}
       animate={{ width: isCollapsed ? 72 : 256 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="fixed left-0 top-0 bottom-0 z-40 flex flex-col bg-sidebar border-r border-sidebar-border"
+      className="fixed left-0 top-0 bottom-0 z-40 hidden md:flex flex-col bg-sidebar border-r border-sidebar-border"
     >
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
