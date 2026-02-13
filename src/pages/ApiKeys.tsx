@@ -843,29 +843,29 @@ export default function ApiKeys() {
                   value={key}
                   className="glass rounded-xl p-4 cursor-grab active:cursor-grabbing"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                        <Checkbox 
                         checked={selectedKeyIds.has(key.id)}
                         onCheckedChange={() => toggleSelectKey(key.id)}
                         onClick={(e) => e.stopPropagation()}
                       />
                       <GripVertical className="w-5 h-5 text-muted-foreground shrink-0" />
-                    </div>
-                    
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                      key.priority >= 100 ? 'bg-primary/20' : 'bg-secondary'
-                    }`}>
-                      {key.priority >= 100 ? (
-                        <Star className="w-5 h-5 text-primary fill-primary" />
-                      ) : (
-                        <span className="text-sm font-bold text-muted-foreground">
-                          {index + 1}
-                        </span>
-                      )}
+                      
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ml-auto sm:ml-0 ${
+                        key.priority >= 100 ? 'bg-primary/20' : 'bg-secondary'
+                      }`}>
+                        {key.priority >= 100 ? (
+                          <Star className="w-5 h-5 text-primary fill-primary" />
+                        ) : (
+                          <span className="text-sm font-bold text-muted-foreground">
+                            {index + 1}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 w-full sm:w-auto">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono text-sm">{maskApiKey(key.api_key)}</span>
                         <span className="text-xs font-mono text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded border border-border/50" title="API Key ID">
@@ -878,16 +878,16 @@ export default function ApiKeys() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        {key.name && <span>{key.name}</span>}
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        {key.name && <span className="truncate max-w-[150px]">{key.name}</span>}
                         {key.provider_models && (
-                          <span className="font-mono">{key.provider_models.name}</span>
+                          <span className="font-mono truncate max-w-[150px]">{key.provider_models.name}</span>
                         )}
-                        <span>{key.total_requests} request</span>
+                        <span className="whitespace-nowrap">{key.total_requests} request</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0 mt-2 sm:mt-0 border-border/50">
                       {/* Test Button */}
                       <Tooltip>
                         <TooltipTrigger asChild>

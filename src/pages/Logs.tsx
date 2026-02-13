@@ -131,22 +131,22 @@ export default function Logs() {
     <div className="min-h-screen">
       <AppHeader title="Log Aktivitas" subtitle="Histori request dan monitoring error" />
       
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Input
                 placeholder="Cari log..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-secondary/50 pl-10"
+                className="w-full sm:w-64 bg-secondary/50 pl-10"
               />
               <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             </div>
 
             <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[150px] bg-secondary/50">
+              <SelectTrigger className="w-full sm:w-[150px] bg-secondary/50">
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
               <SelectContent>

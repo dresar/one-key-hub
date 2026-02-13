@@ -135,14 +135,14 @@ export default function ProfileSettings() {
     <div className="min-h-screen">
       <AppHeader title="Profil & Pengaturan" subtitle="Kelola akun dan konfigurasi sistem" />
       
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Column - Profile */}
           <div className="lg:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-xl p-6 h-full"
+              className="glass rounded-xl p-4 md:p-6 h-full"
             >
               <h2 className="font-semibold flex items-center gap-2 mb-6">
                 <User className="w-5 h-5 text-primary" />

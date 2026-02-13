@@ -21,7 +21,7 @@ interface AppSidebarProps {
   onToggle: () => void;
 }
 
-const menuItems = [
+export const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/providers', label: 'Provider AI', icon: Server },
   { path: '/api-keys', label: 'API Key Provider', icon: KeyRound },

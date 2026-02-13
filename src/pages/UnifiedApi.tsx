@@ -299,13 +299,13 @@ export default function UnifiedApi() {
     <div className="min-h-screen">
       <AppHeader title="Unified API" subtitle="Gateway API tunggal untuk semua provider" />
       
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-xl p-5"
+            className="glass rounded-xl p-4 md:p-5"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -322,7 +322,7 @@ export default function UnifiedApi() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="glass rounded-xl p-5"
+            className="glass rounded-xl p-4 md:p-5"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
@@ -339,7 +339,7 @@ export default function UnifiedApi() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="glass rounded-xl p-5"
+            className="glass rounded-xl p-4 md:p-5"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -358,7 +358,7 @@ export default function UnifiedApi() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass rounded-xl p-6"
+          className="glass rounded-xl p-4 md:p-6"
         >
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Link2 className="w-5 h-5 text-primary" />
@@ -439,18 +439,18 @@ export default function UnifiedApi() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="px-6 py-4 flex items-center justify-between hover:bg-secondary/20 transition-colors"
+                  className="px-4 md:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-secondary/20 transition-colors"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <code className="font-mono text-sm">{key.api_key}</code>
+                  <div className="space-y-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <code className="font-mono text-sm break-all">{key.api_key}</code>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
                         key.is_active ? 'status-active' : 'status-inactive'
                       }`}>
                         {key.is_active ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       {key.name && <span className="font-medium text-foreground">{key.name}</span>}
                       
                       <span className="flex items-center gap-1.5" title="Total Request">
@@ -470,7 +470,7 @@ export default function UnifiedApi() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0 mt-2 sm:mt-0 border-border/50">
                     <Button
                         variant="ghost"
                         size="icon"

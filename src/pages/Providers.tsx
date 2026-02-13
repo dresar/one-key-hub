@@ -225,30 +225,30 @@ export default function Providers() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
-                  className="glass rounded-xl p-5 flex items-center justify-between"
+                  className="glass rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                       provider.is_active ? 'bg-primary/10' : 'bg-secondary'
                     }`}>
                       <Server className={`w-6 h-6 ${
                         provider.is_active ? 'text-primary' : 'text-muted-foreground'
                       }`} />
                     </div>
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2">
-                        {provider.name}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold flex items-center gap-2 flex-wrap">
+                        <span className="truncate">{provider.name}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border shrink-0 ${
                           provider.is_active ? 'status-active' : 'status-inactive'
                         }`}>
                           {provider.is_active ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </h3>
-                      <p className="text-sm text-muted-foreground font-mono">{provider.base_url}</p>
+                      <p className="text-sm text-muted-foreground font-mono truncate max-w-[200px] sm:max-w-xs">{provider.base_url}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-4 sm:pt-0 mt-2 sm:mt-0 border-border/50">
                     <Button
                       variant="ghost"
                       size="icon"
