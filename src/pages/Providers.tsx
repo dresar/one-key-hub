@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Server, Plus, Edit2, Trash2, Power, PowerOff, Loader2 } from 'lucide-react';
+import {
+  Server, Plus, Edit2, Trash2, Power, PowerOff, Loader2,
+  RefreshCw, Shield, CheckCircle, XCircle, Clock
+} from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -25,175 +28,225 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import api, { SOCKET_URL } from '@/services/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import api from '@/services/api';
 import { toast } from 'sonner';
-import { io } from 'socket.io-client';
 
-import { Textarea } from '@/components/ui/textarea';
+// Provider config — list AI providers yang didukung backend
+const PROVIDER_OPTIONS = [
+  { value: 'gemini', label: 'Google Gemini', apiKeyField: 'api_key', placeholder: 'AIzaSy...' },
+  { value: 'openclaw', label: 'OpenClaw AI', apiKeyField: 'api_key', placeholder: 'sk-openclaw-...' },
+  { value: 'groq', label: 'Groq', apiKeyField: 'api_key', placeholder: 'gsk_...' },
+  { value: 'openai', label: 'OpenAI', apiKeyField: 'api_key', placeholder: 'sk-proj-...' },
+  { value: 'anthropic', label: 'Anthropic (Claude)', apiKeyField: 'api_key', placeholder: 'sk-ant-...' },
+  { value: 'mistral', label: 'Mistral AI', apiKeyField: 'api_key', placeholder: 'your-mistral-key' },
+  { value: 'cohere', label: 'Cohere', apiKeyField: 'api_key', placeholder: 'your-cohere-key' },
+  { value: 'together', label: 'Together AI', apiKeyField: 'api_key', placeholder: 'your-together-key' },
+  { value: 'perplexity', label: 'Perplexity AI', apiKeyField: 'api_key', placeholder: 'pplx-...' },
+  { value: 'huggingface', label: 'HuggingFace', apiKeyField: 'api_key', placeholder: 'hf_...' },
+  { value: 'cloudinary', label: 'Cloudinary', apiKeyField: 'api_key', placeholder: 'cloud_name|api_key|api_secret' },
+  { value: 'imagekit', label: 'ImageKit', apiKeyField: 'api_key', placeholder: 'public_key|private_key|url_endpoint' },
+  { value: 'apify', label: 'Apify', apiKeyField: 'api_token', placeholder: 'apify_api_...' },
+  { value: 'newsapi', label: 'NewsAPI', apiKeyField: 'api_key', placeholder: 'your-newsapi-key' },
+  { value: 'openweather', label: 'OpenWeather', apiKeyField: 'api_key', placeholder: 'your-appid' },
+  { value: 'rapidapi', label: 'RapidAPI', apiKeyField: 'api_key', placeholder: 'api_key|rapidapi_host' },
+];
 
-interface Provider {
+const STATUS_COLORS: Record<string, string> = {
+  active: 'status-active',
+  cooldown: 'status-warning',
+  inactive: 'status-inactive',
+  disabled: 'status-inactive',
+};
+
+interface Credential {
   id: string;
-  name: string;
-  base_url: string;
-  is_active: boolean;
-  priority: number;
+  provider_name: string;
+  provider_type?: string;
+  label: string;
+  status: 'active' | 'cooldown' | 'inactive';
+  total_requests: number;
+  failed_requests: number;
+  cooldown_until?: string | null;
   created_at: string;
 }
 
 export default function Providers() {
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [selectedCred, setSelectedCred] = useState<Credential | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filterProvider, setFilterProvider] = useState('all');
 
-  // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    base_url: '',
-    models: '', // Comma separated model IDs
-    is_active: true,
+    provider_name: 'gemini',
+    label: '',
+    api_key: '',
+    extra_field: '',   // For multi-field providers like cloudinary
   });
 
   useEffect(() => {
-    fetchProviders();
-
-    const socket = io(SOCKET_URL);
-    socket.on('providers:update', fetchProviders);
-
-    return () => {
-      socket.disconnect();
-    };
+    fetchCredentials();
   }, []);
 
-  const fetchProviders = async () => {
+  const fetchCredentials = async () => {
     try {
-      const { data } = await api.get('/providers');
-      setProviders(data || []);
+      const { data } = await api.get('/api/credentials');
+      setCredentials(data?.items || data || []);
     } catch (error) {
-      console.error('Error fetching providers:', error);
-      toast.error('Gagal memuat data provider');
+      console.error('Error fetching credentials:', error);
+      toast.error('Gagal memuat data credentials');
     } finally {
       setIsLoading(false);
     }
   };
 
   const openCreateModal = () => {
-    setSelectedProvider(null);
-    setFormData({ name: '', base_url: '', models: '', is_active: true });
+    setSelectedCred(null);
+    setFormData({ provider_name: 'gemini', label: '', api_key: '', extra_field: '' });
     setIsModalOpen(true);
   };
 
-  const openEditModal = async (provider: Provider) => {
-    setSelectedProvider(provider);
-    
-    // Fetch models for this provider
-    let modelsStr = '';
-    try {
-      const { data: models } = await api.get(`/providers/${provider.id}/models`);
-      
-      if (models) {
-        modelsStr = models.map((m: any) => m.model_id).join(', ');
-      }
-    } catch (error) {
-      console.error('Error fetching models:', error);
-    }
-
+  const openEditModal = (cred: Credential) => {
+    setSelectedCred(cred);
     setFormData({
-      name: provider.name,
-      base_url: provider.base_url,
-      models: modelsStr,
-      is_active: provider.is_active,
+      provider_name: cred.provider_name,
+      label: cred.label || '',
+      api_key: '',
+      extra_field: '',
     });
     setIsModalOpen(true);
   };
 
-  const openDeleteDialog = (provider: Provider) => {
-    setSelectedProvider(provider);
-    setIsDeleteDialogOpen(true);
+  const buildCredentialsPayload = () => {
+    const prov = formData.provider_name;
+    // Special multi-field providers
+    if (prov === 'cloudinary') {
+      const parts = formData.api_key.split('|');
+      return {
+        cloud_name: parts[0]?.trim() || '',
+        api_key: parts[1]?.trim() || '',
+        api_secret: parts[2]?.trim() || '',
+      };
+    }
+    if (prov === 'imagekit') {
+      const parts = formData.api_key.split('|');
+      return {
+        public_key: parts[0]?.trim() || '',
+        private_key: parts[1]?.trim() || '',
+        url_endpoint: parts[2]?.trim() || '',
+      };
+    }
+    if (prov === 'rapidapi') {
+      const parts = formData.api_key.split('|');
+      return {
+        api_key: parts[0]?.trim() || '',
+        rapidapi_host: parts[1]?.trim() || '',
+      };
+    }
+    if (prov === 'apify') {
+      return { api_token: formData.api_key };
+    }
+    return { api_key: formData.api_key };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim() || !formData.base_url.trim()) {
-      toast.error('Nama dan Base URL wajib diisi');
+    if (!formData.api_key.trim() && !selectedCred) {
+      toast.error('API Key wajib diisi');
       return;
     }
-
     setIsSubmitting(true);
     try {
-      let providerId = selectedProvider?.id;
+      const payload = {
+        provider_name: formData.provider_name,
+        label: formData.label || formData.provider_name,
+        credentials: buildCredentialsPayload(),
+      };
 
-      if (selectedProvider) {
-        await api.put(`/providers/${selectedProvider.id}`, {
-          name: formData.name,
-          base_url: formData.base_url,
-          is_active: formData.is_active,
-          models: formData.models,
-        });
-
-        toast.success('Provider berhasil diperbarui');
+      if (selectedCred) {
+        await api.patch(`/api/credentials/${selectedCred.id}`, payload);
+        toast.success('Credential berhasil diperbarui');
       } else {
-        const { data } = await api.post('/providers', {
-          name: formData.name,
-          base_url: formData.base_url,
-          is_active: formData.is_active,
-          models: formData.models,
-        });
-        providerId = data.id;
-
-        toast.success('Provider berhasil ditambahkan');
+        await api.post('/api/credentials', payload);
+        toast.success('Credential berhasil ditambahkan');
       }
-
       setIsModalOpen(false);
-      fetchProviders();
-    } catch (error) {
-      console.error('Error saving provider:', error);
-      toast.error('Gagal menyimpan provider');
+      fetchCredentials();
+    } catch (error: any) {
+      console.error('Error saving credential:', error);
+      toast.error(error.response?.data?.error || 'Gagal menyimpan credential');
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleDelete = async () => {
-    if (!selectedProvider) return;
+    if (!selectedCred) return;
+    setIsSubmitting(true);
     try {
-        await api.delete(`/providers/${selectedProvider.id}`);
-        toast.success('Provider berhasil dihapus');
-        setIsDeleteDialogOpen(false);
-        fetchProviders();
+      await api.delete(`/api/credentials/${selectedCred.id}`);
+      toast.success('Credential berhasil dihapus');
+      setIsDeleteDialogOpen(false);
+      fetchCredentials();
     } catch (error) {
-        toast.error('Gagal menghapus provider');
+      toast.error('Gagal menghapus credential');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const toggleProviderStatus = async (provider: Provider) => {
+  const handleReactivate = async (cred: Credential) => {
     try {
-      await api.put(`/providers/${provider.id}`, {
-        is_active: !provider.is_active
-      });
-      toast.success(`Provider ${!provider.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
-      fetchProviders();
-    } catch (error) {
-      console.error('Error toggling provider:', error);
-      toast.error('Gagal mengubah status provider');
+      await api.post(`/api/credentials/${cred.id}/reactivate`);
+      toast.success('Credential diaktifkan kembali');
+      fetchCredentials();
+    } catch {
+      toast.error('Gagal mengaktifkan credential');
     }
   };
+
+  const selectedProviderConfig = PROVIDER_OPTIONS.find(p => p.value === formData.provider_name);
+
+  const filteredCreds = filterProvider === 'all'
+    ? credentials
+    : credentials.filter(c => c.provider_name === filterProvider);
+
+  const uniqueProviders = [...new Set(credentials.map(c => c.provider_name))];
 
   return (
     <div className="min-h-screen">
-      <AppHeader title="Provider AI" subtitle="Kelola provider dan endpoint API" />
-      
+      <AppHeader title="Provider Credentials" subtitle="Kelola API key untuk setiap provider AI" />
+
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-muted-foreground">
-            Total: <span className="text-foreground font-medium">{providers.length}</span> provider
-          </p>
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Select value={filterProvider} onValueChange={setFilterProvider}>
+              <SelectTrigger className="w-[180px] bg-secondary/50">
+                <SelectValue placeholder="Filter Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Provider</SelectItem>
+                {uniqueProviders.map(p => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-sm">
+              <span className="text-foreground font-medium">{filteredCreds.length}</span> credential
+            </p>
+          </div>
           <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-2" />
-            Tambah Provider
+            Tambah Credential
           </Button>
         </div>
 
@@ -201,79 +254,83 @@ export default function Providers() {
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : providers.length === 0 ? (
+        ) : filteredCreds.length === 0 ? (
           <div className="glass rounded-xl">
             <EmptyState
               icon={Server}
-              title="Belum ada provider"
-              description="Tambahkan provider AI seperti Gemini, Groq, atau OpenAI-compatible untuk mulai menggunakan unified API."
+              title="Belum ada credential"
+              description="Tambahkan API key provider AI (Gemini, OpenClaw, Groq, OpenAI, dll.) untuk mulai menggunakan gateway."
               action={
                 <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
-                  Tambah Provider Pertama
+                  Tambah Credential Pertama
                 </Button>
               }
             />
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             <AnimatePresence>
-              {providers.map((provider, index) => (
+              {filteredCreds.map((cred, index) => (
                 <motion.div
-                  key={provider.id}
+                  key={cred.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="glass rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  transition={{ delay: index * 0.04 }}
+                  className="glass rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                 >
-                  <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      provider.is_active ? 'bg-primary/10' : 'bg-secondary'
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      cred.status === 'active' ? 'bg-primary/10' : 'bg-secondary'
                     }`}>
-                      <Server className={`w-6 h-6 ${
-                        provider.is_active ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
+                      <Shield className={`w-5 h-5 ${cred.status === 'active' ? 'text-primary' : 'text-muted-foreground'}`} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold flex items-center gap-2 flex-wrap">
-                        <span className="truncate">{provider.name}</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border shrink-0 ${
-                          provider.is_active ? 'status-active' : 'status-inactive'
-                        }`}>
-                          {provider.is_active ? 'Aktif' : 'Nonaktif'}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold truncate">{cred.label || cred.provider_name}</span>
+                        <span className="px-2 py-0.5 rounded-full text-xs bg-secondary/80 border border-border/50 font-mono">
+                          {cred.provider_name}
                         </span>
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-mono truncate max-w-[200px] sm:max-w-xs">{provider.base_url}</p>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[cred.status] || 'status-inactive'}`}>
+                          {cred.status === 'active' && <CheckCircle className="w-3 h-3" />}
+                          {cred.status === 'cooldown' && <Clock className="w-3 h-3" />}
+                          {cred.status === 'inactive' && <XCircle className="w-3 h-3" />}
+                          {cred.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span>Requests: {cred.total_requests || 0}</span>
+                        {(cred.failed_requests || 0) > 0 && (
+                          <span className="text-destructive">Gagal: {cred.failed_requests}</span>
+                        )}
+                        {cred.cooldown_until && (
+                          <span className="text-warning">Cooldown: {new Date(cred.cooldown_until).toLocaleTimeString()}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-4 sm:pt-0 mt-2 sm:mt-0 border-border/50">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleProviderStatus(provider)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {provider.is_active ? (
-                        <PowerOff className="w-4 h-4" />
-                      ) : (
-                        <Power className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditModal(provider)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
+
+                  <div className="flex items-center gap-1 w-full sm:w-auto justify-end">
+                    {cred.status === 'cooldown' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReactivate(cred)}
+                        className="text-xs"
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        Reaktivasi
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" onClick={() => openEditModal(cred)}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openDeleteDialog(provider)}
                       className="text-muted-foreground hover:text-destructive"
+                      onClick={() => { setSelectedCred(cred); setIsDeleteDialogOpen(true); }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -287,108 +344,89 @@ export default function Providers() {
 
       {/* Create/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {selectedProvider ? 'Edit Provider' : 'Tambah Provider Baru'}
-            </DialogTitle>
+            <DialogTitle>{selectedCred ? 'Edit Credential' : 'Tambah Credential Baru'}</DialogTitle>
             <DialogDescription>
-              {selectedProvider
-                ? 'Perbarui informasi provider AI'
-                : 'Tambahkan provider AI baru seperti Gemini, Groq, atau OpenAI-compatible'}
+              {selectedCred ? 'Perbarui API key provider' : 'Tambahkan API key untuk provider AI baru'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nama Provider</Label>
+              <Label>Provider</Label>
+              <Select
+                value={formData.provider_name}
+                onValueChange={(v) => setFormData({ ...formData, provider_name: v })}
+                disabled={!!selectedCred}
+              >
+                <SelectTrigger className="bg-secondary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDER_OPTIONS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Label (opsional)</Label>
               <Input
-                id="name"
-                placeholder="contoh: Gemini, Groq, OpenAI"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="contoh: Production Key 1"
+                value={formData.label}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
                 className="bg-secondary/50"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="base_url">Base URL API</Label>
+              <Label>
+                {formData.provider_name === 'cloudinary'
+                  ? 'Format: cloud_name|api_key|api_secret'
+                  : formData.provider_name === 'imagekit'
+                  ? 'Format: public_key|private_key|url_endpoint'
+                  : formData.provider_name === 'rapidapi'
+                  ? 'Format: api_key|rapidapi_host'
+                  : 'API Key'}
+              </Label>
               <Input
-                id="base_url"
-                placeholder="contoh: https://generativelanguage.googleapis.com"
-                value={formData.base_url}
-                onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
+                type="password"
+                placeholder={selectedProviderConfig?.placeholder || 'Masukkan API key...'}
+                value={formData.api_key}
+                onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
                 className="bg-secondary/50 font-mono text-sm"
+                required={!selectedCred}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="models">Model ID (pisahkan dengan koma)</Label>
-              <Textarea
-                id="models"
-                placeholder="contoh: gemini-2.5-flash, gemini-2.5-pro"
-                value={formData.models}
-                onChange={(e) => setFormData({ ...formData, models: e.target.value })}
-                className="bg-secondary/50 font-mono text-sm h-24"
-              />
-              <p className="text-xs text-muted-foreground">
-                Masukkan daftar Model ID yang didukung oleh provider ini.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="is_active">Status Aktif</Label>
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
+              {selectedCred && (
+                <p className="text-xs text-muted-foreground">Kosongkan jika tidak ingin mengubah API key</p>
+              )}
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>
-                Batal
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
               <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  'Simpan'
-                )}
+                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</> : 'Simpan'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Provider</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Credential</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus provider "{selectedProvider?.name}"? 
-              Semua API key yang terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan.
+              Yakin hapus credential "{selectedCred?.label || selectedCred?.provider_name}"? Tindakan ini tidak bisa dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isSubmitting}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Menghapus...
-                </>
-              ) : (
-                'Hapus'
-              )}
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hapus'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

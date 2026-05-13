@@ -1,20 +1,22 @@
 
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL as string;
-export const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');
+// Backend base URL (tanpa /api — backend pakai prefix /api sendiri)
+export const API_URL = (import.meta.env.VITE_API_URL as string || '').replace(/\/api\/?$/, '');
+export const API_BASE = API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,
 });
 
-// Request Interceptor (Add Token)
+// Request Interceptor — tambah JWT Bearer token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('jwt_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -23,32 +25,15 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor (Handle 401/Refresh)
+// Response Interceptor — handle 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refreshToken');
-
-      if (refreshToken) {
-        try {
-          const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-          localStorage.setItem('accessToken', data.accessToken);
-          api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
-          originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Logout if refresh fails
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          window.location.href = '/auth'; // Redirect to login
-        }
-      } else {
-          // No refresh token
-          window.location.href = '/auth';
+    if (error.response?.status === 401) {
+      // Clear token dan redirect ke login
+      localStorage.removeItem('jwt_token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Server, KeyRound, Activity, AlertTriangle, TrendingUp } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { Server, KeyRound, Activity, AlertTriangle, TrendingUp, Shield } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
 import UsageChart from '@/components/UsageChart';
-import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import api, { SOCKET_URL } from '@/services/api';
+import api from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -42,31 +40,31 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-
-    const socket = io(SOCKET_URL);
-    
-    socket.on('logs:insert', () => fetchDashboardData());
-    socket.on('providers:update', () => fetchDashboardData());
-    socket.on('apikeys:update', () => fetchDashboardData());
-
-    return () => {
-      socket.disconnect();
-    };
+    // Polling ringan setiap 30 detik
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       const [statsRes, logsRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/logs', { params: { limit: 10 } })
+        api.get('/api/stats').catch(() => ({ data: {} })),
+        api.get('/api/logs', { params: { limit: 10 } }).catch(() => ({ data: { items: [] } }))
       ]);
 
-      setStats(statsRes.data);
+      const s = statsRes.data;
+      setStats({
+        totalProviders: s.totalCredentials || s.totalProviders || 0,
+        totalActiveKeys: s.activeCredentials || s.totalActiveKeys || 0,
+        requestsToday: s.totalRequests || s.requestsToday || 0,
+        failedKeys: s.recentErrors || s.failedKeys || 0,
+      });
 
+      const logList = logsRes.data?.items || logsRes.data?.data || logsRes.data || [];
       setRecentLogs(
-        (logsRes.data.data || []).map((log: any) => ({
+        logList.map((log: any) => ({
           ...log,
-          provider_name: log.provider?.name,
+          provider_name: log.provider_name || log.provider?.name,
         }))
       );
     } catch (error) {

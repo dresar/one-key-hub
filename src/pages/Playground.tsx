@@ -17,13 +17,13 @@ import { Loader2, Send, Image as ImageIcon, MessageSquare, Download, Copy, Check
 import api from '@/services/api';
 import { toast } from 'sonner';
 
-import { API_URL } from '@/services/api';
+import { API_BASE } from '@/services/api';
 
 interface UnifiedKey {
   id: string;
-  name: string;
-  api_key: string;
-  is_active: boolean;
+  name?: string;
+  api_key?: string;
+  status: string;
 }
 
 interface Message {
@@ -33,25 +33,36 @@ interface Message {
 }
 
 interface Provider {
-  id: string;
-  name: string;
-  is_active: boolean;
+  value: string;
+  label: string;
 }
 
 interface ProviderModel {
   id: string;
-  name: string;
+  display_name: string;
   model_id: string;
-  provider_id: string;
+  provider: string;
+  is_default?: boolean;
 }
+
+// Supported AI providers (must match backend)
+const PROVIDERS: Provider[] = [
+  { value: 'gemini', label: 'Google Gemini' },
+  { value: 'openclaw', label: 'OpenClaw AI' },
+  { value: 'groq', label: 'Groq' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic (Claude)' },
+  { value: 'mistral', label: 'Mistral AI' },
+  { value: 'cohere', label: 'Cohere' },
+  { value: 'together', label: 'Together AI' },
+  { value: 'perplexity', label: 'Perplexity' },
+  { value: 'huggingface', label: 'HuggingFace' },
+];
 
 export default function Playground() {
   const [unifiedKeys, setUnifiedKeys] = useState<UnifiedKey[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [models, setModels] = useState<ProviderModel[]>([]);
-  
   const [selectedKey, setSelectedKey] = useState<string>('');
-  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('gemini');
   const [activeTab, setActiveTab] = useState('chat');
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -59,7 +70,7 @@ export default function Playground() {
   // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [chatModel, setChatModel] = useState(''); 
+  const [chatModel, setChatModel] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,14 +78,13 @@ export default function Playground() {
   // Image Gen State
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageModel, setImageModel] = useState('');
-  const [selectedImageProviderId, setSelectedImageProviderId] = useState<string>('');
+  const [selectedImageProviderId, setSelectedImageProviderId] = useState<string>('openai');
   const [imageModels, setImageModels] = useState<ProviderModel[]>([]);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState('1024x1024');
 
   useEffect(() => {
     fetchUnifiedKeys();
-    fetchProviders();
   }, []);
 
   useEffect(() => {
@@ -97,41 +107,36 @@ export default function Playground() {
 
   const fetchUnifiedKeys = async () => {
     try {
-      const { data } = await api.get('/unified/keys');
-      const activeKeys = data.filter((k: UnifiedKey) => k.is_active);
+      const { data } = await api.get('/api/keys');
+      const keyList = (data?.items || data || []);
+      const activeKeys = keyList.filter((k: UnifiedKey) => k.status === 'active');
       setUnifiedKeys(activeKeys);
       if (activeKeys.length > 0) {
-        setSelectedKey(activeKeys[0].api_key);
+        setSelectedKey(activeKeys[0].id);
       }
     } catch (error) {
-      console.error('Error fetching unified keys:', error);
-      toast.error('Gagal memuat Unified API Keys');
+      console.error('Error fetching keys:', error);
     }
   };
 
   const fetchProviders = async () => {
-    try {
-        const { data } = await api.get('/providers');
-        const activeProviders = data.filter((p: Provider) => p.is_active);
-        setProviders(activeProviders);
-        // Auto select first provider if available
-        // if (activeProviders.length > 0) setSelectedProviderId(activeProviders[0].id);
-    } catch (error) {
-        console.error('Error fetching providers:', error);
-    }
+    // Use static providers list — models are fetched per-provider from /api/playground/models
+    setProviders(PROVIDERS as any);
   };
 
-  const fetchModels = async (providerId: string, type: 'chat' | 'image') => {
+  const fetchModels = async (providerValue: string, type: 'chat' | 'image') => {
       try {
-          const { data } = await api.get(`/providers/${providerId}/models`);
+          // New backend: /api/playground/models?provider=gemini
+          const { data } = await api.get(`/api/playground/models?provider=${providerValue}`);
+          const modelList = data?.models || data || [];
           if (type === 'chat') {
-              setModels(data);
-              if (data.length > 0) setChatModel(data[0].model_id);
-              else setChatModel('');
+              setModels(modelList);
+              const def = modelList.find((m: any) => m.is_default);
+              setChatModel(def?.model_id || modelList[0]?.model_id || '');
           } else {
-              setImageModels(data);
-              if (data.length > 0) setImageModel(data[0].model_id);
-              else setImageModel('');
+              setImageModels(modelList);
+              const def = modelList.find((m: any) => m.is_default);
+              setImageModel(def?.model_id || modelList[0]?.model_id || '');
           }
       } catch (error) {
           console.error('Error fetching models:', error);
@@ -188,30 +193,28 @@ export default function Playground() {
           ];
       }
 
-      const response = await fetch(`${API_URL}/v1/chat/completions`, {
+      const response = await fetch(`${API_URL}/gateway/${selectedProviderId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${selectedKey}`
+          'X-API-Key': selectedKey
         },
         body: JSON.stringify({
-          model: chatModel,
-          messages: [...messages, { role: newMsg.role, content }].map(m => {
-              // Ensure we send correct structure to backend (which handles conversion to provider format)
-              if (typeof m.content === 'string') return { role: m.role, content: m.content };
-              return { role: m.role, content: m.content };
-          })
+          prompt: newMsg.content || (newMsg.image ? 'Analyze this image' : 'Hello'),
+          model_id: chatModel,
+          image_base64: newMsg.image || undefined,
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || data.error || 'Failed to send message');
+        throw new Error(data.error || data.message || 'Failed to send message');
       }
 
-      const assistantMsg = data.choices[0].message;
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg.content }]);
+      // Backend returns { text, model }
+      const responseText = data.text || data.choices?.[0]?.message?.content || JSON.stringify(data, null, 2);
+      setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
 
     } catch (error: any) {
       console.error('Chat error:', error);
@@ -229,11 +232,11 @@ export default function Playground() {
     setGeneratedImage(null);
 
     try {
-      const response = await fetch(`${API_URL}/v1/images/generations`, {
+      const response = await fetch(`${API_URL}/gateway/${selectedImageProviderId || 'openai'}/images/generations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${selectedKey}`
+          'X-API-Key': selectedKey
         },
         body: JSON.stringify({
           model: imageModel,
@@ -281,11 +284,11 @@ export default function Playground() {
                 </SelectTrigger>
                 <SelectContent>
                   {unifiedKeys.length === 0 ? (
-                    <SelectItem value="none" disabled>Belum ada Unified Key aktif</SelectItem>
+                    <SelectItem value="none" disabled>Buat Gateway Key dulu di menu Keys</SelectItem>
                   ) : (
                     unifiedKeys.map(key => (
-                      <SelectItem key={key.id} value={key.api_key}>
-                        {key.name} ({key.api_key.slice(0, 8)}...)
+                      <SelectItem key={key.id} value={key.id}>
+                        {key.name || 'Unnamed'} ({key.id.slice(0, 8)}...)
                       </SelectItem>
                     ))
                   )}
@@ -321,8 +324,8 @@ export default function Playground() {
                             <SelectValue placeholder="Pilih Provider AI" />
                         </SelectTrigger>
                         <SelectContent>
-                            {providers.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            {PROVIDERS.map(p => (
+                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -336,10 +339,10 @@ export default function Playground() {
                         </SelectTrigger>
                         <SelectContent>
                             {models.length === 0 ? (
-                                <SelectItem value="none" disabled>Tidak ada model tersedia</SelectItem>
+                                <SelectItem value="none" disabled>Tambahkan model dulu di /api/playground/models</SelectItem>
                             ) : (
                                 models.map(m => (
-                                    <SelectItem key={m.id} value={m.model_id}>{m.name}</SelectItem>
+                                    <SelectItem key={m.model_id} value={m.model_id}>{m.display_name || m.model_id}</SelectItem>
                                 ))
                             )}
                         </SelectContent>
@@ -451,8 +454,8 @@ export default function Playground() {
                                 <SelectValue placeholder="Pilih Provider" />
                             </SelectTrigger>
                             <SelectContent>
-                                {providers.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                {PROVIDERS.map(p => (
+                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -466,10 +469,10 @@ export default function Playground() {
                             </SelectTrigger>
                             <SelectContent>
                                 {imageModels.length === 0 ? (
-                                    <SelectItem value="none" disabled>Tidak ada model tersedia</SelectItem>
+                                    <SelectItem value="none" disabled>Tambahkan model image dulu</SelectItem>
                                 ) : (
                                     imageModels.map(m => (
-                                        <SelectItem key={m.id} value={m.model_id}>{m.name}</SelectItem>
+                                        <SelectItem key={m.model_id} value={m.model_id}>{m.display_name || m.model_id}</SelectItem>
                                     ))
                                 )}
                             </SelectContent>

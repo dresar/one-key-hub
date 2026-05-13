@@ -3,15 +3,18 @@ import api from '@/services/api';
 
 interface User {
   id: string;
-  username: string;
+  email: string;
+  name?: string;
+  role?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,48 +22,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('jwt_token'));
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
+    const storedToken = localStorage.getItem('jwt_token');
+    if (storedToken) {
       try {
-        const { data } = await api.get('/auth/me');
-        setUser(data.user);
+        const { data } = await api.get('/api/auth/me');
+        setUser(data.user || data);
+        setToken(storedToken);
       } catch (error) {
         console.error('Auth check failed:', error);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('jwt_token');
+        setToken(null);
+        setUser(null);
       }
     }
     setIsLoading(false);
   };
 
-  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
-      const { data } = await api.post('/auth/login', { username, password });
-      
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      setUser(data.user);
-      
+      const { data } = await api.post('/api/auth/login', { email, password });
+
+      const jwt = data.token || data.accessToken;
+      localStorage.setItem('jwt_token', jwt);
+      setToken(jwt);
+      setUser(data.user || { id: '', email });
+
       return { success: true };
     } catch (err: any) {
       console.error('Login error:', err);
-      return { success: false, error: err.response?.data?.error || 'Login failed' };
+      return { success: false, error: err.response?.data?.error || 'Login gagal' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch { /* ignore */ }
+    localStorage.removeItem('jwt_token');
+    setToken(null);
     setUser(null);
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
   };
 
   return (
@@ -71,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         isAuthenticated: !!user,
+        token,
       }}
     >
       {children}

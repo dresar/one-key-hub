@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollText, Filter, Loader2, RefreshCw } from 'lucide-react';
-import { io } from 'socket.io-client';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import api, { SOCKET_URL } from '@/services/api';
+import api from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -44,38 +43,24 @@ export default function Logs() {
 
   useEffect(() => {
     fetchLogs();
-
-    const socket = io(SOCKET_URL);
-
-    socket.on('connect', () => {
-      console.log('Connected to socket server for logs');
-    });
-
-    socket.on('logs:insert', (newLog: Log) => {
-      setLogs(prev => [newLog, ...prev]);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
   }, [statusFilter, page]);
 
   const fetchLogs = async () => {
     try {
       const params: any = {
-        page: page + 1, // API usually 1-based
+        page: page + 1,
         limit: ITEMS_PER_PAGE,
         status: statusFilter !== 'all' ? statusFilter : undefined
       };
 
-      const response = await api.get('/logs', { params });
-      const { data, total } = response.data; // Assuming API returns { data: [], total: number }
+      const response = await api.get('/api/logs', { params });
+      const rawData = response.data?.items || response.data?.data || response.data || [];
 
-      const formattedLogs = (data || []).map((log: any) => ({
+      const formattedLogs = rawData.map((log: any) => ({
         ...log,
-        provider_name: log.provider?.name,
-        api_key_name: log.api_key?.name,
-        unified_key_name: log.unified_key?.name,
+        provider_name: log.provider_name || log.provider?.name,
+        api_key_name: log.api_key_name || log.api_key?.name,
+        unified_key_name: log.unified_key_name || log.unified_key?.name,
       }));
 
       if (page === 0) {
