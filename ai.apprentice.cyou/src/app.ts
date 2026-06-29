@@ -13,6 +13,7 @@ import { playgroundPublicRoutes } from "./routes/playground-public.js";
 import { gatewayRoutes } from "./routes/gateway.js";
 import { apifyTestRoutes } from "./routes/apify-test.js";
 import { internalRoutes } from "./routes/internal.js";
+import { telegramRouter } from "./routes/telegram.js";
 import { getOpenApiDocument } from "./lib/openapi.js";
 
 initMetrics();
@@ -129,6 +130,7 @@ export function createApp() {
     app.route("/", apifyTestRoutes);
   }
   app.route("/", internalRoutes);
+  app.route("/", telegramRouter);
 
   app.route("/gateway", gatewayRoutes);
   app.route("/api/gateway", gatewayRoutes);

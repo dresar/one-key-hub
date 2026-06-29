@@ -17,7 +17,7 @@ export async function createModel(body: {
   sort_order?: number;
 }) {
   const prov = (body.provider || "").toLowerCase();
-  if (prov !== "gemini" && prov !== "groq") throw new Error("provider harus 'gemini' atau 'groq'");
+  if (!prov) throw new Error("provider wajib diisi");
   const mid = String(body.model_id || "").trim();
   if (!mid) throw new Error("model_id wajib diisi");
   const client = await pool.connect();

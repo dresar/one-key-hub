@@ -29,13 +29,18 @@ authRoutes.post("/api/auth/login", async (c) => {
   const parsed = authBody.safeParse(await c.req.json().catch(() => ({})));
   if (!parsed.success) return c.json({ error: "Permintaan tidak valid." }, 400);
   const email = parsed.data.email.trim().toLowerCase();
+  console.log(`Login attempt for: ${email}`);
   const rows = await q<{ id: string; email: string; display_name: string | null; password_hash: string }>(
     "select id, email, display_name, password_hash from public.users where email = $1 limit 1",
     [email]
   );
   const user = rows[0];
-  if (!user) return c.json({ error: "Email atau password salah." }, 401);
+  if (!user) {
+    console.log(`User not found: ${email}`);
+    return c.json({ error: "Email atau password salah." }, 401);
+  }
   const ok = await bcrypt.compare(parsed.data.password, String(user.password_hash || ""));
+  console.log(`Bcrypt compare result for ${email}: ${ok}`);
   if (!ok) return c.json({ error: "Email atau password salah." }, 401);
   const payload = { id: String(user.id), email: user.email, displayName: user.display_name ?? null };
   const token = await signUserJwt(payload);

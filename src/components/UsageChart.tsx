@@ -36,13 +36,32 @@ export default function UsageChart() {
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
-      const { data: result } = await api.get('/analytics', {
-        params: { period }
+      const { data: result } = await api.get('/api/stats/usage', {
+        params: { days: period === 'weekly' ? 7 : 30 }
       });
       
-      if (result) {
-        setData(result.data || []);
-        setSummary(result.summary || null);
+      if (result && result.daily) {
+        const mappedData = result.daily.map((item: any) => ({
+          date: item.date,
+          total: item.requests,
+          success: item.requests - item.errors,
+          error: item.errors,
+          tokens: 0, // Backend tidak kirim tokens di endpoint ini
+        }));
+        setData(mappedData);
+        
+        // Hitung summary sederhana dari data yang ada
+        const total_requests = mappedData.reduce((acc: number, cur: any) => acc + cur.total, 0);
+        const error_requests = mappedData.reduce((acc: number, cur: any) => acc + cur.error, 0);
+        const success_requests = total_requests - error_requests;
+        
+        setSummary({
+          total_requests,
+          success_requests,
+          error_requests,
+          total_tokens: 0,
+          success_rate: total_requests > 0 ? Math.round((success_requests / total_requests) * 100) : 100,
+        });
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);

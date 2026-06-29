@@ -190,7 +190,7 @@ export async function uploadToCloud(opts: {
     const signature = createHmac("sha1", apiSecret).update(toSign).digest("hex");
 
     const form = new FormData();
-    form.append("file", new Blob([opts.buffer], { type: opts.mimeType }));
+    form.append("file", new Blob([new Uint8Array(opts.buffer)], { type: opts.mimeType }));
     form.append("folder", folder);
     form.append("public_id", publicId);
     form.append("timestamp", String(timestamp));

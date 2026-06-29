@@ -6,8 +6,8 @@ export const playgroundPublicRoutes = new Hono();
 
 playgroundPublicRoutes.get("/api/playground/models", async (c) => {
   const provider = c.req.query("provider");
-  if (!provider || (provider !== "gemini" && provider !== "groq")) {
-    return c.json({ error: "provider required (gemini or groq)" }, 400);
+  if (!provider) {
+    return c.json({ error: "provider required" }, 400);
   }
   const models = await aiModels.listModels(provider);
   return c.json({ models });

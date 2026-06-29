@@ -4,6 +4,7 @@ import axios from 'axios';
 // Backend base URL (tanpa /api — backend pakai prefix /api sendiri)
 export const API_URL = (import.meta.env.VITE_API_URL as string || '').replace(/\/api\/?$/, '');
 export const API_BASE = API_URL;
+export const SOCKET_URL = API_URL;
 
 const api = axios.create({
   baseURL: API_URL,

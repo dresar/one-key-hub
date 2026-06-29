@@ -73,6 +73,8 @@ var init_config = __esm({
       gatewayLogMode: process.env.GATEWAY_LOG_MODE || (isServerless() ? "light" : "full"),
       isServerless: isServerless(),
       cronSecret: process.env.CRON_SECRET || "",
+      telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
+      telegramAdminIds: (process.env.TELEGRAM_ADMIN_IDS || "").split(",").map((id) => id.trim()).filter(Boolean),
       providerUpstreams: {
         gemini: "https://generativelanguage.googleapis.com",
         openclaw: "https://api.openclaw.ai/v1",
@@ -486,7 +488,7 @@ var import_node_server = require("@hono/node-server");
 init_config();
 
 // dist/app.js
-var import_hono9 = require("hono");
+var import_hono10 = require("hono");
 var import_cors = require("hono/cors");
 init_config();
 init_db();
@@ -670,11 +672,15 @@ authRoutes.post("/api/auth/login", async (c) => {
   if (!parsed.success)
     return c.json({ error: "Permintaan tidak valid." }, 400);
   const email = parsed.data.email.trim().toLowerCase();
+  console.log(`Login attempt for: ${email}`);
   const rows = await q("select id, email, display_name, password_hash from public.users where email = $1 limit 1", [email]);
   const user = rows[0];
-  if (!user)
+  if (!user) {
+    console.log(`User not found: ${email}`);
     return c.json({ error: "Email atau password salah." }, 401);
+  }
   const ok = await import_bcryptjs.default.compare(parsed.data.password, String(user.password_hash || ""));
+  console.log(`Bcrypt compare result for ${email}: ${ok}`);
   if (!ok)
     return c.json({ error: "Email atau password salah." }, 401);
   const payload = { id: String(user.id), email: user.email, displayName: user.display_name ?? null };
@@ -1476,7 +1482,7 @@ async function uploadToCloud(opts) {
     const toSign = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
     const signature = (0, import_node_crypto2.createHmac)("sha1", apiSecret).update(toSign).digest("hex");
     const form = new FormData();
-    form.append("file", new Blob([opts.buffer], { type: opts.mimeType }));
+    form.append("file", new Blob([new Uint8Array(opts.buffer)], { type: opts.mimeType }));
     form.append("folder", folder);
     form.append("public_id", publicId);
     form.append("timestamp", String(timestamp));
@@ -2290,8 +2296,8 @@ async function listModels(provider) {
 }
 async function createModel(body) {
   const prov = (body.provider || "").toLowerCase();
-  if (prov !== "gemini" && prov !== "groq")
-    throw new Error("provider harus 'gemini' atau 'groq'");
+  if (!prov)
+    throw new Error("provider wajib diisi");
   const mid = String(body.model_id || "").trim();
   if (!mid)
     throw new Error("model_id wajib diisi");
@@ -2395,8 +2401,8 @@ async function updateModel(mid, kw) {
 var playgroundPublicRoutes = new import_hono5.Hono();
 playgroundPublicRoutes.get("/api/playground/models", async (c) => {
   const provider = c.req.query("provider");
-  if (!provider || provider !== "gemini" && provider !== "groq") {
-    return c.json({ error: "provider required (gemini or groq)" }, 400);
+  if (!provider) {
+    return c.json({ error: "provider required" }, 400);
   }
   const models = await listModels(provider);
   return c.json({ models });
@@ -3394,6 +3400,211 @@ internalRoutes.post("/internal/upload-expiry", async (c) => {
   return c.json({ processed: rows.length });
 });
 
+// dist/routes/telegram.js
+var import_hono9 = require("hono");
+init_config();
+init_db();
+
+// dist/services/telegram-parser.js
+init_db();
+var KEY_PATTERNS = [
+  /sk-[a-zA-Z0-9_-]{32,64}/g,
+  // OpenAI / Anthropic
+  /AIza[0-9A-Za-z_-]{35}/g,
+  // Google / Gemini
+  /gsk_[a-zA-Z0-9]{32,64}/g,
+  // Groq
+  /xoxb-[0-9a-zA-Z]{10,}/g,
+  // Slack etc
+  /[a-zA-Z0-9_-]{40}/g
+  // Generic 40-char hex/b64 keys
+];
+async function parseCommandWithAI(text) {
+  let maskedText = text;
+  const memoryMap = {};
+  let tokenCounter = 1;
+  for (const pattern of KEY_PATTERNS) {
+    const matches = text.match(pattern);
+    if (matches) {
+      for (const match of matches) {
+        const token = `{{TOKEN_${tokenCounter}}}`;
+        memoryMap[token] = match;
+        maskedText = maskedText.replace(match, token);
+        tokenCounter++;
+      }
+    }
+  }
+  if (maskedText.toLowerCase().trim() === "status" || maskedText.toLowerCase().includes("cek status")) {
+    return { action: "STATUS" };
+  }
+  const creds = await q("SELECT credentials FROM provider_credentials WHERE provider_name = 'gemini' AND status = 'active' LIMIT 1");
+  let apiKey = "";
+  if (creds.length > 0 && typeof creds[0].credentials === "object" && creds[0].credentials !== null) {
+    const c = creds[0].credentials;
+    apiKey = c.apiKey || "";
+  }
+  if (!apiKey) {
+    if (maskedText.toLowerCase().includes("masukkan")) {
+      const tokens = Object.keys(memoryMap);
+      if (tokens.length > 0)
+        return { action: "BULK_INSERT", provider: detectProvider(text), keys: tokens.map((t) => memoryMap[t]) };
+    }
+    return { action: "UNKNOWN" };
+  }
+  const prompt = `Kamu adalah sistem parser perintah bot Telegram. Tugasmu mengekstrak maksud pengguna ke dalam JSON.
+Teks input: "${maskedText}"
+
+Tentukan JSON dengan format:
+{
+  "action": "BULK_INSERT" | "DELETE" | "ROTATE" | "DISABLE" | "STATUS" | "UNKNOWN",
+  "provider": "GOOGLE" | "OPENAI" | "GROQ" | "ANTHROPIC" | "MISTRAL" | null,
+  "keys": ["{{TOKEN_1}}", ...] // daftar token jika ada, atau kosong []
+}
+Hanya outputkan valid JSON tanpa markdown backticks.`;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1 }
+      })
+    });
+    if (!res.ok)
+      throw new Error("AI Request failed");
+    const data = await res.json();
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const cleanJson = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(cleanJson);
+    if (parsed.keys && Array.isArray(parsed.keys)) {
+      parsed.keys = parsed.keys.map((token) => memoryMap[token] || token);
+    }
+    if (parsed.provider) {
+      if (parsed.provider.toUpperCase().includes("GOOGLE") || parsed.provider.toUpperCase().includes("GEMINI"))
+        parsed.provider = "gemini";
+      else if (parsed.provider.toUpperCase().includes("OPENAI"))
+        parsed.provider = "openai";
+      else if (parsed.provider.toUpperCase().includes("GROQ"))
+        parsed.provider = "groq";
+      else if (parsed.provider.toUpperCase().includes("ANTHROPIC"))
+        parsed.provider = "anthropic";
+      else
+        parsed.provider = parsed.provider.toLowerCase();
+    }
+    return parsed;
+  } catch (err) {
+    console.error("AI Parser Error:", err);
+    return { action: "UNKNOWN" };
+  }
+}
+function detectProvider(text) {
+  const t = text.toLowerCase();
+  if (t.includes("google") || t.includes("gemini"))
+    return "gemini";
+  if (t.includes("openai"))
+    return "openai";
+  if (t.includes("groq"))
+    return "groq";
+  if (t.includes("anthropic"))
+    return "anthropic";
+  return "unknown";
+}
+
+// dist/routes/telegram.js
+var telegramRouter = new import_hono9.Hono();
+async function sendTelegramMessage(chatId, text) {
+  if (!config.telegramBotToken)
+    return;
+  try {
+    await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" })
+    });
+  } catch (err) {
+    console.error("Failed to send telegram message", err);
+  }
+}
+telegramRouter.post("/webhook", async (c) => {
+  try {
+    const body = await c.req.json();
+    const message = body.message;
+    if (!message || !message.text || !message.chat) {
+      return c.json({ ok: true });
+    }
+    const chatId = message.chat.id;
+    const userId = message.from?.id?.toString();
+    const text = message.text;
+    if (!config.telegramAdminIds.includes(userId)) {
+      console.warn(`Unauthorized Telegram access attempt from User ID: ${userId}`);
+      return c.json({ ok: true });
+    }
+    setTimeout(async () => {
+      try {
+        await processTelegramCommand(chatId, text, userId);
+      } catch (err) {
+        await sendTelegramMessage(chatId, `\u274C *Terjadi Kesalahan:*
+${err.message}`);
+      }
+    }, 0);
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error("Telegram Webhook Error:", err);
+    return c.json({ ok: false }, 500);
+  }
+});
+async function processTelegramCommand(chatId, text, userId) {
+  const cmd = await parseCommandWithAI(text);
+  if (cmd.action === "BULK_INSERT" && cmd.keys && cmd.keys.length > 0 && cmd.provider) {
+    let success = 0;
+    const users = await q("SELECT id FROM users ORDER BY created_at ASC LIMIT 1");
+    if (users.length === 0)
+      throw new Error("Tidak ada user admin di database.");
+    const adminId = users[0].id;
+    for (const key of cmd.keys) {
+      const existing = await q(`SELECT id FROM provider_credentials WHERE provider_name = $1 AND credentials->>'apiKey' = $2`, [cmd.provider, key]);
+      if (existing.length === 0) {
+        const creds = JSON.stringify({ apiKey: key });
+        await q(`INSERT INTO provider_credentials (user_id, provider_name, credentials, status) VALUES ($1, $2, $3::jsonb, 'active')`, [adminId, cmd.provider, creds]);
+        success++;
+      }
+    }
+    const preview = cmd.keys.map((k) => `\`${k.substring(0, 6)}...${k.substring(k.length - 4)}\``).join("\n");
+    await sendTelegramMessage(chatId, `\u2705 *Berhasil memasukkan ${success} key untuk ${cmd.provider.toUpperCase()}*
+
+Preview:
+${preview}`);
+  } else if (cmd.action === "STATUS") {
+    const stats = await q(`
+      SELECT provider_name, status, count(*) as total 
+      FROM provider_credentials 
+      GROUP BY provider_name, status
+    `);
+    let msg = "\u{1F4CA} *Status API Keys Saat Ini:*\n\n";
+    for (const row of stats) {
+      msg += `- ${String(row.provider_name).toUpperCase()} (${row.status}): ${row.total}
+`;
+    }
+    await sendTelegramMessage(chatId, msg || "Belum ada API key di database.");
+  } else if (cmd.action === "ROTATE" && cmd.provider) {
+    await q(`UPDATE provider_credentials SET status = 'exhausted' WHERE provider_name = $1 AND status = 'active'`, [cmd.provider]);
+    const nextKey = await q(`SELECT id FROM provider_credentials WHERE provider_name = $1 AND status != 'active' ORDER BY failed_requests ASC, created_at ASC LIMIT 1`, [cmd.provider]);
+    if (nextKey.length > 0) {
+      await q(`UPDATE provider_credentials SET status = 'active', failed_requests = 0 WHERE id = $1`, [nextKey[0].id]);
+      await sendTelegramMessage(chatId, `\u{1F504} *Rotasi berhasil untuk provider ${cmd.provider.toUpperCase()}*`);
+    } else {
+      await sendTelegramMessage(chatId, `\u26A0\uFE0F *Gagal merotasi ${cmd.provider.toUpperCase()}*. Tidak ada key cadangan.`);
+    }
+  } else if (cmd.action === "DISABLE" && cmd.provider) {
+    await q(`UPDATE provider_credentials SET status = 'disabled' WHERE provider_name = $1`, [cmd.provider]);
+    await sendTelegramMessage(chatId, `\u{1F6AB} *Semua key ${cmd.provider.toUpperCase()} telah dinonaktifkan.*`);
+  } else {
+    await sendTelegramMessage(chatId, `\u2753 *Perintah tidak dikenali atau format tidak lengkap.*
+Aksi terdeteksi: ${cmd.action}
+Silakan perjelas instruksi Anda.`);
+  }
+}
+
 // dist/lib/openapi.js
 function getOpenApiDocument(serverBase) {
   const servers = serverBase ? [{ url: serverBase }] : [{ url: "/" }];
@@ -3796,7 +4007,7 @@ var swaggerUiHtml = () => `<!doctype html>
   </body>
 </html>`;
 function createApp() {
-  const app = new import_hono9.Hono();
+  const app = new import_hono10.Hono();
   app.use("*", securityHeaders);
   if (config.corsAllowAll) {
     app.use("*", (0, import_cors.cors)({
@@ -3874,6 +4085,7 @@ function createApp() {
     app.route("/", apifyTestRoutes);
   }
   app.route("/", internalRoutes);
+  app.route("/", telegramRouter);
   app.route("/gateway", gatewayRoutes);
   app.route("/api/gateway", gatewayRoutes);
   app.notFound((c) => c.json({ error: "Rute tidak ditemukan." }, 404));

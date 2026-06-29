@@ -43,6 +43,8 @@ export const config = {
   gatewayLogMode: (process.env.GATEWAY_LOG_MODE || (isServerless() ? "light" : "full")) as "light" | "full",
   isServerless: isServerless(),
   cronSecret: process.env.CRON_SECRET || "",
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
+  telegramAdminIds: (process.env.TELEGRAM_ADMIN_IDS || "").split(",").map((id) => id.trim()).filter(Boolean),
   providerUpstreams: {
     gemini: "https://generativelanguage.googleapis.com",
     openclaw: "https://api.openclaw.ai/v1",

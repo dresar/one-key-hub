@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson, AlertTriangle, ShieldCheck, Terminal } from 'lucide-react';
+import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson, AlertTriangle, ShieldCheck, Terminal, Bot, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
@@ -326,6 +326,56 @@ export default function Documentation() {
             </p>
           </div>
         </motion.section>
+
+        {/* Telegram Bot */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="glass rounded-xl p-6"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-sky-500" />
+            </div>
+            <h2 className="text-xl font-bold">Manajemen API Key via Telegram Bot</h2>
+          </div>
+          <div className="space-y-4 text-muted-foreground">
+            <p className="leading-relaxed">
+              Anda dapat mengelola API Key menggunakan instruksi <span className="italic">natural language</span> melalui bot Telegram. Sistem ini ditenagai <strong>AI Intent Masking</strong> sehingga API Key Anda sangat aman dan tidak bocor ke log LLM publik mana pun.
+            </p>
+            
+            <div className="p-4 rounded-lg bg-secondary/30 space-y-4">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Contoh Perintah Chat
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                <div className="p-3 bg-background rounded-lg border border-border shadow-sm">
+                  <strong className="text-sky-500 block mb-1">Bulk Insert</strong>
+                  <p>"Tolong masukkan 3 API key Google ini: AIzaSy123..., AIzaSy456..., AIzaSy789..."</p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border border-border shadow-sm">
+                  <strong className="text-sky-500 block mb-1">Cek Status</strong>
+                  <p>"Cek status key yang error dong" atau "Tampilkan jumlah api key yang aktif"</p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border border-border shadow-sm">
+                  <strong className="text-sky-500 block mb-1">Rotasi Manual</strong>
+                  <p>"Rotasi API key provider Gemini ke key berikutnya"</p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border border-border shadow-sm">
+                  <strong className="text-sky-500 block mb-1">Disable Provider</strong>
+                  <p>"Tolong nonaktifkan semua key provider OpenAI"</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-warning/10 border border-warning/30 text-sm">
+              <strong className="text-warning">Keamanan Tingkat Tinggi (Whitelist):</strong> Hanya Telegram User ID yang secara eksplisit didaftarkan dalam variabel <code>TELEGRAM_ADMIN_IDS</code> pada <code>.env</code> server yang dapat berkomunikasi dengan bot ini. ID asing akan otomatis diblokir di layer Gateway.
+            </div>
+          </div>
+        </motion.section>
+
         {/* n8n Integration */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Server, KeyRound, Activity, AlertTriangle, TrendingUp, Shield } from 'lucide-react';
+import { Server, KeyRound, Activity, AlertTriangle, TrendingUp, Shield, Bot } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
@@ -8,6 +8,7 @@ import UsageChart from '@/components/UsageChart';
 import api from '@/services/api';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 interface DashboardStats {
   totalProviders: number;
@@ -108,6 +109,24 @@ export default function Dashboard() {
             icon={AlertTriangle}
           />
         </div>
+
+        {/* Telegram Bot Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 md:p-5 rounded-xl border border-sky-500/20 bg-sky-500/10 flex items-start sm:items-center gap-4 flex-col sm:flex-row relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="w-12 h-12 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0">
+            <Bot className="w-6 h-6 text-sky-500" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-sky-500 mb-1">Telegram AI Gateway Aktif</h3>
+            <p className="text-sm text-muted-foreground">
+              Sekarang Anda dapat mengelola API Key (bulk insert, cek status, rotasi manual) langsung menggunakan perintah bahasa natural melalui Telegram Bot. Cek menu <a href="/docs" className="text-sky-400 hover:underline">Dokumentasi</a> untuk melihat panduan lengkap.
+            </p>
+          </div>
+        </motion.div>
 
         {/* Usage Chart */}
         <UsageChart />

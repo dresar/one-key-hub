@@ -66,6 +66,8 @@ export default function Playground() {
   const [activeTab, setActiveTab] = useState('chat');
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [models, setModels] = useState<ProviderModel[]>([]);
+  const [providers, setProviders] = useState<Provider[]>(PROVIDERS);
 
   // Chat State
   const [messages, setMessages] = useState<Message[]>([]);
@@ -120,8 +122,8 @@ export default function Playground() {
   };
 
   const fetchProviders = async () => {
-    // Use static providers list — models are fetched per-provider from /api/playground/models
-    setProviders(PROVIDERS as any);
+    // Use static providers list
+    setProviders(PROVIDERS);
   };
 
   const fetchModels = async (providerValue: string, type: 'chat' | 'image') => {
