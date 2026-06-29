@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, RotateCcw, TestTube, Bell, BarChart3, Key, Zap, ArrowRight, Workflow, Copy, Check, FileJson, AlertTriangle, ShieldCheck, Terminal, Bot, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import AppHeader from '@/components/AppHeader';
+import { API_URL } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -33,7 +34,7 @@ export default function Documentation() {
       "position": [460, 340],
       "parameters": {
         "method": "POST",
-        "url": "https://one.apprentice.cyou/api/v1/chat/completions",
+        "url": `${API_URL}/api/v1/chat/completions`,
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -71,7 +72,7 @@ export default function Documentation() {
   const exampleErrorHandling = `try {
   // Request ke One Key Hub
   const response = await axios.post(
-    'https://one.apprentice.cyou/api/v1/chat/completions',
+    '${API_URL}/api/v1/chat/completions',
     payload,
     { headers: { Authorization: \`Bearer \${apiKey}\` } }
   );
@@ -419,7 +420,7 @@ export default function Documentation() {
                       </div>
                       <div className="flex justify-between">
                         <span>URL Endpoint</span>
-                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground text-xs">https://one.apprentice.cyou/api/v1/chat/completions</code>
+                        <code className="bg-secondary px-2 py-0.5 rounded text-foreground text-xs">{API_URL}/api/v1/chat/completions</code>
                       </div>
                       <div className="flex justify-between">
                         <span>Auth Type</span>

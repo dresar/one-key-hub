@@ -400,115 +400,119 @@ export default function UnifiedApi() {
       </div>
 
       {/* Generate Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle>Generate Gateway Key Baru</DialogTitle>
-            <DialogDescription>
-              Key akan ditampilkan SEKALI saja setelah dibuat. Simpan dengan aman!
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleGenerateKey} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nama Key (opsional)</Label>
-              <Input
-                placeholder="contoh: Production, OpenClaw Test"
-                value={keyName}
-                onChange={(e) => setKeyName(e.target.value)}
-                className="bg-secondary/50"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
-                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</> : 'Generate Key'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {isModalOpen && (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle>Generate Gateway Key Baru</DialogTitle>
+              <DialogDescription>
+                Key akan ditampilkan SEKALI saja setelah dibuat. Simpan dengan aman!
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleGenerateKey} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nama Key (opsional)</Label>
+                <Input
+                  placeholder="contoh: Production, OpenClaw Test"
+                  value={keyName}
+                  onChange={(e) => setKeyName(e.target.value)}
+                  className="bg-secondary/50"
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</> : 'Generate Key'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Test Modal */}
-      <Dialog open={isTestModalOpen} onOpenChange={setIsTestModalOpen}>
-        <DialogContent className="bg-card border-border max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Test Gateway — {testKey?.name || 'Key'}</DialogTitle>
-            <DialogDescription>Uji coba langsung ke provider AI via gateway</DialogDescription>
-          </DialogHeader>
+      {isTestModalOpen && (
+        <Dialog open={isTestModalOpen} onOpenChange={setIsTestModalOpen}>
+          <DialogContent className="bg-card border-border max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Test Gateway — {testKey?.name || 'Key'}</DialogTitle>
+              <DialogDescription>Uji coba langsung ke provider AI via gateway</DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Provider</Label>
-                <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                  <SelectTrigger className="bg-secondary/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AI_PROVIDERS.map(p => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel} disabled={models.length === 0}>
-                  <SelectTrigger className="bg-secondary/50">
-                    <SelectValue placeholder={models.length === 0 ? 'Tidak ada model — tambahkan di Models' : 'Pilih model'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map(m => (
-                      <SelectItem key={m.model_id} value={m.model_id}>
-                        {m.display_name || m.model_id}
-                        {m.is_default && ' ⭐'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Prompt</Label>
-              <Textarea
-                value={testPrompt}
-                onChange={(e) => setTestPrompt(e.target.value)}
-                className="min-h-[100px] bg-secondary/50"
-              />
-            </div>
-
-            {testError && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-sm text-destructive">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{testError}</span>
-              </div>
-            )}
-
-            {testResponse && (
-              <div className="space-y-2">
-                <Label>Response</Label>
-                <div className="p-3 bg-secondary/30 rounded-lg border border-border max-h-[200px] overflow-y-auto">
-                  <pre className="text-xs font-mono whitespace-pre-wrap">{testResponse}</pre>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Provider</Label>
+                  <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                    <SelectTrigger className="bg-secondary/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AI_PROVIDERS.map(p => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Model</Label>
+                  <Select value={selectedModel} onValueChange={setSelectedModel} disabled={models.length === 0}>
+                    <SelectTrigger className="bg-secondary/50">
+                      <SelectValue placeholder={models.length === 0 ? 'Tidak ada model — tambahkan di Models' : 'Pilih model'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {models.map(m => (
+                        <SelectItem key={m.model_id} value={m.model_id}>
+                          {m.display_name || m.model_id}
+                          {m.is_default && ' ⭐'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
-          </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setIsTestModalOpen(false)}>Tutup</Button>
-            <Button
-              onClick={handleRunTest}
-              disabled={isTesting || !selectedModel || !testPrompt.trim()}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isTesting
-                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Testing...</>
-                : <><PlayCircle className="w-4 h-4 mr-2" />Test Sekarang</>}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <div className="space-y-2">
+                <Label>Prompt</Label>
+                <Textarea
+                  value={testPrompt}
+                  onChange={(e) => setTestPrompt(e.target.value)}
+                  className="min-h-[100px] bg-secondary/50"
+                />
+              </div>
+
+              {testError && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{testError}</span>
+                </div>
+              )}
+
+              {testResponse && (
+                <div className="space-y-2">
+                  <Label>Response</Label>
+                  <div className="p-3 bg-secondary/30 rounded-lg border border-border max-h-[200px] overflow-y-auto">
+                    <pre className="text-xs font-mono whitespace-pre-wrap">{testResponse}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setIsTestModalOpen(false)}>Tutup</Button>
+              <Button
+                onClick={handleRunTest}
+                disabled={isTesting || !selectedModel || !testPrompt.trim()}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isTesting
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Testing...</>
+                  : <><PlayCircle className="w-4 h-4 mr-2" />Test Sekarang</>}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

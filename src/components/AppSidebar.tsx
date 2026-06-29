@@ -77,9 +77,9 @@ export default function AppSidebar({ isCollapsed, onToggle }: AppSidebarProps) {
                 >
                   {isActive && (
                     <motion.div
-                      layoutId="sidebar-active"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       className="absolute inset-0 rounded-lg bg-primary/10"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     />
                   )}
                   <item.icon className={cn(

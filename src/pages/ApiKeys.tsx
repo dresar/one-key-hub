@@ -305,90 +305,94 @@ export default function ApiKeys() {
       </div>
 
       {/* Create/Edit Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{selectedKey ? 'Edit Gateway Key' : 'Generate Gateway Key Baru'}</DialogTitle>
-            <DialogDescription>
-              {selectedKey
-                ? 'Perbarui konfigurasi gateway key'
-                : 'Buat key baru untuk akses gateway AI. Key akan ditampilkan SEKALI saja.'}
-            </DialogDescription>
-          </DialogHeader>
+      {isModalOpen && (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="bg-card border-border max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{selectedKey ? 'Edit Gateway Key' : 'Generate Gateway Key Baru'}</DialogTitle>
+              <DialogDescription>
+                {selectedKey
+                  ? 'Perbarui konfigurasi gateway key'
+                  : 'Buat key baru untuk akses gateway AI. Key akan ditampilkan SEKALI saja.'}
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nama Key (opsional)</Label>
-              <Input
-                placeholder="contoh: Production, Testing, OpenClaw"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Quota per Menit</Label>
-              <Input
-                type="number"
-                min={1}
-                max={10000}
-                value={formData.quota_per_minute}
-                onChange={(e) => setFormData({ ...formData, quota_per_minute: Number(e.target.value) })}
-                className="bg-secondary/50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Provider yang Diizinkan</Label>
-              <p className="text-xs text-muted-foreground">
-                Kosongkan = izinkan semua provider. Pilih untuk membatasi.
-              </p>
-              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
-                {AI_PROVIDERS.map(prov => (
-                  <div
-                    key={prov}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 cursor-pointer hover:bg-secondary/60 transition-colors"
-                    onClick={() => toggleProvider(prov)}
-                  >
-                    <Checkbox
-                      checked={formData.allowed_providers.includes(prov)}
-                      onCheckedChange={() => toggleProvider(prov)}
-                    />
-                    <span className="text-xs font-mono">{prov}</span>
-                  </div>
-                ))}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nama Key (opsional)</Label>
+                <Input
+                  placeholder="contoh: Production, Testing, OpenClaw"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-secondary/50"
+                />
               </div>
-            </div>
 
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
-                {isSubmitting
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Memproses...</>
-                  : selectedKey ? 'Simpan' : 'Generate Key'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <div className="space-y-2">
+                <Label>Quota per Menit</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={formData.quota_per_minute}
+                  onChange={(e) => setFormData({ ...formData, quota_per_minute: Number(e.target.value) })}
+                  className="bg-secondary/50"
+                />
+              </div>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Gateway Key</AlertDialogTitle>
-            <AlertDialogDescription>
-              Yakin hapus key "{selectedKey?.name || selectedKey?.id}"? Semua akses menggunakan key ini akan berhenti.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hapus'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="space-y-2">
+                <Label>Provider yang Diizinkan</Label>
+                <p className="text-xs text-muted-foreground">
+                  Kosongkan = izinkan semua provider. Pilih untuk membatasi.
+                </p>
+                <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+                  {AI_PROVIDERS.map(prov => (
+                    <div
+                      key={prov}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 cursor-pointer hover:bg-secondary/60 transition-colors"
+                      onClick={() => toggleProvider(prov)}
+                    >
+                      <Checkbox
+                        checked={formData.allowed_providers.includes(prov)}
+                        onCheckedChange={() => toggleProvider(prov)}
+                      />
+                      <span className="text-xs font-mono">{prov}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
+                  {isSubmitting
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Memproses...</>
+                    : selectedKey ? 'Simpan' : 'Generate Key'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {isDeleteDialogOpen && (
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Gateway Key</AlertDialogTitle>
+              <AlertDialogDescription>
+                Yakin hapus key "{selectedKey?.name || selectedKey?.id}"? Semua akses menggunakan key ini akan berhenti.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hapus'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

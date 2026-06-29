@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import AppSidebar from './AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -14,14 +13,15 @@ export default function AppLayout() {
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      <motion.main
-        initial={false}
-        animate={{ marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 72 : 256) }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
+      <main
+        style={{
+          marginLeft: isMobile ? 0 : (isSidebarCollapsed ? 72 : 256),
+          transition: 'margin-left 0.2s ease-in-out',
+        }}
         className="min-h-screen"
       >
         <Outlet />
-      </motion.main>
+      </main>
     </div>
   );
 }

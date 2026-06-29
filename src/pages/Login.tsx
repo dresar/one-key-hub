@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Key, Loader2, AlertCircle, Zap } from 'lucide-react';
+import { Key, Loader2, AlertCircle, Zap, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+
+const DEV_EMAIL = 'admin@example.com';
+const DEV_PASSWORD = 'admin123';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,6 +35,20 @@ export default function Login() {
       navigate('/dashboard');
     } else {
       setError(result.error || 'Login gagal. Periksa email dan sandi.');
+    }
+  };
+
+  const handleDevLogin = async () => {
+    setError('');
+    setEmail(DEV_EMAIL);
+    setPassword(DEV_PASSWORD);
+    setIsSubmitting(true);
+    const result = await login(DEV_EMAIL, DEV_PASSWORD);
+    setIsSubmitting(false);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Dev login gagal. Pastikan backend berjalan dan kredensial benar.');
     }
   };
 
@@ -75,6 +92,37 @@ export default function Login() {
               </span>
             ))}
           </div>
+
+          {/* Dev Login Banner — only visible in development */}
+          {import.meta.env.DEV && (
+            <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Terminal className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-amber-400">Development Mode</p>
+                    <p className="text-xs text-muted-foreground font-mono truncate">
+                      {DEV_EMAIL} / {DEV_PASSWORD}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  id="dev-login-btn"
+                  onClick={handleDevLogin}
+                  disabled={isSubmitting}
+                  className="shrink-0 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 h-8"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    'Dev Login →'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">

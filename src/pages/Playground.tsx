@@ -16,9 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Send, Image as ImageIcon, MessageSquare, Download, Copy, Check, Paperclip, X } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'sonner';
-
-import { API_BASE } from '@/services/api';
-
+import { API_BASE, API_URL } from '@/services/api';
 interface UnifiedKey {
   id: string;
   name?: string;

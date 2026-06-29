@@ -343,94 +343,98 @@ export default function Providers() {
       </div>
 
       {/* Create/Edit Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-card border-border max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedCred ? 'Edit Credential' : 'Tambah Credential Baru'}</DialogTitle>
-            <DialogDescription>
-              {selectedCred ? 'Perbarui API key provider' : 'Tambahkan API key untuk provider AI baru'}
-            </DialogDescription>
-          </DialogHeader>
+      {isModalOpen && (
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedCred ? 'Edit Credential' : 'Tambah Credential Baru'}</DialogTitle>
+              <DialogDescription>
+                {selectedCred ? 'Perbarui API key provider' : 'Tambahkan API key untuk provider AI baru'}
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Provider</Label>
-              <Select
-                value={formData.provider_name}
-                onValueChange={(v) => setFormData({ ...formData, provider_name: v })}
-                disabled={!!selectedCred}
-              >
-                <SelectTrigger className="bg-secondary/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROVIDER_OPTIONS.map(p => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select
+                  value={formData.provider_name}
+                  onValueChange={(v) => setFormData({ ...formData, provider_name: v })}
+                  disabled={!!selectedCred}
+                >
+                  <SelectTrigger className="bg-secondary/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVIDER_OPTIONS.map(p => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Label (opsional)</Label>
-              <Input
-                placeholder="contoh: Production Key 1"
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                className="bg-secondary/50"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label>Label (opsional)</Label>
+                <Input
+                  placeholder="contoh: Production Key 1"
+                  value={formData.label}
+                  onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                  className="bg-secondary/50"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label>
-                {formData.provider_name === 'cloudinary'
-                  ? 'Format: cloud_name|api_key|api_secret'
-                  : formData.provider_name === 'imagekit'
-                  ? 'Format: public_key|private_key|url_endpoint'
-                  : formData.provider_name === 'rapidapi'
-                  ? 'Format: api_key|rapidapi_host'
-                  : 'API Key'}
-              </Label>
-              <Input
-                type="password"
-                placeholder={selectedProviderConfig?.placeholder || 'Masukkan API key...'}
-                value={formData.api_key}
-                onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                className="bg-secondary/50 font-mono text-sm"
-                required={!selectedCred}
-              />
-              {selectedCred && (
-                <p className="text-xs text-muted-foreground">Kosongkan jika tidak ingin mengubah API key</p>
-              )}
-            </div>
+              <div className="space-y-2">
+                <Label>
+                  {formData.provider_name === 'cloudinary'
+                    ? 'Format: cloud_name|api_key|api_secret'
+                    : formData.provider_name === 'imagekit'
+                    ? 'Format: public_key|private_key|url_endpoint'
+                    : formData.provider_name === 'rapidapi'
+                    ? 'Format: api_key|rapidapi_host'
+                    : 'API Key'}
+                </Label>
+                <Input
+                  type="password"
+                  placeholder={selectedProviderConfig?.placeholder || 'Masukkan API key...'}
+                  value={formData.api_key}
+                  onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                  className="bg-secondary/50 font-mono text-sm"
+                  required={!selectedCred}
+                />
+                {selectedCred && (
+                  <p className="text-xs text-muted-foreground">Kosongkan jika tidak ingin mengubah API key</p>
+                )}
+              </div>
 
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
-                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</> : 'Simpan'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
+                <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Menyimpan...</> : 'Simpan'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Credential</AlertDialogTitle>
-            <AlertDialogDescription>
-              Yakin hapus credential "{selectedCred?.label || selectedCred?.provider_name}"? Tindakan ini tidak bisa dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hapus'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {isDeleteDialogOpen && (
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Credential</AlertDialogTitle>
+              <AlertDialogDescription>
+                Yakin hapus credential "{selectedCred?.label || selectedCred?.provider_name}"? Tindakan ini tidak bisa dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Hapus'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
