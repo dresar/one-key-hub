@@ -122,7 +122,7 @@ export async function initDatabase(): Promise<void> {
     const countCheck = await sql`SELECT COUNT(*)::INT as count FROM ai_models`;
     const modelCount = countCheck[0]?.count || 0;
 
-    if (modelCount === 0 || modelCount === 36) {
+    if (modelCount < 49) {
       console.log('[Seed] Rebuilding default AI models list...');
       await sql`TRUNCATE TABLE ai_models`;
       
