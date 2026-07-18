@@ -3,13 +3,16 @@ import { env } from '../config/env';
 
 // ─── CORS Configuration ───────────────────────────────────────────────────────
 
+const parsedFrontendUrls = env.FRONTEND_URL 
+  ? env.FRONTEND_URL.split(',').map(url => url.trim()) 
+  : [];
+
 const allowedOrigins = [
-  env.FRONTEND_URL,
+  ...parsedFrontendUrls,
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:3000',
   'http://localhost:4173',
-  // Allow airotation.my.id
   'https://airotation.my.id',
   'https://www.airotation.my.id',
 ].filter(Boolean);
@@ -19,7 +22,10 @@ export const corsMiddleware = cors({
     // Allow requests with no origin (e.g. mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.endsWith('.vercel.app');
+
+    if (isAllowed) {
       callback(null, true);
     } else if (env.NODE_ENV === 'development') {
       // Allow all origins in dev mode

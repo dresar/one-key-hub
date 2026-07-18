@@ -26,7 +26,7 @@ interface RotationSettings {
 }
 
 export default function ProfileSettings() {
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -88,7 +88,7 @@ export default function ProfileSettings() {
       }
 
       await api.put('/users/profile', updates);
-      
+      await checkAuth();
       toast.success('Profil berhasil diperbarui');
       setCurrentPassword('');
       setNewPassword('');

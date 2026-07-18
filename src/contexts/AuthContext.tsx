@@ -4,6 +4,7 @@ import api from '@/services/api';
 interface User {
   id: string;
   email: string;
+  username?: string;
   name?: string;
   role?: string;
 }
@@ -15,6 +16,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   token: string | null;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         token,
+        checkAuth,
       }}
     >
       {children}

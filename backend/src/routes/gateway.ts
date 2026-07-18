@@ -157,7 +157,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         Authorization: `Bearer ${creds.api_key}`,
       },
       payload: {
-        model: body.model_id || 'command-r',
+        model: body.model_id || 'command-r-08-2024',
         message: body.prompt || '',
         max_tokens: 2048,
       },
@@ -905,8 +905,34 @@ router.all('/:provider/proxy', async (req: Request, res: Response) => {
     });
 
     const contentType = response.headers.get('content-type') || '';
-    let responseData;
 
+    if (response.ok && (contentType.includes('image/') || contentType.includes('audio/') || contentType.includes('application/octet-stream'))) {
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const responseTimeMs = Date.now() - startTime;
+
+      await writeLog({
+        gatewayKeyId: gatewayKey.id,
+        credentialId: cred.id,
+        providerName,
+        requestPath: `/gateway/${providerName}/proxy${pathTarget}`,
+        status: 'success',
+        statusCode: response.status,
+        responseTimeMs,
+      });
+
+      const cachedItems = getCachedCredentials(providerName);
+      const targetItem = cachedItems.find(c => c.id === cred.id);
+      if (targetItem) {
+        const newTotal = (targetItem.total_requests || 0) + 1;
+        updateLocalCredentialStats(cred.id, providerName, { total_requests: newTotal });
+      }
+
+      res.setHeader('Content-Type', contentType);
+      res.status(response.status).send(buffer);
+      return;
+    }
+
+    let responseData;
     if (contentType.includes('application/json')) {
       responseData = await response.json();
     } else {

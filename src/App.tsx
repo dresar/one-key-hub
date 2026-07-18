@@ -19,6 +19,7 @@ import Playground from "./pages/Playground";
 import MediaManager from "./pages/MediaManager";
 import RemoveBgTest from "./pages/RemoveBgTest";
 import GiphyTest from "./pages/GiphyTest";
+import HuggingFaceTest from "./pages/HuggingFaceTest";
 import NotFound from "./pages/NotFound";
 
 // Active client query instance
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="media" element={<MediaManager />} />
               <Route path="removebg" element={<RemoveBgTest />} />
               <Route path="giphy" element={<GiphyTest />} />
+              <Route path="huggingface" element={<HuggingFaceTest />} />
               <Route path="logs" element={<Logs />} />
               <Route path="settings" element={<ProfileSettings />} />
               <Route path="docs" element={<Documentation />} />

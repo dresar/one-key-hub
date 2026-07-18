@@ -412,7 +412,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
         }
       } else if (provider === 'cohere') {
         const apiKey = decryptedCreds.api_key;
-        const cohereModel = defaultModelId || 'command-r-plus';
+        const cohereModel = defaultModelId || 'command-r-plus-08-2024';
         const response = await fetch('https://api.cohere.ai/v1/chat', {
           method: 'POST',
           headers: {

@@ -645,6 +645,86 @@ export default function Documentation() {
           </Tabs>
         </motion.section>
 
+        {/* Unified Service Gateway (Proxy) */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="glass rounded-xl p-6"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-indigo-500" />
+            </div>
+            <h2 className="text-xl font-bold">Unified Service Gateway & Proxy API</h2>
+          </div>
+          <div className="space-y-4 text-muted-foreground leading-relaxed">
+            <p>
+              Selain mendukung model AI Chat, One Key Hub juga menyediakan <strong>Unified Gateway Proxy</strong> untuk layanan media, stok gambar, dan utilitas lainnya. API Key tetap disimpan aman di backend, dan request diproses lewat endpoint proxy yang seragam:
+            </p>
+            
+            <div className="bg-secondary/40 border border-border/40 p-4 rounded-xl font-mono text-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="bg-blue-600/20 text-blue-400 text-xs px-2 py-0.5 rounded font-bold">POST</span>
+                <span className="text-foreground text-xs md:text-sm">{API_URL}/gateway/:provider/proxy</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1">
+                Ganti <code>:provider</code> dengan: <code>giphy</code>, <code>pexels</code>, <code>pixabay</code>, <code>removebg</code>, <code>cloudinary</code>, <code>imagekit</code>, <code>uploadcare</code>, <code>openweather</code>, <code>newsapi</code>, dsb.
+              </p>
+            </div>
+ 
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground text-sm">Header Opsional:</h3>
+              <div className="border rounded-xl overflow-hidden text-xs">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Header</TableHead>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead>Keterangan</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-mono">X-Credential-ID</TableCell>
+                      <TableCell>string / number</TableCell>
+                      <TableCell className="text-muted-foreground">ID kredensial spesifik. Jika dikosongkan, gateway akan memutar (rotate) kredensial aktif secara otomatis.</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+ 
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground text-sm">Contoh Request Body (GIPHY Trending / Search):</h3>
+              <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950 p-4 font-mono text-xs text-slate-50">
+                <pre>{`{
+  "method": "GET",
+  "path": "/v1/gifs/trending",
+  "queryParams": {
+    "limit": "10",
+    "rating": "g"
+  }
+}`}</pre>
+              </div>
+            </div>
+ 
+            <div className="space-y-3">
+              <h3 className="font-semibold text-foreground text-sm">Contoh Request Body (Remove.bg):</h3>
+              <div className="relative rounded-lg overflow-hidden border border-border bg-slate-950 p-4 font-mono text-xs text-slate-50">
+                <pre>{`{
+  "method": "POST",
+  "path": "/v1.0/removebg",
+  "bodyPayload": {
+    "image_file_b64": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+    "size": "auto"
+  }
+}`}</pre>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
       </div>
     </div>
   );

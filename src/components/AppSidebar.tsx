@@ -16,6 +16,7 @@ import {
   FolderOpen,
   Sparkles,
   Film,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export const menuItems = [
   { path: '/media', label: 'Media Manager', icon: FolderOpen },
   { path: '/removebg', label: 'BG Remover AI', icon: Sparkles },
   { path: '/giphy', label: 'GIPHY Explorer', icon: Film },
+  { path: '/huggingface', label: 'Hugging Face Hub', icon: Brain },
   { path: '/logs', label: 'Log Aktivitas', icon: ScrollText },
   { path: '/settings', label: 'Profil & Pengaturan', icon: Settings },
   { path: '/docs', label: 'Dokumentasi', icon: BookOpen },
