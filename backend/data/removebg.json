@@ -1,0 +1,15 @@
+[
+  {
+    "id": 132,
+    "provider_name": "removebg",
+    "label": "removebg1",
+    "status": "active",
+    "credentials": {
+      "api_key": "B6WDNZLo8AdV4XjHA3F2BkoT"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

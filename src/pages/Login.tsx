@@ -38,18 +38,11 @@ export default function Login() {
     }
   };
 
-  const handleDevLogin = async () => {
+  const handleDevFill = () => {
+    // Hanya isi form — user klik tombol Login sendiri
     setError('');
     setEmail(DEV_EMAIL);
     setPassword(DEV_PASSWORD);
-    setIsSubmitting(true);
-    const result = await login(DEV_EMAIL, DEV_PASSWORD);
-    setIsSubmitting(false);
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error || 'Dev login gagal. Pastikan backend berjalan dan kredensial benar.');
-    }
   };
 
   return (
@@ -86,7 +79,7 @@ export default function Login() {
 
           {/* Provider badges */}
           <div className="flex flex-wrap justify-center gap-1.5 mb-6">
-            {['Gemini', 'OpenClaw', 'Groq', 'OpenAI', 'Claude'].map((p) => (
+            {['Gemini', 'Groq', 'OpenAI', 'Claude', 'Mistral', 'Cohere'].map((p) => (
               <span key={p} className="px-2 py-0.5 rounded-full text-xs bg-secondary/80 text-muted-foreground border border-border/50">
                 {p}
               </span>
@@ -96,30 +89,25 @@ export default function Login() {
           {/* Dev Login Banner — only visible in development */}
           {import.meta.env.DEV && (
             <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Terminal className="w-4 h-4 text-amber-400 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-amber-400">Development Mode</p>
-                    <p className="text-xs text-muted-foreground font-mono truncate">
-                      {DEV_EMAIL} / {DEV_PASSWORD}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <Terminal className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-amber-400 mb-1">Development Mode</p>
+                  <p className="text-xs text-muted-foreground font-mono mb-2 break-all">
+                    {DEV_EMAIL} / {DEV_PASSWORD}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    id="dev-fill-btn"
+                    onClick={handleDevFill}
+                    disabled={isSubmitting}
+                    className="w-full bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/40 text-xs font-semibold h-7"
+                  >
+                    <Terminal className="w-3 h-3 mr-1.5" />
+                    Isi Form Dev → Klik Login
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  id="dev-login-btn"
-                  onClick={handleDevLogin}
-                  disabled={isSubmitting}
-                  className="shrink-0 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 h-8"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    'Dev Login →'
-                  )}
-                </Button>
               </div>
             </div>
           )}

@@ -46,7 +46,6 @@ interface ProviderModel {
 // Supported AI providers (must match backend)
 const PROVIDERS: Provider[] = [
   { value: 'gemini', label: 'Google Gemini' },
-  { value: 'openclaw', label: 'OpenClaw AI' },
   { value: 'groq', label: 'Groq' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic (Claude)' },
@@ -55,6 +54,10 @@ const PROVIDERS: Provider[] = [
   { value: 'together', label: 'Together AI' },
   { value: 'perplexity', label: 'Perplexity' },
   { value: 'huggingface', label: 'HuggingFace' },
+];
+
+const IMAGE_PROVIDERS: Provider[] = [
+  { value: 'openai', label: 'OpenAI (DALL-E)' },
 ];
 
 export default function Playground() {
@@ -278,7 +281,7 @@ export default function Playground() {
           <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-end md:items-center justify-between">
             <div className="space-y-2 w-full md:w-1/2">
               <Label>Pilih Unified API Key</Label>
-              <Select value={selectedKey} onValueChange={setSelectedKey}>
+              <Select value={selectedKey || ''} onValueChange={setSelectedKey}>
                 <SelectTrigger className="bg-background/50">
                   <SelectValue placeholder="Pilih Key..." />
                 </SelectTrigger>
@@ -319,7 +322,7 @@ export default function Playground() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="space-y-2">
                     <Label>Pilih Provider</Label>
-                    <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                    <Select value={selectedProviderId || ''} onValueChange={setSelectedProviderId}>
                         <SelectTrigger>
                             <SelectValue placeholder="Pilih Provider AI" />
                         </SelectTrigger>
@@ -333,7 +336,7 @@ export default function Playground() {
 
                 <div className="space-y-2">
                     <Label>Pilih Model</Label>
-                    <Select value={chatModel} onValueChange={setChatModel} disabled={!selectedProviderId}>
+                    <Select value={chatModel || ''} onValueChange={setChatModel} disabled={!selectedProviderId}>
                         <SelectTrigger>
                             <SelectValue placeholder={!selectedProviderId ? "Pilih Provider dahulu" : "Pilih Model"} />
                         </SelectTrigger>
@@ -449,12 +452,12 @@ export default function Playground() {
                 <div className="space-y-6">
                     <div className="space-y-2">
                         <Label>Pilih Provider</Label>
-                        <Select value={selectedImageProviderId} onValueChange={setSelectedImageProviderId}>
+                        <Select value={selectedImageProviderId || ''} onValueChange={setSelectedImageProviderId}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Pilih Provider" />
                             </SelectTrigger>
                             <SelectContent>
-                                {PROVIDERS.map(p => (
+                                {IMAGE_PROVIDERS.map(p => (
                                     <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -463,7 +466,7 @@ export default function Playground() {
 
                     <div className="space-y-2">
                         <Label>Model</Label>
-                        <Select value={imageModel} onValueChange={setImageModel} disabled={!selectedImageProviderId}>
+                        <Select value={imageModel || ''} onValueChange={setImageModel} disabled={!selectedImageProviderId}>
                             <SelectTrigger>
                                 <SelectValue placeholder={!selectedImageProviderId ? "Pilih Provider dahulu" : "Pilih Model"} />
                             </SelectTrigger>
@@ -481,7 +484,7 @@ export default function Playground() {
 
                     <div className="space-y-2">
                         <Label>Ukuran</Label>
-                         <Select value={imageSize} onValueChange={setImageSize}>
+                         <Select value={imageSize || ''} onValueChange={setImageSize}>
                             <SelectTrigger>
                                 <SelectValue />
                             </SelectTrigger>

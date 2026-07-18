@@ -1,0 +1,41 @@
+[
+  {
+    "id": 23,
+    "provider_name": "groq",
+    "label": "GROQ Key 3",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 31,
+    "provider_name": "groq",
+    "label": "GROQ Key 5",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 67,
+    "provider_name": "groq",
+    "label": "GROQ Key 9",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

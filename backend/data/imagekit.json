@@ -1,0 +1,17 @@
+[
+  {
+    "id": 129,
+    "provider_name": "imagekit",
+    "label": "zrnblhqmd4",
+    "status": "active",
+    "credentials": {
+      "public_key": "public_epI/iK5vSwmJEBF4ccUcv383IuQ=",
+      "private_key": "private_ebDpO1Oo2FvuKVYvFYenuNwYPAc=",
+      "url_endpoint": "https://ik.imagekit.io/zrnblhqmd4"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": 131,
+    "provider_name": "uploadcare",
+    "label": "1",
+    "status": "active",
+    "credentials": {
+      "public_key": "82fc298631551e7db206",
+      "secret_key": "91afd2e927dd97c84fb9"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

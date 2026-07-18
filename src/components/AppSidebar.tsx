@@ -12,6 +12,10 @@ import {
   ChevronRight,
   Key,
   BookOpen,
+  Cpu,
+  FolderOpen,
+  Sparkles,
+  Film,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,10 +27,13 @@ interface AppSidebarProps {
 
 export const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/providers', label: 'Provider AI', icon: Server },
-  { path: '/api-keys', label: 'API Key Provider', icon: KeyRound },
-  { path: '/unified-api', label: 'Unified API', icon: Link2 },
+  { path: '/providers', label: 'Provider Keys', icon: Server },
+  { path: '/models', label: 'Model AI', icon: Cpu },
+  { path: '/api-keys', label: 'Gateway Keys', icon: KeyRound },
   { path: '/playground', label: 'Playground', icon: Play },
+  { path: '/media', label: 'Media Manager', icon: FolderOpen },
+  { path: '/removebg', label: 'BG Remover AI', icon: Sparkles },
+  { path: '/giphy', label: 'GIPHY Explorer', icon: Film },
   { path: '/logs', label: 'Log Aktivitas', icon: ScrollText },
   { path: '/settings', label: 'Profil & Pengaturan', icon: Settings },
   { path: '/docs', label: 'Dokumentasi', icon: BookOpen },

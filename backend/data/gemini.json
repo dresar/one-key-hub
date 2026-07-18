@@ -1,0 +1,1068 @@
+[
+  {
+    "id": 3,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 2",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBmOaJSkVOtI5e4L0aoEMpGDXoVk_mLyWc"
+    },
+    "total_requests": 37,
+    "failed_requests": 24,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 4,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 3",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD39c0Qvc1xfMkL6xcjItEkGk_BCV__gPU"
+    },
+    "total_requests": 45,
+    "failed_requests": 26,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 7,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 5",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBui2n8ZlOCdiLccjQ_nZ90jNZFAjdvlGE"
+    },
+    "total_requests": 4,
+    "failed_requests": 23,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 9,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 7",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDsWq3jMinzM1Z8a7i7TBuQI8yTJGBVrXo"
+    },
+    "total_requests": 38,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 10,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 8",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDKdPDYxdYsg1A013Gykfz0yCqWE-iWjxw"
+    },
+    "total_requests": 35,
+    "failed_requests": 17,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 11,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 9",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyA3q2GPTEq0i1iZ1uQybVraAOxOyRV4wDY"
+    },
+    "total_requests": 136,
+    "failed_requests": 115,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 12,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 10",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDMgTsKU5Ka3hzYJ_x8fIpaijy-2RCVsxI"
+    },
+    "total_requests": 34,
+    "failed_requests": 15,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 14,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 12",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCFxHQxAZ7MOL6Bijf4u4QIOKCV2jBPOyw"
+    },
+    "total_requests": 38,
+    "failed_requests": 16,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 15,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 13",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD_BiiovNO88DxsExUmCRP9ULxT_-XM4MM"
+    },
+    "total_requests": 9,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 17,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 15",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAzhNXs5YjoGkzNRBxDm-d5X-EkAlfWWoQ"
+    },
+    "total_requests": 2,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 18,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 16",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAsPhbcV0LmuzJRI4FDaDnlCzntObEwGQY"
+    },
+    "total_requests": 3,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 6,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 4",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDc_Voqs2qqEuGVNM1mVqZHj8IXj4T4OJA"
+    },
+    "total_requests": 46,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 19,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 17",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCFtI3fLjVFI5ifA0ICERAGJ_3OC5V7nfo"
+    },
+    "total_requests": 1,
+    "failed_requests": 15,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 20,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 18",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC357ZXS2Q-3XJKlbRMIny5hu1eRL3EiZE"
+    },
+    "total_requests": 7,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 21,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 19",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBARH-Gmb81J3OyiR3PUYIKh4PXI1uZru0"
+    },
+    "total_requests": 3,
+    "failed_requests": 9,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 22,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 20",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAcU7RoIFxhofic1FNMgl-outzBBe_dpIo"
+    },
+    "total_requests": 14,
+    "failed_requests": 41,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 24,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 21",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCESIcN8KFcVknBqlae7EnrxSHNpDcofGM"
+    },
+    "total_requests": 7,
+    "failed_requests": 9,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 26,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 22",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDEP6X_qWSZoti831zm6n5VfPX0ZzAgv90"
+    },
+    "total_requests": 4,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 27,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 23",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBEan0CO5KB5qIF58Zqge-xi_P21Cx2P2s"
+    },
+    "total_requests": 1,
+    "failed_requests": 16,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 28,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 24",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCPhtx21aCptX8Ecu__jeMWsNmqvbObpSs"
+    },
+    "total_requests": 0,
+    "failed_requests": 15,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 29,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 25",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDFl7WOBI1pruiuIXSEPbWIzVDhl0I1Ykk"
+    },
+    "total_requests": 1,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 30,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 26",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAMaHxFHZH7XeUjQqf1V0XMwCk4CyWoPRs"
+    },
+    "total_requests": 5,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 32,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 27",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBvn43lXcCDbMtuLYBJbjlufOi8S8yd_ew"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 34,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 29",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBt_Ebc42CXjquBideJ2YCgd9qJgE4hZJk"
+    },
+    "total_requests": 2,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 35,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 30",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAq5ScyHRObpjzgvBsE3AN3smtxdYSUd38"
+    },
+    "total_requests": 5,
+    "failed_requests": 12,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 37,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 31",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAF_bNOGzJxUpk0zL9jKVJtwUYVHk9wglA"
+    },
+    "total_requests": 7,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 39,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 33",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBo48c_z-U2wsNgpj6W9Hf-WHpADKJRjC8"
+    },
+    "total_requests": 0,
+    "failed_requests": 20,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 40,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 34",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAxjY-TeF-atpw4CiD98HQlHLnEHfFnwDk"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 41,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 35",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCulL3wmGw5IN5IyJjF--8SPRQop75mblI"
+    },
+    "total_requests": 5,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 42,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 36",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDyStV3Ollvq9DHLfTI0WWj9wjg21rWwGk"
+    },
+    "total_requests": 4,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 43,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 37",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDZ5d0-J2NaUEX7Lr8qfbL8oRxpW3umDKQ"
+    },
+    "total_requests": 0,
+    "failed_requests": 18,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 44,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 38",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC-VfEHy5Vn4rH1A0sHlnWVoMGx945hFCk"
+    },
+    "total_requests": 5,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 45,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 39",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBwraU1KDzkeB9PwpYCM_SWCLaFgwMgjW0"
+    },
+    "total_requests": 5,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 46,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 40",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC0M0qkz966HKaLvmF2IMV2ID8CQsyv1xI"
+    },
+    "total_requests": 6,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 47,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 41",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDVua5u-0uAbkpsVyJ8z_rvXuena6hziE8"
+    },
+    "total_requests": 3,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 48,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 42",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyArColEoe6QcYTTmM-UG7lnzwftc5We0Wo"
+    },
+    "total_requests": 3,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 50,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 43",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAgkKh9K21HG01ogDhHtYx7a34LmgeaVo8"
+    },
+    "total_requests": 2,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 51,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 44",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDPJqZ7Cz-czfXktbMwaHaFk8obfNEA5EM"
+    },
+    "total_requests": 5,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 52,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 45",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDTH-xCV5-wV182uyhJtrd3WwOf_J1k7kg"
+    },
+    "total_requests": 5,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 55,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 48",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCRI1boEcGI-MAWyxqsaPsPJ5MSxPtpFTI"
+    },
+    "total_requests": 5,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 57,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 50",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBfwiZEBfjekJLmDF5YZSEzq0OdohJtbrY"
+    },
+    "total_requests": 5,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 58,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 51",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDqUTkSyS3FsUFJOk8L-EchtInDmnaazy8"
+    },
+    "total_requests": 4,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 59,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 52",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyALTeJ2lONDWCXCApBWWiDXwaBy8yAx-S4"
+    },
+    "total_requests": 0,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 60,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 53",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC61GBQgMsE7Koaq4g4Oe-EwFmS66zFcQ8"
+    },
+    "total_requests": 5,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 61,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 54",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCf6b1RMav-ckcAmRZtqf5tHKzhJ1J_iC0"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 62,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 55",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyB4f4q_IJ1BLR0hl6qzYOA2o2gfzmDPMi8"
+    },
+    "total_requests": 1,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 63,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 56",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDhdmgMVdqIYPolQTQADdvi9C0oJ6fVwbQ"
+    },
+    "total_requests": 6,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 65,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 57",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAqolAHNqPKftdnrabdjEoMZ1P4OQ8LZzQ"
+    },
+    "total_requests": 1,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 66,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 58",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD6Kc6cdlP0w0BlYC6iNehd5lHfMqIjg6Q"
+    },
+    "total_requests": 4,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 68,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 59",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD2RlWoitrNdouD4smXbGh2ezqya-SzXgE"
+    },
+    "total_requests": 3,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 69,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 60",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAwXEZbi5A6X46HxhN4NRO1K21azsJ2jxk"
+    },
+    "total_requests": 2,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 70,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 61",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAEF0NioxRoAQBwy3l4jSubey_IYxhZIk0"
+    },
+    "total_requests": 5,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 71,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 62",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD5JzXgeA0zywr1JYVpVJHWc2Jt1UwvGb4"
+    },
+    "total_requests": 1,
+    "failed_requests": 18,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 73,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 64",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCnYvnDevvRYhZ1vbUx7BpZgIuV1nf_4Lg"
+    },
+    "total_requests": 1,
+    "failed_requests": 12,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 74,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 65",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDVnWJfRlT8sfgp35u1-LR6fIGSrgeFqcM"
+    },
+    "total_requests": 1,
+    "failed_requests": 18,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 75,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 66",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAp0iPDDYZBb9yHeHOtceAO2y32x6H0Knw"
+    },
+    "total_requests": 7,
+    "failed_requests": 9,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 77,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 68",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCND6_1r48P52hOwuxZMyxnBx_2hbIsfOw"
+    },
+    "total_requests": 6,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 78,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 69",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC23WOL5X8nJcPW_-ccavMSsw_Aax8F0BI"
+    },
+    "total_requests": 3,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 81,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 72",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBrqT0AEfeJJ3Xcecn27odcD3u92LhUWUQ"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 82,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 73",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAU_39_KsUvqYnRDseqYAVLjx1xoNGHDjQ"
+    },
+    "total_requests": 4,
+    "failed_requests": 16,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 83,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 74",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAcPyMnGU8YHV6rSfY_0pYwjbox4dkjuc8"
+    },
+    "total_requests": 3,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 88,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 79",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDfdooSXw_Ou8-wHR8vMYktbSc79MH_0lM"
+    },
+    "total_requests": 1,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 89,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 80",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDKduRal3j4tNO-fbMu5O26TELz9DvrWuQ"
+    },
+    "total_requests": 4,
+    "failed_requests": 12,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 91,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 81",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD2LFrQuss9BibPS9oMozhoT4AKLUau1WQ"
+    },
+    "total_requests": 5,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 92,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 82",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCgoqeOS8qL9PoA42VFyEoOF37D53pAFSk"
+    },
+    "total_requests": 4,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 93,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 83",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAQMJweVt7eemxWcoQjchpVzTNbi364Agk"
+    },
+    "total_requests": 7,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 94,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 84",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAcDQ5XfVHwGni-OQwSmRsyMI4s2OLKyBU"
+    },
+    "total_requests": 1,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 95,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 85",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCXPT0xNKHZYQqAU2p_QQ_4Phhb2m-mBps"
+    },
+    "total_requests": 0,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 96,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 86",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBVO8elTNeBGjnx7w5gAE72CsAXKRqwfQk"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 98,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 88",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAWkQ0Oprbv2xdcukwJKwYyEERqINGBjs8"
+    },
+    "total_requests": 1,
+    "failed_requests": 12,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 99,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 89",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyDXmkpiB_wyRSzg3niTx4OeXvFgbV6eaQw"
+    },
+    "total_requests": 2,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 101,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 90",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD-4J2JeMKAM5eQ00lRK-goZeOzZlCLvhY"
+    },
+    "total_requests": 4,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 102,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 91",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAirShg0hTYOdQULHeScNFI3W0ej02R8AM"
+    },
+    "total_requests": 3,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 103,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 92",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyB7h7SSB7REqptga1mmCgvqxXef1UXk3HM"
+    },
+    "total_requests": 4,
+    "failed_requests": 14,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 104,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 93",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyD9ZKhGAqExcqBn1ZUhiujxO0tieNBhuZA"
+    },
+    "total_requests": 2,
+    "failed_requests": 11,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 105,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 94",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyApkQeLKaqVWUW6df_yw0qWgJ1R5LzBPuA"
+    },
+    "total_requests": 4,
+    "failed_requests": 9,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 106,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 95",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCJ3D03QkHaVmAM436R9ly0sNwtS-iCGuE"
+    },
+    "total_requests": 8,
+    "failed_requests": 8,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 107,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 96",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyAgRqd1EL61xkfBCzsjVY6m-1DGsof3tL8"
+    },
+    "total_requests": 1,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 108,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 97",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyCZXOvGY34BscQ2sxa2T6BeVq_OSDzcv2M"
+    },
+    "total_requests": 6,
+    "failed_requests": 13,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 109,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 98",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyC6AoNsSw5tFgDmjxa6LCut92KNQGnKRpM"
+    },
+    "total_requests": 3,
+    "failed_requests": 9,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 111,
+    "provider_name": "gemini",
+    "label": "GEMINI Key 99",
+    "status": "active",
+    "credentials": {
+      "api_key": "AIzaSyBBz1nbPHnED7vTvXa0s4mG0LJS2jHpTxM"
+    },
+    "total_requests": 5,
+    "failed_requests": 10,
+    "last_error": "Request failed with status code 429",
+    "cooldown_until": null
+  },
+  {
+    "id": 123,
+    "provider_name": "gemini",
+    "label": "P",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

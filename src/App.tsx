@@ -9,14 +9,19 @@ import AppLayout from "./components/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Providers from "./pages/Providers";
+import Models from "./pages/Models";
 import ApiKeys from "./pages/ApiKeys";
-import UnifiedApi from "./pages/UnifiedApi";
+import ApiKeyForm from "./pages/ApiKeyForm";
 import Logs from "./pages/Logs";
 import ProfileSettings from "./pages/ProfileSettings";
 import Documentation from "./pages/Documentation";
 import Playground from "./pages/Playground";
+import MediaManager from "./pages/MediaManager";
+import RemoveBgTest from "./pages/RemoveBgTest";
+import GiphyTest from "./pages/GiphyTest";
 import NotFound from "./pages/NotFound";
 
+// Active client query instance
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -44,9 +49,14 @@ const App = () => (
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="providers" element={<Providers />} />
+              <Route path="models" element={<Models />} />
               <Route path="api-keys" element={<ApiKeys />} />
-              <Route path="unified-api" element={<UnifiedApi />} />
+              <Route path="api-keys/create" element={<ApiKeyForm />} />
+              <Route path="api-keys/edit/:id" element={<ApiKeyForm />} />
               <Route path="playground" element={<Playground />} />
+              <Route path="media" element={<MediaManager />} />
+              <Route path="removebg" element={<RemoveBgTest />} />
+              <Route path="giphy" element={<GiphyTest />} />
               <Route path="logs" element={<Logs />} />
               <Route path="settings" element={<ProfileSettings />} />
               <Route path="docs" element={<Documentation />} />
