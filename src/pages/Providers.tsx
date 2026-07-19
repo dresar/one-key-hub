@@ -446,7 +446,7 @@ export default function Providers() {
 
         {/* Credentials Table / List section */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div className="flex flex-col gap-4">
             <div>
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Key className="w-5 h-5 text-primary" />
@@ -459,9 +459,9 @@ export default function Providers() {
               </p>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={filterProvider} onValueChange={setFilterProvider}>
-                <SelectTrigger className="w-[180px] bg-secondary/50 border-border/40">
+                <SelectTrigger className="w-full sm:w-[180px] bg-secondary/50 border-border/40">
                   <SelectValue placeholder="Filter Provider" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -481,15 +481,16 @@ export default function Providers() {
                 onClick={handleSyncCache} 
                 disabled={isSyncing} 
                 variant="outline" 
-                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-sm gap-2"
+                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-sm gap-2 flex-1 sm:flex-none"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                Sync Cache
+                <span className="hidden sm:inline">Sync Cache</span>
               </Button>
 
-              <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Credential
+              <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-sm flex-1 sm:flex-none">
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Tambah Credential</span>
+                <span className="sm:hidden">Tambah</span>
               </Button>
             </div>
           </div>
