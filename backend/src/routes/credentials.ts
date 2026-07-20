@@ -47,37 +47,47 @@ async function pushIdToErrorRange(currentId: number): Promise<number> {
 }
 
 export async function reindexAllCredentials(): Promise<{ updatedCount: number }> {
-  const rows = await db
-    .select({ id: providerCredentials.id })
-    .from(providerCredentials)
-    .where(isNull(providerCredentials.deletedAt))
-    .orderBy(providerCredentials.id);
+  try {
+    // 1. Purge all soft-deleted rows from table so primary key IDs 1, 2, 3... are completely free!
+    await db.execute(sql`DELETE FROM provider_credentials WHERE deleted_at IS NOT NULL;`);
 
-  if (rows.length === 0) {
+    // 2. Select all remaining active rows sorted by current ID
+    const rows = await db
+      .select({ id: providerCredentials.id })
+      .from(providerCredentials)
+      .where(isNull(providerCredentials.deletedAt))
+      .orderBy(providerCredentials.id);
+
+    if (rows.length === 0) {
+      await syncProviderCredentialsSequence();
+      return { updatedCount: 0 };
+    }
+
+    // 3. Shift all active rows to high temporary offset IDs (900000 + i) to prevent primary key conflicts
+    for (let i = 0; i < rows.length; i++) {
+      const oldId = rows[i].id;
+      const tempId = 900000 + i + 1;
+      await db.execute(sql`UPDATE provider_credentials SET id = ${tempId} WHERE id = ${oldId}`);
+    }
+
+    // 4. Assign clean sequential IDs 1, 2, 3...
+    for (let i = 0; i < rows.length; i++) {
+      const tempId = 900000 + i + 1;
+      const newId = i + 1;
+      await db.execute(sql`UPDATE provider_credentials SET id = ${newId} WHERE id = ${tempId}`);
+    }
+
     await syncProviderCredentialsSequence();
-    return { updatedCount: 0 };
+    credentialCache.clear();
+    statsCache.clear();
+    await syncDbCache();
+
+    console.log(`[Reindex] ✅ Reindexed ${rows.length} credentials to IDs 1..${rows.length}`);
+    return { updatedCount: rows.length };
+  } catch (err) {
+    console.error('[Reindex] Error reindexing credentials:', err);
+    throw err;
   }
-
-  // Shift to temp IDs to avoid unique constraint collisions
-  for (let i = 0; i < rows.length; i++) {
-    const oldId = rows[i].id;
-    const tempId = 100000 + i + 1;
-    await db.execute(sql`UPDATE provider_credentials SET id = ${tempId} WHERE id = ${oldId}`);
-  }
-
-  // Assign clean sequential IDs 1, 2, 3...
-  for (let i = 0; i < rows.length; i++) {
-    const tempId = 100000 + i + 1;
-    const newId = i + 1;
-    await db.execute(sql`UPDATE provider_credentials SET id = ${newId} WHERE id = ${tempId}`);
-  }
-
-  await syncProviderCredentialsSequence();
-  credentialCache.clear();
-  statsCache.clear();
-  await syncDbCache();
-
-  return { updatedCount: rows.length };
 }
 
 // ─── All routes require JWT auth ──────────────────────────────────────────────

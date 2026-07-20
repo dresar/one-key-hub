@@ -24,6 +24,7 @@ import gatewayRoutes from './routes/gateway';
 import modelsRoutes from './routes/models';
 import providersRoutes from './routes/providers';
 import { initializeCredentialSync } from './services/credentialSync';
+import { reindexAllCredentials } from './routes/credentials';
 
 // Services
 import { startScheduler } from './services/scheduler';
@@ -127,7 +128,14 @@ async function start(): Promise<void> {
   // 2. Seed admin user
   await seedAdminIfNeeded();
 
-  // 3. Initialize local JSON credentials cache
+  // 3. Auto re-index IDs to clean 1, 2, 3...
+  try {
+    await reindexAllCredentials();
+  } catch (reindexErr) {
+    console.warn('[Startup] Reindex warning:', reindexErr);
+  }
+
+  // 4. Initialize local JSON credentials cache
   await initializeCredentialSync();
 
   // 4. Start background scheduler
