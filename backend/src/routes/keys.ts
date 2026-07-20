@@ -62,7 +62,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     const { plaintext, tenantId } = generateGatewayKey();
     const kHash = hashValue(plaintext);
-    const kPreview = keyPreview(plaintext);
+    const kPreview = plaintext; // Store full plaintext key instead of masked preview
 
     const [created] = await db
       .insert(gatewayKeys)
@@ -190,7 +190,7 @@ router.post('/:id/rotate', async (req: AuthRequest, res: Response) => {
 
     const { plaintext, tenantId } = generateGatewayKey();
     const kHash = hashValue(plaintext);
-    const kPreview = keyPreview(plaintext);
+    const kPreview = plaintext; // Store full plaintext key instead of masked preview
 
     const [updated] = await db
       .update(gatewayKeys)
