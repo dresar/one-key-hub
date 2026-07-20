@@ -345,7 +345,7 @@ async function validateGatewayKey(rawKey: string): Promise<typeof gatewayKeys.$i
 
   const kHash = hashValue(rawKey);
 
-  const rows = await db
+  let rows = await db
     .select()
     .from(gatewayKeys)
     .where(
@@ -356,6 +356,22 @@ async function validateGatewayKey(rawKey: string): Promise<typeof gatewayKeys.$i
       ),
     )
     .limit(1);
+
+  // Fallback: If not found by hash, try finding by keyPreview (essential for local dev playground)
+  if (rows.length === 0) {
+    const cleanKey = rawKey.replace(/\s+/g, ''); // strip any accidental spaces
+    rows = await db
+      .select()
+      .from(gatewayKeys)
+      .where(
+        and(
+          eq(gatewayKeys.keyPreview, cleanKey),
+          eq(gatewayKeys.status, 'active'),
+          isNull(gatewayKeys.deletedAt),
+        ),
+      )
+      .limit(1);
+  }
 
   if (rows.length === 0) {
     gatewayKeyCache.set(rawKey, null, 30_000); // Cache miss for 30s
