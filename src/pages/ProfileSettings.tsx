@@ -32,6 +32,7 @@ export default function ProfileSettings() {
 
   // Profile form
   const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,20 +40,26 @@ export default function ProfileSettings() {
   // Rotation settings
   const [rotationSettings, setRotationSettings] = useState<RotationSettings | null>(null);
 
+  const PRESET_AVATARS = [
+    { label: '3D Robot', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=OneKeyHub' },
+    { label: '3D Avatar', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin' },
+    { label: 'Cyberpunk', url: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Cyber' },
+    { label: 'Initial', url: 'https://api.dicebear.com/7.x/initials/svg?seed=Admin' },
+  ];
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const fetchData = async () => {
     try {
-      // Fetch user data
       if (user) {
-        setUsername(user.username);
+        setUsername(user.username || '');
+        setAvatarUrl(user.avatarUrl || user.avatar_url || '');
       }
 
       // Fetch rotation settings
       const { data: settings } = await api.get('/settings/rotation');
-      
       if (settings) {
         setRotationSettings(settings);
       }
@@ -78,18 +85,16 @@ export default function ProfileSettings() {
 
     setIsSaving(true);
     try {
-      const updates: any = { username };
+      const updates: any = { username: username.trim(), avatarUrl: avatarUrl.trim() };
 
       if (newPassword) {
-        // In a real app, verify old password on server
-        // But here we might just send it and let server verify
         updates.currentPassword = currentPassword;
         updates.newPassword = newPassword;
       }
 
       await api.put('/users/profile', updates);
       await checkAuth();
-      toast.success('Profil berhasil diperbarui');
+      toast.success('Profil & Username berhasil diperbarui!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -133,7 +138,7 @@ export default function ProfileSettings() {
 
   return (
     <div className="min-h-screen">
-      <AppHeader title="Profil & Pengaturan" subtitle="Kelola akun dan konfigurasi sistem" />
+      <AppHeader title="Profil & Pengaturan" subtitle="Kelola profil, foto avatar CDN, dan kata sandi" />
       
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -144,25 +149,66 @@ export default function ProfileSettings() {
               animate={{ opacity: 1, y: 0 }}
               className="glass rounded-xl p-4 md:p-6 h-full"
             >
-              <h2 className="font-semibold flex items-center gap-2 mb-6">
+              <h2 className="font-semibold flex items-center gap-2 mb-6 text-lg">
                 <User className="w-5 h-5 text-primary" />
-                Profil Admin
+                Profil & Avatar Admin
               </h2>
 
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <form onSubmit={handleUpdateProfile} className="space-y-5">
+
+                {/* Avatar Preview & CDN Input */}
+                <div className="space-y-3 p-4 rounded-xl border border-border/50 bg-secondary/20">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Foto Profil (Avatar CDN URL)</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-secondary/80 border border-primary/30 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" onError={() => toast.error('Gagal memuat gambar dari URL CDN')} />
+                      ) : (
+                        <User className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        placeholder="https://cdn.example.com/avatar.jpg"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        className="bg-secondary/50 font-mono text-xs"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Masukkan URL CDN foto profil Anda atau pilih avatar cepat di bawah:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {PRESET_AVATARS.map(preset => (
+                          <Button
+                            key={preset.label}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px] px-2 bg-secondary/40 border-border/40 hover:bg-primary/20"
+                            onClick={() => setAvatarUrl(preset.url)}
+                          >
+                            ✨ {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">Username Admin</Label>
                   <Input
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="bg-secondary/50"
+                    placeholder="Masukkan username admin..."
                   />
                 </div>
 
                 <Separator className="my-6" />
 
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">Ubah Password</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-4">Ubah Password</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">

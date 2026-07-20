@@ -50,6 +50,7 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
         email: user.email,
         username: user.username,
         role: user.role,
+        avatarUrl: user.avatarUrl,
       },
     });
   } catch (err) {
@@ -73,6 +74,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
         email: users.email,
         username: users.username,
         role: users.role,
+        avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
       })
       .from(users)

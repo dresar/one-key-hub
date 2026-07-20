@@ -33,23 +33,47 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${creds.api_key}`;
 
       const parts: any[] = [];
+
+      // Support image_base64 (photo analysis)
       if (body.image_base64) {
-        const [header, base64Data] = (body.image_base64 as string).split(',');
+        const raw = body.image_base64 as string;
+        const commaIdx = raw.indexOf(',');
+        const header = commaIdx > -1 ? raw.substring(0, commaIdx) : '';
+        const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
         const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
         parts.push({
-          inlineData: { mimeType, data: base64Data || body.image_base64 },
+          inlineData: { mimeType, data: base64Data },
         });
       }
+
+      // Support video_base64 (video analysis — Gemini 2.0+ supports inline video)
+      if (body.video_base64) {
+        const raw = body.video_base64 as string;
+        const commaIdx = raw.indexOf(',');
+        const header = commaIdx > -1 ? raw.substring(0, commaIdx) : '';
+        const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'video/mp4';
+        parts.push({
+          inlineData: { mimeType, data: base64Data },
+        });
+      }
+
       if (body.prompt) {
         parts.push({ text: body.prompt });
+      }
+
+      // System instruction support
+      const payload: any = {
+        contents: [{ role: 'user', parts }],
+      };
+      if (body.system_prompt) {
+        payload.systemInstruction = { parts: [{ text: body.system_prompt }] };
       }
 
       return {
         url,
         headers: { 'Content-Type': 'application/json' },
-        payload: {
-          contents: [{ role: 'user', parts }],
-        },
+        payload,
       };
     },
     parseChatResponse: (data) => {
@@ -61,37 +85,74 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
   groq: {
     baseUrl: 'https://api.groq.com',
-    buildChatRequest: (creds, body) => ({
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${creds.api_key}`,
-      },
-      payload: {
-        model: body.model_id || 'llama-3.1-8b-instant',
-        messages: [{ role: 'user', content: body.prompt || '' }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      },
-    }),
+    buildChatRequest: (creds, body) => {
+      // Groq supports OpenAI-compatible vision format for vision models
+      let userContent: any = body.prompt || '';
+
+      if (body.image_base64) {
+        // Groq vision models (llama-3.2-11b-vision-preview, etc.) use OpenAI content array format
+        userContent = [
+          { type: 'text', text: body.prompt || 'Analyze this image and describe what you see.' },
+          { type: 'image_url', image_url: { url: body.image_base64 } },
+        ];
+      }
+
+      const messages: any[] = [];
+      if (body.system_prompt) {
+        messages.push({ role: 'system', content: body.system_prompt });
+      }
+      messages.push({ role: 'user', content: userContent });
+
+      return {
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.api_key}`,
+        },
+        payload: {
+          model: body.model_id || 'llama-3.3-70b-versatile',
+          messages,
+          temperature: 0.7,
+          max_tokens: 2048,
+        },
+      };
+    },
     parseChatResponse: (data) =>
       data?.choices?.[0]?.message?.content || JSON.stringify(data),
   },
 
   openai: {
     baseUrl: 'https://api.openai.com',
-    buildChatRequest: (creds, body) => ({
-      url: 'https://api.openai.com/v1/chat/completions',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${creds.api_key}`,
-      },
-      payload: {
-        model: body.model_id || 'gpt-4o-mini',
-        messages: [{ role: 'user', content: body.prompt || '' }],
-        max_tokens: 2048,
-      },
-    }),
+    buildChatRequest: (creds, body) => {
+      // OpenAI vision format: content array with text + image_url
+      let userContent: any = body.prompt || '';
+
+      if (body.image_base64) {
+        userContent = [
+          { type: 'text', text: body.prompt || 'What is in this image?' },
+          { type: 'image_url', image_url: { url: body.image_base64, detail: 'auto' } },
+        ];
+      }
+
+      const messages: any[] = [];
+      if (body.system_prompt) {
+        messages.push({ role: 'system', content: body.system_prompt });
+      }
+      messages.push({ role: 'user', content: userContent });
+
+      return {
+        url: 'https://api.openai.com/v1/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.api_key}`,
+        },
+        payload: {
+          model: body.model_id || 'gpt-4o-mini',
+          messages,
+          max_tokens: 2048,
+        },
+      };
+    },
     buildImageRequest: (creds, body) => ({
       url: 'https://api.openai.com/v1/images/generations',
       headers: {
@@ -113,37 +174,70 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
   anthropic: {
     baseUrl: 'https://api.anthropic.com',
-    buildChatRequest: (creds, body) => ({
-      url: 'https://api.anthropic.com/v1/messages',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': creds.api_key,
-        'anthropic-version': '2023-06-01',
-      },
-      payload: {
+    buildChatRequest: (creds, body) => {
+      // Anthropic vision format: content array with text + image source
+      let userContent: any = body.prompt || '';
+
+      if (body.image_base64) {
+        const raw = body.image_base64 as string;
+        const commaIdx = raw.indexOf(',');
+        const header = commaIdx > -1 ? raw.substring(0, commaIdx) : '';
+        const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+        const mediaType = (header.match(/data:([^;]+)/)?.[1] || 'image/jpeg') as
+          'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+        userContent = [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: base64Data },
+          },
+          { type: 'text', text: body.prompt || 'What is in this image?' },
+        ];
+      }
+
+      const payload: any = {
         model: body.model_id || 'claude-3-5-haiku-20241022',
         max_tokens: 2048,
-        messages: [{ role: 'user', content: body.prompt || '' }],
-      },
-    }),
+        messages: [{ role: 'user', content: userContent }],
+      };
+
+      if (body.system_prompt) {
+        payload.system = body.system_prompt;
+      }
+
+      return {
+        url: 'https://api.anthropic.com/v1/messages',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': creds.api_key,
+          'anthropic-version': '2023-06-01',
+        },
+        payload,
+      };
+    },
     parseChatResponse: (data) =>
       data?.content?.[0]?.text || JSON.stringify(data),
   },
 
   mistral: {
     baseUrl: 'https://api.mistral.ai',
-    buildChatRequest: (creds, body) => ({
-      url: 'https://api.mistral.ai/v1/chat/completions',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${creds.api_key}`,
-      },
-      payload: {
-        model: body.model_id || 'mistral-small-latest',
-        messages: [{ role: 'user', content: body.prompt || '' }],
-        max_tokens: 2048,
-      },
-    }),
+    buildChatRequest: (creds, body) => {
+      const messages: any[] = [];
+      if (body.system_prompt) messages.push({ role: 'system', content: body.system_prompt });
+      messages.push({ role: 'user', content: body.prompt || '' });
+      return {
+        url: 'https://api.mistral.ai/v1/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.api_key}`,
+        },
+        payload: {
+          model: body.model_id || 'mistral-small-latest',
+          messages,
+          max_tokens: 2048,
+        },
+      };
+    },
     parseChatResponse: (data) =>
       data?.choices?.[0]?.message?.content || JSON.stringify(data),
   },

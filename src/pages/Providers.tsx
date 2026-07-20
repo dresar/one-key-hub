@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Server, Plus, Edit2, Trash2, Loader2,
-  RefreshCw, Shield, CheckCircle, XCircle, Clock, PlayCircle, Key, Activity
+  RefreshCw, Shield, CheckCircle, XCircle, Clock, PlayCircle, Key, Activity,
+  Eye, EyeOff, Copy, Check
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
@@ -87,6 +88,11 @@ export default function Providers() {
   } | null>(null);
   const [isTestingId, setIsTestingId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const [copiedCredId, setCopiedCredId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     provider_name: 'gemini',
@@ -204,8 +210,12 @@ export default function Providers() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (cred: Credential) => {
+  const openEditModal = async (cred: Credential) => {
     setSelectedCred(cred);
+    setShowApiKey(false);
+    setIsLoadingModal(true);
+    setIsModalOpen(true);
+
     setFormData({
       provider_name: cred.provider_name,
       label: cred.label || '',
@@ -218,7 +228,46 @@ export default function Providers() {
       rapidapi_host: '',
       secret_key: '',
     });
-    setIsModalOpen(true);
+
+    try {
+      const { data } = await api.get(`/api/credentials/${cred.id}/reveal`);
+      const c = data?.credentials || {};
+      setFormData({
+        provider_name: cred.provider_name,
+        label: cred.label || '',
+        api_key: c.api_key || '',
+        cloud_name: c.cloud_name || '',
+        api_secret: c.api_secret || '',
+        public_key: c.public_key || '',
+        private_key: c.private_key || '',
+        url_endpoint: c.url_endpoint || '',
+        rapidapi_host: c.rapidapi_host || '',
+        secret_key: c.secret_key || '',
+      });
+    } catch (error) {
+      console.error('Error revealing credential:', error);
+      toast.error('Gagal memuat isi API key dari database');
+    } finally {
+      setIsLoadingModal(false);
+    }
+  };
+
+  const handleCopyCredentialKey = async (cred: Credential) => {
+    try {
+      const { data } = await api.get(`/api/credentials/${cred.id}/reveal`);
+      const c = data?.credentials || {};
+      const keyToCopy = c.api_key || c.secret_key || c.private_key || '';
+      if (!keyToCopy) {
+        toast.error('Kredensial tidak berisi string API Key');
+        return;
+      }
+      await navigator.clipboard.writeText(keyToCopy).catch(() => {});
+      setCopiedCredId(cred.id);
+      toast.success(`API Key (${cred.label || cred.provider_name}) disalin ke clipboard!`);
+      setTimeout(() => setCopiedCredId(null), 2000);
+    } catch {
+      toast.error('Gagal menyalin API key');
+    }
   };
 
   const buildCredentialsPayload = () => {
@@ -378,6 +427,63 @@ export default function Providers() {
     }
   };
 
+  const toggleSelectId = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = (visibleCreds: Credential[]) => {
+    const visibleIds = visibleCreds.map(c => c.id);
+    const allSelected = visibleIds.every(id => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`HAPUS MASSAL: Apakah Anda yakin ingin menghapus ${selectedIds.length} credential yang dipilih?`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { data } = await api.post('/api/credentials/bulk-delete', { ids: selectedIds });
+      toast.success(data.message || `${selectedIds.length} credential berhasil dihapus`);
+      setSelectedIds([]);
+      fetchCredentials();
+    } catch (error: any) {
+      console.error('Error bulk deleting credentials:', error);
+      toast.error(error.response?.data?.error || 'Gagal melakukan hapus massal');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteByProvider = async (providerName: string) => {
+    const targetCount = credentials.filter(c => c.provider_name === providerName).length;
+    if (targetCount === 0) {
+      toast.error(`Tidak ada credential untuk provider ${providerName}`);
+      return;
+    }
+
+    if (!confirm(`⚠️ PERHATIAN: Hapus SEMUA ${targetCount} key untuk provider "${providerName.toUpperCase()}"? Action ini tidak bisa dibatalkan.`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { data } = await api.post('/api/credentials/bulk-delete', { provider_name: providerName });
+      toast.success(data.message || `Semua key ${providerName} (${targetCount}) berhasil dihapus`);
+      setSelectedIds([]);
+      fetchCredentials();
+    } catch (error: any) {
+      console.error('Error deleting provider credentials:', error);
+      toast.error(error.response?.data?.error || 'Gagal menghapus key provider');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const selectedProviderConfig = providerOptions.find(p => p.value === formData.provider_name);
 
   const filteredCreds = filterProvider === 'all'
@@ -414,7 +520,7 @@ export default function Providers() {
       <div className="p-4 md:p-6 space-y-6">
         
         {/* Global Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
           {[
             { label: 'Total API Keys', value: totalKeysCount, icon: Key, color: 'text-primary' },
             { label: 'Keys Aktif', value: activeKeysCount, icon: CheckCircle, color: 'text-green-500' },
@@ -431,14 +537,14 @@ export default function Providers() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="glass rounded-xl p-4 flex items-center gap-3"
+              className="glass rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3"
             >
-              <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center">
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
+                <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="text-xl font-bold">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stat.label}</p>
+                <p className="text-base sm:text-xl font-bold truncate">{stat.value}</p>
               </div>
             </motion.div>
           ))}
@@ -446,22 +552,22 @@ export default function Providers() {
 
         {/* Credentials Table / List section */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <Key className="w-5 h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+                <Key className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 {filterProvider === 'all' 
                   ? 'Semua API Keys / Credentials' 
                   : `API Keys untuk ${providerOptions.find(p => p.value === filterProvider)?.label || filterProvider}`}
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] sm:text-xs text-muted-foreground">
                 Menampilkan {filteredCreds.length} dari total {credentials.length} kredensial
               </p>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Select value={filterProvider} onValueChange={setFilterProvider}>
-                <SelectTrigger className="w-[180px] bg-secondary/50 border-border/40">
+                <SelectTrigger className="flex-1 sm:flex-initial min-w-[130px] sm:w-[170px] h-8 text-xs bg-secondary/50 border-border/40">
                   <SelectValue placeholder="Filter Provider" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -481,14 +587,19 @@ export default function Providers() {
                 onClick={handleSyncCache} 
                 disabled={isSyncing} 
                 variant="outline" 
-                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-sm gap-2"
+                size="sm"
+                className="h-8 px-2.5 text-xs bg-secondary/40 border-border/40 hover:bg-secondary/80 gap-1.5"
               >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                Sync Cache
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden xs:inline">Sync</span> Cache
               </Button>
 
-              <Button onClick={openCreateModal} className="bg-primary hover:bg-primary/90 text-sm">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button
+                onClick={openCreateModal}
+                size="sm"
+                className="h-8 px-3 text-xs bg-primary hover:bg-primary/90 font-medium shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
                 Tambah Credential
               </Button>
             </div>
@@ -518,6 +629,83 @@ export default function Providers() {
             </div>
           ) : (
             <div className="grid gap-3">
+              {/* ─── Bulk Action Bar ─── */}
+              <div className="glass rounded-xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 border border-border/50 bg-secondary/30">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="select-all-creds"
+                    checked={filteredCreds.length > 0 && filteredCreds.every(c => selectedIds.includes(c.id))}
+                    onChange={() => toggleSelectAll(filteredCreds)}
+                    className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                  />
+                  <label htmlFor="select-all-creds" className="text-xs font-semibold cursor-pointer select-none">
+                    Pilih Semua ({filteredCreds.length})
+                  </label>
+                  {selectedIds.length > 0 && (
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      {selectedIds.length} dipilih
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {selectedIds.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleBulkDeleteSelected}
+                      disabled={isBulkDeleting}
+                      className="text-xs gap-1.5 h-8 bg-destructive hover:bg-destructive/90"
+                    >
+                      {isBulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      Hapus Massal ({selectedIds.length} Key)
+                    </Button>
+                  )}
+
+                  {filterProvider !== 'all' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkDeleteByProvider(filterProvider)}
+                      disabled={isBulkDeleting}
+                      className="text-xs gap-1.5 h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Hapus SEMUA Key {filterProvider.toUpperCase()} ({credentials.filter(c => c.provider_name === filterProvider).length})
+                    </Button>
+                  )}
+
+                  {credentials.some(c => c.status === 'inactive') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const inactiveCount = credentials.filter(c => c.status === 'inactive').length;
+                        if (!confirm(`Hapus SEMUA ${inactiveCount} key dengan status INACTIVE/Terblokir?`)) return;
+                        setIsBulkDeleting(true);
+                        try {
+                          const inactiveIds = credentials.filter(c => c.status === 'inactive').map(c => c.id);
+                          const { data } = await api.post('/api/credentials/bulk-delete', { ids: inactiveIds });
+                          toast.success(data.message || `${inactiveCount} key inactive berhasil dihapus`);
+                          setSelectedIds([]);
+                          fetchCredentials();
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.error || 'Gagal hapus key inactive');
+                        } finally {
+                          setIsBulkDeleting(false);
+                        }
+                      }}
+                      disabled={isBulkDeleting}
+                      className="text-xs gap-1.5 h-8 border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Hapus SEMUA Key Inactive ({credentials.filter(c => c.status === 'inactive').length})
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               <AnimatePresence mode="popLayout">
                 {filteredCreds.map((cred, index) => (
                   <motion.div
@@ -526,9 +714,20 @@ export default function Providers() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ delay: index * 0.03 }}
-                    className="glass rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-border/40 hover:border-border/80 transition-all duration-200"
+                    className={`glass rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border transition-all duration-200 ${
+                      selectedIds.includes(cred.id)
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border/40 hover:border-border/80'
+                    }`}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(cred.id)}
+                        onChange={() => toggleSelectId(cred.id)}
+                        className="w-4 h-4 rounded border-border accent-primary cursor-pointer shrink-0"
+                      />
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         cred.status === 'active' ? 'bg-primary/10' : 'bg-secondary'
                       }`}>
@@ -598,7 +797,19 @@ export default function Providers() {
                         )}
                         Test Key
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(cred)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopyCredentialKey(cred)}
+                        title="Salin API Key"
+                      >
+                        {copiedCredId === cred.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                        )}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEditModal(cred)} title="Edit Credential">
                         <Edit2 className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                       </Button>
                       <Button
@@ -657,135 +868,154 @@ export default function Providers() {
               />
             </div>
 
-            {formData.provider_name === 'cloudinary' ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Cloud Name</Label>
-                  <Input
-                    placeholder="Masukkan Cloud Name..."
-                    value={formData.cloud_name}
-                    onChange={(e) => setFormData({ ...formData, cloud_name: e.target.value })}
-                    className="bg-secondary/50 text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="Masukkan API Key..."
-                    value={formData.api_key}
-                    onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>API Secret</Label>
-                  <Input
-                    type="password"
-                    placeholder="Masukkan API Secret..."
-                    value={formData.api_secret}
-                    onChange={(e) => setFormData({ ...formData, api_secret: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-              </>
-            ) : formData.provider_name === 'imagekit' ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Public Key</Label>
-                  <Input
-                    placeholder="contoh: public_..."
-                    value={formData.public_key}
-                    onChange={(e) => setFormData({ ...formData, public_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Private Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="contoh: private_..."
-                    value={formData.private_key}
-                    onChange={(e) => setFormData({ ...formData, private_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>URL Endpoint</Label>
-                  <Input
-                    placeholder="contoh: https://ik.imagekit.io/..."
-                    value={formData.url_endpoint}
-                    onChange={(e) => setFormData({ ...formData, url_endpoint: e.target.value })}
-                    className="bg-secondary/50 text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-              </>
-            ) : formData.provider_name === 'uploadcare' ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Public Key</Label>
-                  <Input
-                    placeholder="Masukkan Uploadcare Public Key..."
-                    value={formData.public_key}
-                    onChange={(e) => setFormData({ ...formData, public_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Secret Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="Masukkan Uploadcare Secret Key..."
-                    value={formData.secret_key}
-                    onChange={(e) => setFormData({ ...formData, secret_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-              </>
-            ) : formData.provider_name === 'rapidapi' ? (
-              <>
-                <div className="space-y-2">
-                  <Label>API Key</Label>
-                  <Input
-                    type="password"
-                    placeholder="Masukkan RapidAPI Key..."
-                    value={formData.api_key}
-                    onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                    className="bg-secondary/50 font-mono text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>RapidAPI Host</Label>
-                  <Input
-                    placeholder="contoh: alpha-vantage.p.rapidapi.com"
-                    value={formData.rapidapi_host}
-                    onChange={(e) => setFormData({ ...formData, rapidapi_host: e.target.value })}
-                    className="bg-secondary/50 text-sm"
-                    required={!selectedCred}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="space-y-2">
-                <Label>API Key</Label>
-                <Input
-                  type="password"
-                  placeholder={selectedProviderConfig?.placeholder || 'Masukkan API key...'}
-                  value={formData.api_key}
-                  onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-                  className="bg-secondary/50 font-mono text-sm"
-                  required={!selectedCred}
-                />
+            {isLoadingModal ? (
+              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span>Memuat API key dari database...</span>
               </div>
+            ) : (
+              <>
+                {formData.provider_name === 'cloudinary' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Cloud Name</Label>
+                      <Input
+                        placeholder="Masukkan Cloud Name..."
+                        value={formData.cloud_name}
+                        onChange={(e) => setFormData({ ...formData, cloud_name: e.target.value })}
+                        className="bg-secondary/50 text-sm"
+                        required={!selectedCred}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Key</Label>
+                      <div className="relative flex items-center">
+                        <Input
+                          type={showApiKey ? 'text' : 'password'}
+                          placeholder="Masukkan API Key..."
+                          value={formData.api_key}
+                          onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                          className="bg-secondary/50 font-mono text-sm pr-20"
+                          required={!selectedCred}
+                        />
+                        <div className="absolute right-2 flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            title={showApiKey ? 'Sembunyikan' : 'Tampilkan API Key'}
+                          >
+                            {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </Button>
+                          {formData.api_key && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(formData.api_key).catch(() => {});
+                                toast.success('API Key disalin ke clipboard!');
+                              }}
+                              title="Salin API Key"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Secret</Label>
+                      <Input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder="Masukkan API Secret..."
+                        value={formData.api_secret}
+                        onChange={(e) => setFormData({ ...formData, api_secret: e.target.value })}
+                        className="bg-secondary/50 font-mono text-sm"
+                        required={!selectedCred}
+                      />
+                    </div>
+                  </>
+                ) : formData.provider_name === 'imagekit' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Public Key</Label>
+                      <Input
+                        placeholder="contoh: public_..."
+                        value={formData.public_key}
+                        onChange={(e) => setFormData({ ...formData, public_key: e.target.value })}
+                        className="bg-secondary/50 font-mono text-sm"
+                        required={!selectedCred}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Private Key</Label>
+                      <Input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder="contoh: private_..."
+                        value={formData.private_key}
+                        onChange={(e) => setFormData({ ...formData, private_key: e.target.value })}
+                        className="bg-secondary/50 font-mono text-sm"
+                        required={!selectedCred}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>URL Endpoint</Label>
+                      <Input
+                        placeholder="contoh: https://ik.imagekit.io/..."
+                        value={formData.url_endpoint}
+                        onChange={(e) => setFormData({ ...formData, url_endpoint: e.target.value })}
+                        className="bg-secondary/50 text-sm"
+                        required={!selectedCred}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <div className="relative flex items-center">
+                      <Input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder={selectedProviderConfig?.placeholder || 'Masukkan API key...'}
+                        value={formData.api_key}
+                        onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
+                        className="bg-secondary/50 font-mono text-sm pr-20"
+                        required={!selectedCred}
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          title={showApiKey ? 'Sembunyikan' : 'Tampilkan API Key'}
+                        >
+                          {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </Button>
+                        {formData.api_key && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(formData.api_key).catch(() => {});
+                              toast.success('API Key disalin!');
+                            }}
+                            title="Salin API Key"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
             {selectedCred && (
               <p className="text-xs text-muted-foreground mt-1">

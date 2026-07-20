@@ -23,10 +23,12 @@ export async function initDatabase(): Promise<void> {
         password_hash TEXT NOT NULL,
         username TEXT NOT NULL DEFAULT '',
         role TEXT NOT NULL DEFAULT 'admin',
+        avatar_url TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`;
 
     // 3. Provider credentials table
     await sql`
@@ -118,13 +120,12 @@ export async function initDatabase(): Promise<void> {
       )
     `;
 
-    // 9. Seed default AI models if none exist (or rebuild if it is the old set)
+    // 9. Seed default AI models if table is empty (never overwrite existing models on restart)
     const countCheck = await sql`SELECT COUNT(*)::INT as count FROM ai_models`;
     const modelCount = countCheck[0]?.count || 0;
 
-    if (modelCount < 49) {
-      console.log('[Seed] Rebuilding default AI models list...');
-      await sql`TRUNCATE TABLE ai_models`;
+    if (modelCount === 0) {
+      console.log('[Seed] Seeding default AI models list for the first time...');
       
       const defaultModels = [
         {provider: 'gemini', model_id: 'gemini-2.5-flash', display_name: 'Gemini 2.5 Flash', is_default: true, supports_vision: true },

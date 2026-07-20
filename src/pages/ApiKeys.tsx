@@ -23,6 +23,7 @@ interface GatewayKey {
   quota_per_minute?: number;
   allowed_providers?: string[];
   client_username?: string;
+  key_preview?: string;
   created_at: string;
   health?: {
     last_latency_ms?: number;
@@ -177,8 +178,8 @@ export default function ApiKeys() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-xs text-muted-foreground font-mono bg-secondary/80 px-2 py-0.5 rounded border border-border/40">
-                          ID: {key.id.slice(0, 8)}...
+                        <span className="text-xs text-muted-foreground font-mono bg-secondary/80 px-2 py-0.5 rounded border border-border/40" title="Key Preview (Format: AR_tenantId_secret)">
+                          {key.key_preview || `ID: ${key.id.slice(0, 8)}...`}
                         </span>
                         {key.health && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -203,11 +204,17 @@ export default function ApiKeys() {
                   </div>
 
                   <div className="flex items-center gap-1 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0">
-                    <Button variant="ghost" size="icon" onClick={() => copyKey(key.id, key.id)} title="Salin ID">
-                      {copiedId === key.id ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRotate(key)}
+                      title="Generate key rahasia baru (AR_...)"
+                      className="text-xs gap-1.5 text-warning border-warning/30 hover:bg-warning/10"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Rotate & Salin
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleRotate(key)} title="Rotate key" className="text-warning hover:text-warning hover:bg-warning/10">
-                      <RotateCcw className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" onClick={() => copyKey(key.key_preview || key.id, key.id)} title="Salin Preview Key">
+                      {copiedId === key.id ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEditPage(key)} title="Edit Key">
                       <Edit2 className="w-4 h-4" />

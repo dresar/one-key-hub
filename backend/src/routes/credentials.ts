@@ -83,6 +83,47 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ─── GET /api/credentials/:id/reveal ──────────────────────────────────────────
+router.get('/:id/reveal', async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const rows = await db
+      .select()
+      .from(providerCredentials)
+      .where(and(eq(providerCredentials.id, Number(id)), isNull(providerCredentials.deletedAt)))
+      .limit(1);
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: 'Credential tidak ditemukan' });
+      return;
+    }
+
+    const cred = rows[0];
+    let decrypted: Record<string, string> = {};
+
+    try {
+      const decryptedBase64 = decrypt(cred.credentialsCiphertext);
+      const rawJson = Buffer.from(decryptedBase64, 'base64').toString('utf8');
+      const parsed = JSON.parse(rawJson);
+      decrypted = parsed.raw || parsed || {};
+    } catch (decryptErr: any) {
+      res.status(500).json({ error: 'Gagal mendekripsi credential', details: decryptErr.message });
+      return;
+    }
+
+    res.json({
+      id: cred.id,
+      provider_name: cred.providerName,
+      label: cred.label,
+      credentials: decrypted,
+    });
+  } catch (err) {
+    console.error('[Credentials] Reveal error:', err);
+    res.status(500).json({ error: 'Gagal memuat detail credential' });
+  }
+});
+
 // ─── POST /api/credentials/sync ───────────────────────────────────────────────
 router.post('/sync', async (req: AuthRequest, res: Response) => {
   try {
@@ -104,28 +145,35 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Stringify credentials for storage
-    const rawCredentials = JSON.stringify(credentials);
+    // Extract main key string if available (api_key, secret_key, private_key)
+    const mainKeyStr = (credentials.api_key || credentials.secret_key || credentials.private_key || '').trim();
 
-    // Hash for duplicate detection
-    const kHash = hashValue(rawCredentials);
+    // Hashes for duplicate detection
+    const kHashFull = hashValue(JSON.stringify(credentials));
+    const kHashKeyOnly = mainKeyStr ? hashValue(mainKeyStr) : null;
 
-    // Check for duplicates
+    // Check for duplicates in database
     const existing = await db
-      .select({ id: providerCredentials.id })
+      .select({ id: providerCredentials.id, label: providerCredentials.label })
       .from(providerCredentials)
       .where(
         and(
-          eq(providerCredentials.keyHash, kHash),
           isNull(providerCredentials.deletedAt),
-        ),
+          kHashKeyOnly
+            ? sql`${providerCredentials.keyHash} IN (${kHashFull}, ${kHashKeyOnly})`
+            : eq(providerCredentials.keyHash, kHashFull)
+        )
       )
       .limit(1);
 
     if (existing.length > 0) {
-      res.status(409).json({ error: 'Credential ini sudah ada (duplikat)' });
+      res.status(409).json({
+        error: `⚠️ API Key ini sudah ada di database! (Sudah terdaftar dengan nama "${existing[0].label || 'Credential'}"). Silakan gunakan API Key yang berbeda.`
+      });
       return;
     }
+
+    const kHash = kHashKeyOnly || kHashFull;
 
     // Encrypt credentials
     // Store as: encrypt({ raw: credentials })
@@ -215,6 +263,59 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   } catch (err) {
     console.error('[Credentials] Update error:', err);
     res.status(500).json({ error: 'Gagal memperbarui credential' });
+  }
+});
+
+// ─── POST /api/credentials/bulk-delete ────────────────────────────────────────
+router.post('/bulk-delete', async (req: AuthRequest, res: Response) => {
+  try {
+    const { ids, provider_name, status } = req.body;
+
+    let targetIds: number[] = [];
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      targetIds = ids.map(Number).filter(id => !isNaN(id));
+    } else if (provider_name) {
+      // Bulk delete by provider and optional status filter
+      const conditions = [
+        eq(providerCredentials.providerName, provider_name),
+        isNull(providerCredentials.deletedAt),
+      ];
+      if (status) {
+        conditions.push(eq(providerCredentials.status, status));
+      }
+
+      const rows = await db
+        .select({ id: providerCredentials.id })
+        .from(providerCredentials)
+        .where(and(...conditions));
+
+      targetIds = rows.map(r => r.id);
+    }
+
+    if (targetIds.length === 0) {
+      res.status(400).json({ error: 'Tidak ada credential yang dipilih untuk dihapus' });
+      return;
+    }
+
+    // Bulk soft-delete
+    await db
+      .update(providerCredentials)
+      .set({ deletedAt: new Date(), status: 'inactive', updatedAt: new Date() })
+      .where(sql`${providerCredentials.id} IN ${targetIds}`);
+
+    credentialCache.clear();
+    statsCache.clear();
+    await syncDbCache();
+
+    res.json({
+      message: `${targetIds.length} credential berhasil dihapus`,
+      deleted_count: targetIds.length,
+      deleted_ids: targetIds,
+    });
+  } catch (err) {
+    console.error('[Credentials] Bulk delete error:', err);
+    res.status(500).json({ error: 'Gagal melakukan hapus massal credential' });
   }
 });
 

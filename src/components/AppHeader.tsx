@@ -61,10 +61,22 @@ export default function AppHeader({ title, subtitle }: AppHeaderProps) {
             variant="ghost"
             className="flex items-center gap-2 px-2 md:px-3 py-2 hover:bg-secondary shrink-0"
           >
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0 border border-primary/20">
+              {user?.avatarUrl || user?.avatar_url ? (
+                <img
+                  src={user.avatarUrl || user.avatar_url}
+                  alt={user.username || 'User'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to icon if image fails to load
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <User className="w-4 h-4 text-primary" />
+              )}
             </div>
-            <span className="font-medium hidden md:inline">{user?.username}</span>
+            <span className="font-medium text-xs md:text-sm truncate hidden md:inline">{user?.username || 'Admin'}</span>
             <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </Button>
         </DropdownMenuTrigger>

@@ -86,7 +86,7 @@ router.put('/rotation', async (req: AuthRequest, res: Response) => {
 // ─── PUT /users/profile ───────────────────────────────────────────────────────
 router.put('/profile', async (req: AuthRequest, res: Response) => {
   try {
-    const { username, currentPassword, newPassword } = req.body;
+    const { username, currentPassword, newPassword, avatarUrl } = req.body;
 
     if (!username?.trim()) {
       res.status(400).json({ error: 'Username tidak boleh kosong' });
@@ -108,6 +108,10 @@ router.put('/profile', async (req: AuthRequest, res: Response) => {
       username: username.trim(),
       updatedAt: new Date(),
     };
+
+    if (avatarUrl !== undefined) {
+      updateData.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
+    }
 
     // Handle password change
     if (newPassword) {
@@ -134,11 +138,11 @@ router.put('/profile', async (req: AuthRequest, res: Response) => {
       .update(users)
       .set(updateData)
       .where(eq(users.id, req.user!.id))
-      .returning({ id: users.id, username: users.username, email: users.email });
+      .returning({ id: users.id, username: users.username, email: users.email, avatarUrl: users.avatarUrl });
 
     res.json({
       message: 'Profil berhasil diperbarui',
-      user: { id: updated.id, username: updated.username, email: updated.email },
+      user: updated,
     });
   } catch (err) {
     console.error('[Settings] Profile update error:', err);
