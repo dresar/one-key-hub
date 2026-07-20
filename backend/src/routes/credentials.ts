@@ -46,8 +46,57 @@ async function pushIdToErrorRange(currentId: number): Promise<number> {
   return targetId;
 }
 
+export async function reindexAllCredentials(): Promise<{ updatedCount: number }> {
+  const rows = await db
+    .select({ id: providerCredentials.id })
+    .from(providerCredentials)
+    .where(isNull(providerCredentials.deletedAt))
+    .orderBy(providerCredentials.id);
+
+  if (rows.length === 0) {
+    await syncProviderCredentialsSequence();
+    return { updatedCount: 0 };
+  }
+
+  // Shift to temp IDs to avoid unique constraint collisions
+  for (let i = 0; i < rows.length; i++) {
+    const oldId = rows[i].id;
+    const tempId = 100000 + i + 1;
+    await db.execute(sql`UPDATE provider_credentials SET id = ${tempId} WHERE id = ${oldId}`);
+  }
+
+  // Assign clean sequential IDs 1, 2, 3...
+  for (let i = 0; i < rows.length; i++) {
+    const tempId = 100000 + i + 1;
+    const newId = i + 1;
+    await db.execute(sql`UPDATE provider_credentials SET id = ${newId} WHERE id = ${tempId}`);
+  }
+
+  await syncProviderCredentialsSequence();
+  credentialCache.clear();
+  statsCache.clear();
+  await syncDbCache();
+
+  return { updatedCount: rows.length };
+}
+
 // ─── All routes require JWT auth ──────────────────────────────────────────────
 router.use(authenticate);
+
+// ─── POST /api/credentials/reindex-ids ───────────────────────────────────────
+router.post('/reindex-ids', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await reindexAllCredentials();
+    res.json({
+      success: true,
+      message: `Berhasil mereset dan mengurutkan ulang ${result.updatedCount} ID credential menjadi 1, 2, 3...`,
+      count: result.updatedCount,
+    });
+  } catch (err) {
+    console.error('[Credentials] Reindex error:', err);
+    res.status(500).json({ error: 'Gagal mengurutkan ulang ID credentials' });
+  }
+});
 
 // ─── GET /api/credentials/next-id ─────────────────────────────────────────────
 router.get('/next-id', async (req: AuthRequest, res: Response) => {
@@ -287,7 +336,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
       updatedAt: new Date(),
     };
 
-    const targetNewId = custom_id !== undefined ? Number(custom_id) : new_id !== undefined ? Number(new_id) : null;
+    let effectiveId = currentId;
 
     if (targetNewId !== null && !isNaN(targetNewId) && targetNewId > 0 && targetNewId !== currentId) {
       // Check if targetNewId is used by another active credential
@@ -306,7 +355,10 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
       // Purge soft-deleted row with targetNewId
       await db.delete(providerCredentials).where(eq(providerCredentials.id, targetNewId));
-      updateData.id = targetNewId;
+
+      // Execute raw SQL update to change Primary Key id
+      await db.execute(sql`UPDATE provider_credentials SET id = ${targetNewId} WHERE id = ${currentId}`);
+      effectiveId = targetNewId;
     }
 
     if (label !== undefined) updateData.label = label;
@@ -326,7 +378,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     const [updated] = await db
       .update(providerCredentials)
       .set(updateData)
-      .where(and(eq(providerCredentials.id, Number(id)), isNull(providerCredentials.deletedAt)))
+      .where(and(eq(providerCredentials.id, effectiveId), isNull(providerCredentials.deletedAt)))
       .returning({ id: providerCredentials.id, providerName: providerCredentials.providerName });
 
     if (!updated) {
@@ -334,10 +386,12 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    await syncProviderCredentialsSequence();
     credentialCache.invalidate(updated.providerName);
+    statsCache.clear();
     await syncDbCache();
 
-    res.json({ message: 'Credential berhasil diperbarui', id });
+    res.json({ message: `Credential ID #${effectiveId} berhasil diperbarui`, id: effectiveId });
   } catch (err) {
     console.error('[Credentials] Update error:', err);
     res.status(500).json({ error: 'Gagal memperbarui credential' });

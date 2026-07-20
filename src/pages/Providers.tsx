@@ -432,6 +432,20 @@ export default function Providers() {
     }
   };
 
+  const handleReindexIds = async () => {
+    if (!confirm('Reset dan urutkan ulang seluruh ID API Key mulai dari 1, 2, 3...?')) return;
+    setIsSyncing(true);
+    try {
+      const { data } = await api.post('/api/credentials/reindex-ids');
+      toast.success(data.message || 'ID berhasil diurutkan ulang dari 1!');
+      fetchCredentials();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal mengurutkan ulang ID');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleSyncCache = async () => {
     setIsSyncing(true);
     try {
@@ -607,13 +621,26 @@ export default function Providers() {
               </Select>
 
               <Button 
+                onClick={handleReindexIds} 
+                disabled={isSyncing} 
+                variant="outline" 
+                size="sm"
+                title="Reset & urutkan ulang semua ID mulai dari 1, 2, 3..."
+                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-xs gap-1.5 flex-1 sm:flex-none"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-primary ${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Urutkan ID (1,2,3..)</span>
+                <span className="sm:hidden">Reset ID</span>
+              </Button>
+
+              <Button 
                 onClick={handleSyncCache} 
                 disabled={isSyncing} 
                 variant="outline" 
                 size="sm"
-                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-sm gap-2 flex-1 sm:flex-none"
+                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-xs gap-2 flex-1 sm:flex-none"
               >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Sync Cache</span>
               </Button>
 
