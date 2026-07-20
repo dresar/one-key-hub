@@ -63,16 +63,20 @@ export async function reindexAllCredentials(): Promise<{ updatedCount: number }>
       return { updatedCount: 0 };
     }
 
-    // 3. Shift all active rows to high temporary offset IDs (900000 + i) to prevent primary key conflicts
+    // 3. Dynamic safe offset higher than any existing ID to prevent unique constraint collisions
+    const maxCurrentId = Math.max(...rows.map(r => r.id), 0);
+    const safeOffset = Math.max(maxCurrentId, 2000000) + 1000;
+
+    // Shift all active rows to high temporary offset IDs
     for (let i = 0; i < rows.length; i++) {
       const oldId = rows[i].id;
-      const tempId = 900000 + i + 1;
+      const tempId = safeOffset + i + 1;
       await db.execute(sql`UPDATE provider_credentials SET id = ${tempId} WHERE id = ${oldId}`);
     }
 
     // 4. Assign clean sequential IDs 1, 2, 3...
     for (let i = 0; i < rows.length; i++) {
-      const tempId = 900000 + i + 1;
+      const tempId = safeOffset + i + 1;
       const newId = i + 1;
       await db.execute(sql`UPDATE provider_credentials SET id = ${newId} WHERE id = ${tempId}`);
     }
@@ -347,6 +351,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     };
 
     let effectiveId = currentId;
+    const targetNewId = custom_id !== undefined ? Number(custom_id) : new_id !== undefined ? Number(new_id) : null;
 
     if (targetNewId !== null && !isNaN(targetNewId) && targetNewId > 0 && targetNewId !== currentId) {
       // Check if targetNewId is used by another active credential
