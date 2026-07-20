@@ -15,7 +15,7 @@ interface Props {
 }
 
 type LangTab = 'curl' | 'javascript' | 'python' | 'openai_sdk';
-type Section = 'chat' | 'models' | 'reference';
+type Section = 'chat' | 'models' | 'reference' | 'ai_prompt';
 
 interface Model {
   id: string;
@@ -170,6 +170,21 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const displayKey = gatewayKey.startsWith('YOUR') ? 'YOUR_GATEWAY_KEY' : gatewayKey;
   // Default model changes with provider — this is what makes examples update
   const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.0-flash';
+
+  const aiSystemPrompt = `Kamu adalah asisten AI pemrograman. Saya menggunakan Unified AI Gateway (rotasi API key otomatis) dengan spesifikasi berikut:
+
+- Base URL API: \`${BASE_URL}/v1\`
+- Gateway API Key: \`${displayKey}\`
+
+Semua request chat completions (seperti GPT, Gemini, Llama, Mistral, Cohere, DeepSeek) harus dikirim ke:
+- Endpoint: \`${BASE_URL}/v1/chat/completions\`
+- Header Autentikasi: \`Authorization: Bearer ${displayKey}\`
+- Format Request: Mengikuti standar format OpenAI Chat Completions (misal: JSON body dengan \`model\`, \`messages\`, \`temperature\`, \`max_tokens\`).
+
+Daftar model yang tersedia dapat diambil via:
+- Endpoint: \`${BASE_URL}/v1/models\`
+
+Ketika menulis kode pemrograman untuk saya (JavaScript/Node.js, Python, cURL, PHP, Go, dll.), selalu gunakan Base URL dan API Key di atas. Jika menggunakan SDK resmi OpenAI (python-openai, openai-node), arahkan parameter \`base_url\` / \`baseURL\` ke \`${BASE_URL}/v1\` dan \`api_key\` / \`apiKey\` ke \`${displayKey}\`.`;
 
   // Load models when section switches to models
   useEffect(() => {
@@ -584,6 +599,7 @@ for (const m of models.data) {
                 <SectionTab active={section === 'chat'} onClick={() => setSection('chat')} icon={MessageSquare} label="Chat Completions" />
                 <SectionTab active={section === 'models'} onClick={() => setSection('models')} icon={List} label="Models" badge="61+" />
                 <SectionTab active={section === 'reference'} onClick={() => setSection('reference')} icon={Hash} label="API Reference" />
+                <SectionTab active={section === 'ai_prompt'} onClick={() => setSection('ai_prompt')} icon={Code2} label="Prompt Untuk AI" />
               </div>
 
               <div className="p-5 space-y-5">
@@ -949,6 +965,46 @@ curl ${BASE_URL}/v1/chat/completions \\
                             </div>
                           ))}
                         </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ══════════════ AI PROMPT SECTION ════════════════════ */}
+                  {section === 'ai_prompt' && (
+                    <motion.div
+                      key="ai_prompt"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary">
+                        <Zap className="w-4 h-4 mt-0.5 shrink-0 animate-pulse" />
+                        <div>
+                          <strong>Tips Cepat:</strong> Salin prompt di bawah ini dan tempelkan ke ChatGPT, Claude, Cursor, v0, atau AI lainnya agar AI tersebut langsung paham cara memanggil API rotasi ini di kode Anda.
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-muted-foreground">Prompt Instruksi Sistem untuk AI</span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(aiSystemPrompt);
+                              toast.success('Prompt AI berhasil disalin!');
+                            }}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/95 transition-all font-medium"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            Salin Prompt
+                          </button>
+                        </div>
+                        <CodeBlock
+                          code={aiSystemPrompt}
+                          id="ai-prompt-block"
+                          lang="markdown"
+                        />
                       </div>
                     </motion.div>
                   )}
