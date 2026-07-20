@@ -158,18 +158,28 @@ export function getCachedCredentials(providerName?: string): CachedCredential[] 
 /**
  * Get the best active credential for a provider using load balancing (least requests).
  */
-export function getBestCachedCredential(providerName: string, targetModelId?: string): CachedCredential | null {
+export function getBestCachedCredential(
+  providerName: string, 
+  targetModelId?: string,
+  excludeIds: (string | number)[] = []
+): CachedCredential | null {
   const key = providerName.toLowerCase();
   const providerList = memoryCache[key] || [];
 
-  // 1. Try to find active keys matching the specific modelId first
+  const excludedStr = excludeIds.map(id => String(id));
+
+  // 1. Try to find active keys matching the specific modelId (or unbound keys)
   let candidates = providerList.filter(
-    c => c.status === 'active' && (!targetModelId || c.credentials.model_id === targetModelId)
+    c => c.status === 'active' 
+      && !excludedStr.includes(String(c.id))
+      && (!targetModelId || !c.credentials.model_id || c.credentials.model_id === targetModelId)
   );
 
-  // 2. Fallback to any active key for this provider
+  // 2. Fallback to any active key for this provider not in excludeIds
   if (candidates.length === 0) {
-    candidates = providerList.filter(c => c.status === 'active');
+    candidates = providerList.filter(
+      c => c.status === 'active' && !excludedStr.includes(String(c.id))
+    );
   }
 
   if (candidates.length === 0) return null;

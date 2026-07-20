@@ -10,7 +10,7 @@ import { reportCredentialFailure } from '../lib/rotate';
 import { emitSocketEvent } from '../socket/events';
 import { gatewayRateLimiter } from '../middleware/rateLimiter';
 import { v4 as uuidv4 } from 'uuid';
-import { getBestCachedCredential, getCachedCredentials, updateLocalCredentialStats } from '../services/credentialSync';
+import { getBestCachedCredential, getCachedCredentials, updateLocalCredentialStats, syncDbCache } from '../services/credentialSync';
 const router = Router();
 router.use(gatewayRateLimiter);
 
@@ -58,16 +58,33 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         });
       }
 
-      if (body.prompt) {
-        parts.push({ text: body.prompt });
+      // Extract prompt text from body.prompt or body.messages
+      let promptText = body.prompt || '';
+      let systemText = body.system_prompt || '';
+
+      if (Array.isArray(body.messages)) {
+        const sysMsg = body.messages.find((m: any) => m.role === 'system');
+        if (sysMsg && !systemText) {
+          systemText = typeof sysMsg.content === 'string' ? sysMsg.content : JSON.stringify(sysMsg.content);
+        }
+
+        const userMsgs = body.messages.filter((m: any) => m.role === 'user' || !m.role);
+        const lastUser = userMsgs[userMsgs.length - 1];
+        if (lastUser && !promptText) {
+          promptText = typeof lastUser.content === 'string' ? lastUser.content : JSON.stringify(lastUser.content);
+        }
+      }
+
+      if (promptText) {
+        parts.push({ text: promptText });
       }
 
       // System instruction support
       const payload: any = {
         contents: [{ role: 'user', parts }],
       };
-      if (body.system_prompt) {
-        payload.systemInstruction = { parts: [{ text: body.system_prompt }] };
+      if (systemText) {
+        payload.systemInstruction = { parts: [{ text: systemText }] };
       }
 
       return {
@@ -352,7 +369,8 @@ async function validateGatewayKey(rawKey: string): Promise<typeof gatewayKeys.$i
 async function getProviderCredential(
   providerName: string, 
   targetModelId?: string,
-  specificId?: string
+  specificId?: string,
+  excludeIds: (string | number)[] = []
 ): Promise<{ id: string; credentials: Record<string, string> } | null> {
   if (specificId) {
     const list = getCachedCredentials(providerName);
@@ -390,10 +408,14 @@ async function getProviderCredential(
     return null;
   }
 
-  const cachedCred = getBestCachedCredential(providerName, targetModelId);
+  let cachedCred = getBestCachedCredential(providerName, targetModelId, excludeIds);
+  if (!cachedCred && excludeIds.length === 0) {
+    await syncDbCache();
+    cachedCred = getBestCachedCredential(providerName, targetModelId, excludeIds);
+  }
   if (!cachedCred) return null;
   return {
-    id: cachedCred.id,
+    id: String(cachedCred.id),
     credentials: cachedCred.credentials
   };
 }
@@ -433,11 +455,89 @@ async function writeLog(data: {
   }
 }
 
+// ─── GET /gateway/models & /v1/models (OpenAI Standard Format) ─────────────
+router.get(['/models', '/v1/models'], async (_req: Request, res: Response) => {
+  try {
+    const dbModels = await db.select().from(aiModels).orderBy(asc(aiModels.provider), asc(aiModels.displayName));
+
+    const data = dbModels.map(m => ({
+      id: m.modelId,
+      object: 'model',
+      created: Math.floor(new Date(m.createdAt).getTime() / 1000),
+      owned_by: m.provider === 'gemini' ? 'Google Gemini' : m.provider === 'groq' ? 'Groq' : m.provider === 'openai' ? 'OpenAI' : m.provider,
+      active: true,
+      context_window: m.modelId.includes('flash') || m.modelId.includes('pro') ? 1048576 : 8192,
+      supports_vision: m.supportsVision,
+      display_name: m.displayName,
+      provider: m.provider,
+    }));
+
+    res.json({
+      object: 'list',
+      data,
+    });
+  } catch (err) {
+    console.error('[Gateway] Failed to list models:', err);
+    res.status(500).json({ error: 'Gagal memuat list model AI' });
+  }
+});
+
+// ─── GET /gateway/:provider/models ───────────────────────────────────────────
+router.get('/:provider/models', async (req: Request, res: Response) => {
+  try {
+    const providerName = req.params.provider.toLowerCase();
+    const dbModels = await db
+      .select()
+      .from(aiModels)
+      .where(eq(aiModels.provider, providerName))
+      .orderBy(asc(aiModels.displayName));
+
+    const data = dbModels.map(m => ({
+      id: m.modelId,
+      object: 'model',
+      created: Math.floor(new Date(m.createdAt).getTime() / 1000),
+      owned_by: providerName === 'gemini' ? 'Google Gemini' : providerName,
+      active: true,
+      context_window: m.modelId.includes('flash') || m.modelId.includes('pro') ? 1048576 : 8192,
+      supports_vision: m.supportsVision,
+      display_name: m.displayName,
+      provider: m.provider,
+    }));
+
+    res.json({
+      object: 'list',
+      data,
+    });
+  } catch (err) {
+    console.error('[Gateway] Failed to list provider models:', err);
+    res.status(500).json({ error: `Gagal memuat list model for provider ${req.params.provider}` });
+  }
+});
+
+// ─── POST /v1/chat/completions (OpenAI SDK Standard Route) ───────────────────
+router.post('/chat/completions', async (req: Request, res: Response, next: any) => {
+  // Infer target provider from body.model or default to gemini
+  const modelId = req.body.model || req.body.model_id || '';
+  let provider = 'gemini';
+
+  if (modelId.includes('llama') || modelId.includes('mixtral') || modelId.includes('gemma') || modelId.includes('groq')) {
+    provider = 'groq';
+  } else if (modelId.includes('gpt') || modelId.includes('o1') || modelId.includes('o3')) {
+    provider = 'openai';
+  } else if (modelId.includes('deepseek')) {
+    provider = 'deepseek';
+  }
+
+  req.params = { ...req.params, provider };
+  // Forward to /:provider/chat handler
+  next();
+});
+
 // ─── POST /gateway/:provider/chat ─────────────────────────────────────────────
-router.post('/:provider/chat', async (req: Request, res: Response) => {
+router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: Response) => {
   const startTime = Date.now();
-  const providerName = req.params.provider.toLowerCase();
-  const rawApiKey = req.headers['x-api-key'] as string | undefined;
+  const providerName = (req.params.provider || 'gemini').toLowerCase();
+  const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
 
   // 1. Validate gateway key
   if (!rawApiKey) {
@@ -530,41 +630,61 @@ router.post('/:provider/chat', async (req: Request, res: Response) => {
     return;
   }
 
-  // 5. Get active credential matching targetModelId if available
-  const cred = await getProviderCredential(providerName, targetModelId);
-  if (!cred) {
-    await writeLog({
-      gatewayKeyId: gatewayKey.id,
-      providerName,
-      modelName: targetModelId,
-      requestPath: `/gateway/${providerName}/chat`,
-      status: 'error',
-      statusCode: 503,
-      errorMessage: `No active credentials for provider: ${providerName} (model: ${targetModelId || 'default'})`,
-    });
-    res.status(503).json({ error: `No active credentials available for ${providerName} (model: ${targetModelId || 'default'})` });
-    return;
-  }
+  // 5. Automatic Rotation Loop: Fast 3-second timeout per key, up to 30 rotation attempts
+  const maxRetries = 30;
+  const excludeIds: (string | number)[] = [];
+  let lastErrorMsg = '';
+  let lastStatusCode = 503;
 
-  // 6. Build and proxy request
-  try {
-    const { url, headers: reqHeaders, payload } = config.buildChatRequest(cred.credentials, req.body);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const cred = await getProviderCredential(providerName, targetModelId, undefined, excludeIds);
+    if (!cred) {
+      break;
+    }
 
-    const upstreamRes = await fetch(url, {
-      method: 'POST',
-      headers: reqHeaders,
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30_000),
-    });
+    try {
+      const { url, headers: reqHeaders, payload } = config.buildChatRequest(cred.credentials, req.body);
 
-    const responseData = await upstreamRes.json();
-    const responseTimeMs = Date.now() - startTime;
+      const upstreamRes = await fetch(url, {
+        method: 'POST',
+        headers: reqHeaders,
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(1_500),
+      });
 
-    if (!upstreamRes.ok) {
-      const errorMsg = responseData?.error?.message || responseData?.message || `HTTP ${upstreamRes.status}`;
+      const responseData = await upstreamRes.json();
+      const responseTimeMs = Date.now() - startTime;
 
-      // Report error to rotation engine
-      await reportCredentialFailure(cred.id, errorMsg);
+      if (!upstreamRes.ok) {
+        const errorMsg = responseData?.error?.message || responseData?.message || `HTTP ${upstreamRes.status}`;
+        lastErrorMsg = errorMsg;
+        lastStatusCode = upstreamRes.status;
+
+        console.warn(`[Gateway Rotation] Credential #${cred.id} failed (${upstreamRes.status}): ${errorMsg}. Rotating to next key...`);
+
+        // Report error to rotation engine (sets cooldown) & exclude from current request loop
+        await reportCredentialFailure(cred.id, errorMsg);
+        excludeIds.push(cred.id);
+
+        await writeLog({
+          gatewayKeyId: gatewayKey.id,
+          credentialId: cred.id,
+          providerName,
+          modelName: req.body.model_id,
+          requestPath: `/gateway/${providerName}/chat`,
+          status: 'error',
+          statusCode: upstreamRes.status,
+          errorMessage: errorMsg,
+          responseTimeMs,
+        });
+
+        // Continue to next iteration / next rotated credential!
+        continue;
+      }
+
+      // Parse success response
+      const text = config.parseChatResponse(responseData);
+      const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
 
       await writeLog({
         gatewayKeyId: gatewayKey.id,
@@ -572,58 +692,53 @@ router.post('/:provider/chat', async (req: Request, res: Response) => {
         providerName,
         modelName: req.body.model_id,
         requestPath: `/gateway/${providerName}/chat`,
-        status: 'error',
-        statusCode: upstreamRes.status,
-        errorMessage: errorMsg,
+        status: 'success',
+        statusCode: 200,
         responseTimeMs,
+        tokensUsed,
       });
 
-      res.status(upstreamRes.status).json({ error: errorMsg });
+      // Update usage counter locally
+      const cachedItems = getCachedCredentials(providerName);
+      const targetItem = cachedItems.find(c => String(c.id) === String(cred.id));
+      if (targetItem) {
+        const newTotal = (targetItem.total_requests || 0) + 1;
+        updateLocalCredentialStats(cred.id, providerName, { total_requests: newTotal });
+      }
+
+      console.log(`[Gateway Rotation] ✅ Request succeeded using Credential #${cred.id} (${providerName})`);
+
+      res.json({
+        id: `chatcmpl-${uuidv4()}`,
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: targetModelId,
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: text },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: tokensUsed || 0,
+        },
+        text,
+        rotated_credential_id: cred.id,
+      });
       return;
+    } catch (err: any) {
+      console.warn(`[Gateway Rotation] Exception on credential #${cred.id}:`, err.message);
+      await reportCredentialFailure(cred.id, err.message);
+      excludeIds.push(cred.id);
     }
-
-    // Parse response
-    const text = config.parseChatResponse(responseData);
-    const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
-
-    await writeLog({
-      gatewayKeyId: gatewayKey.id,
-      credentialId: cred.id,
-      providerName,
-      modelName: req.body.model_id,
-      requestPath: `/gateway/${providerName}/chat`,
-      status: 'success',
-      statusCode: 200,
-      responseTimeMs,
-      tokensUsed,
-    });
-
-    // Update usage counter locally (and background sync to Neon)
-    const cachedItems = getCachedCredentials(providerName);
-    const targetItem = cachedItems.find(c => c.id === cred.id);
-    if (targetItem) {
-      const newTotal = (targetItem.total_requests || 0) + 1;
-      updateLocalCredentialStats(cred.id, providerName, { total_requests: newTotal });
-    }
-
-    res.json({ text, model: req.body.model_id, provider: providerName, tokens_used: tokensUsed });
-  } catch (err: any) {
-    const responseTimeMs = Date.now() - startTime;
-    const errorMsg = err.message || 'Gateway proxy error';
-
-    await writeLog({
-      gatewayKeyId: gatewayKey.id,
-      credentialId: cred.id,
-      providerName,
-      requestPath: `/gateway/${providerName}/chat`,
-      status: 'error',
-      errorMessage: errorMsg,
-      responseTimeMs,
-    });
-
-    console.error('[Gateway] Chat proxy error:', err);
-    res.status(500).json({ error: 'Gateway proxy error', message: errorMsg });
   }
+
+  res.status(lastStatusCode).json({
+    error: `Gateway Rotation Exhausted: All available credentials failed. Last error: ${lastErrorMsg || 'No active credentials available'}`
+  });
 });
 
 // ─── POST /gateway/:provider/images/generations ───────────────────────────────

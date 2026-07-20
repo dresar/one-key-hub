@@ -6,6 +6,7 @@ import {
   Copy, Shield, Settings, CheckCircle, HelpCircle
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
+import GatewayDocs from '@/components/GatewayDocs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -173,34 +174,45 @@ export default function ApiKeyForm() {
 
         {/* If Plaintext Key was generated successfully */}
         {createdPlaintext && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass border-green-500/20 bg-green-500/5 p-6 rounded-2xl space-y-4"
+            className="space-y-4"
           >
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              <h3 className="font-bold text-green-500 text-lg">Gateway Key Berhasil Dibuat!</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Harap salin dan simpan key ini di tempat yang aman. Untuk alasan keamanan, key ini <strong>hanya akan ditampilkan SEKALI ini saja</strong>.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-2">
-              <div className="flex-1 font-mono text-sm bg-secondary/80 border border-border/50 px-4 py-3 rounded-xl break-all select-all">
-                {createdPlaintext}
+            {/* Key reveal card */}
+            <div className="glass border-green-500/20 bg-green-500/5 p-6 rounded-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                <h3 className="font-bold text-green-500 text-lg">Gateway Key Berhasil Dibuat!</h3>
               </div>
-              <Button onClick={copyPlaintextKey} className="bg-green-600 hover:bg-green-700 text-white gap-2 h-auto py-3">
-                <Copy className="w-4 h-4" />
-                Salin Key
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Harap salin dan simpan key ini di tempat yang aman. Untuk alasan keamanan, key ini{' '}
+                <strong>hanya akan ditampilkan SEKALI ini saja</strong>.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="flex-1 font-mono text-sm bg-secondary/80 border border-border/50 px-4 py-3 rounded-xl break-all select-all">
+                  {createdPlaintext}
+                </div>
+                <Button onClick={copyPlaintextKey} className="bg-green-600 hover:bg-green-700 text-white gap-2 h-auto py-3">
+                  <Copy className="w-4 h-4" />
+                  Salin Key
+                </Button>
+              </div>
+
+              <div className="pt-1">
+                <Button onClick={() => navigate('/api-keys')} variant="outline" className="text-sm">
+                  Selesai & Kembali ke Daftar Key
+                </Button>
+              </div>
             </div>
 
-            <div className="pt-2">
-              <Button onClick={() => navigate('/api-keys')} variant="outline" className="text-sm">
-                Selesai & Lanjut
-              </Button>
-            </div>
+            {/* Full docs — key pre-filled, expanded by default */}
+            <GatewayDocs
+              gatewayKey={createdPlaintext}
+              defaultProvider={formData.provider || 'gemini'}
+              collapsed={false}
+            />
           </motion.div>
         )}
 

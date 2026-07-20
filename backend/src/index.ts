@@ -72,8 +72,9 @@ app.use('/api/v1', internalKeysRoutes);
 app.use('/settings', settingsRoutes);
 app.use('/users', settingsRoutes);
 
-// ─── Gateway Routes (no auth — uses X-API-Key) ────────────────────────────────
+// ─── Gateway Routes (no auth — uses X-API-Key or Authorization Bearer) ──────
 app.use('/gateway', gatewayRoutes);
+app.use('/v1', gatewayRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

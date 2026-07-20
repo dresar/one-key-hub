@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
+import GatewayDocs from '@/components/GatewayDocs';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -234,6 +235,13 @@ export default function ApiKeys() {
             </AnimatePresence>
           </div>
         )}
+
+        {/* ── API Documentation (always visible, collapsed by default) ── */}
+        <GatewayDocs
+          gatewayKey={keys.find(k => k.status === 'active')?.key_preview || 'YOUR_GATEWAY_KEY'}
+          defaultProvider="gemini"
+          collapsed={true}
+        />
       </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
