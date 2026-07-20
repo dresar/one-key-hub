@@ -100,6 +100,7 @@ export default function Providers() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
   const [copiedCredId, setCopiedCredId] = useState<string | null>(null);
+  const [formCustomId, setFormCustomId] = useState<string>('');
 
   const [formData, setFormData] = useState({
     provider_name: 'gemini',
@@ -158,10 +159,10 @@ export default function Providers() {
           deletedIds.forEach(id => {
             const deletedKey = prev.find(c => c.id === id);
             if (deletedKey) {
-              toast.error('🔴 API Key Terhapus Otomatis', {
-                description: `Key "${deletedKey.label || deletedKey.provider_name}" (${deletedKey.provider_name}) dihapus otomatis karena mencapai batas 100 kali error.`,
-                duration: 8000,
-              });
+              toast.error(
+                `🚨 Key ID #${id} (${deletedKey.label || deletedKey.provider_name}) telah OTOMATIS DIHAPUS karena mendeteksi error fatal berulang!`,
+                { duration: 6000 }
+              );
             }
           });
         }
@@ -200,8 +201,9 @@ export default function Providers() {
     }
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = async () => {
     setSelectedCred(null);
+    setFormCustomId('');
     setFormData({
       provider_name: filterProvider !== 'all' ? filterProvider : 'gemini',
       label: '',
@@ -215,10 +217,20 @@ export default function Providers() {
       secret_key: '',
     });
     setIsModalOpen(true);
+
+    try {
+      const { data } = await api.get('/api/credentials/next-id');
+      if (data?.next_id) {
+        setFormCustomId(String(data.next_id));
+      }
+    } catch (err) {
+      console.error('Failed to fetch next ID:', err);
+    }
   };
 
   const openEditModal = async (cred: Credential) => {
     setSelectedCred(cred);
+    setFormCustomId(String(cred.id));
     setShowApiKey(false);
     setIsLoadingModal(true);
     setIsModalOpen(true);
@@ -374,12 +386,16 @@ export default function Providers() {
         payload.credentials = buildCredentialsPayload();
       }
 
+      if (formCustomId.trim()) {
+        payload.custom_id = Number(formCustomId);
+      }
+
       if (selectedCred) {
-        await api.patch(`/api/credentials/${selectedCred.id}`, payload);
-        toast.success('Credential berhasil diperbarui');
+        const { data } = await api.patch(`/api/credentials/${selectedCred.id}`, payload);
+        toast.success(data.message || 'Credential berhasil diperbarui');
       } else {
-        await api.post('/api/credentials', payload);
-        toast.success('Credential berhasil ditambahkan');
+        const { data } = await api.post('/api/credentials', payload);
+        toast.success(`Credential #${data.id} (${data.label || data.provider_name}) berhasil disimpan!`);
       }
       setIsModalOpen(false);
       fetchCredentials();
@@ -862,6 +878,24 @@ export default function Providers() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="form_custom_id" className="text-xs font-semibold">ID / Prioritas Key</Label>
+                <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded font-mono">
+                  {selectedCred ? 'Bisa Diubah' : 'Otomatis Terisi ID Terkecil (#1)'}
+                </span>
+              </div>
+              <Input
+                id="form_custom_id"
+                type="number"
+                min={1}
+                value={formCustomId}
+                onChange={(e) => setFormCustomId(e.target.value)}
+                placeholder="contoh: 1, 2, 100"
+                className="bg-secondary/50 font-mono text-sm"
+              />
             </div>
 
             <div className="space-y-2">

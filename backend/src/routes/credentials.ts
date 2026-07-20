@@ -10,10 +10,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+export async function getLowestAvailableId(): Promise<number> {
+  const rows = await db
+    .select({ id: providerCredentials.id })
+    .from(providerCredentials)
+    .where(isNull(providerCredentials.deletedAt));
+
+  const activeIds = new Set(rows.map(r => r.id));
+  let candidate = 1;
+  while (activeIds.has(candidate)) {
+    candidate++;
+  }
+  return candidate;
+}
+
 export async function syncProviderCredentialsSequence(): Promise<void> {
   try {
     await db.execute(
-      sql`SELECT setval('provider_credentials_id_seq', COALESCE((SELECT MAX(id) FROM provider_credentials), 1), true);`
+      sql`SELECT setval('provider_credentials_id_seq', COALESCE((SELECT GREATEST(MAX(id), 1) FROM provider_credentials), 1), true);`
     );
     console.log('[Sequence] provider_credentials_id_seq synced successfully.');
   } catch (err) {
@@ -35,6 +49,17 @@ async function pushIdToErrorRange(currentId: number): Promise<number> {
 // ─── All routes require JWT auth ──────────────────────────────────────────────
 router.use(authenticate);
 
+// ─── GET /api/credentials/next-id ─────────────────────────────────────────────
+router.get('/next-id', async (req: AuthRequest, res: Response) => {
+  try {
+    const nextId = await getLowestAvailableId();
+    res.json({ next_id: nextId });
+  } catch (err) {
+    console.error('[Credentials] Next ID error:', err);
+    res.status(500).json({ error: 'Gagal mengambil next ID' });
+  }
+});
+
 // ─── GET /api/credentials ─────────────────────────────────────────────────────
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -53,7 +78,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       })
       .from(providerCredentials)
       .where(isNull(providerCredentials.deletedAt))
-      .orderBy(providerCredentials.createdAt);
+      .orderBy(providerCredentials.id);
 
     const statusOrder: Record<string, number> = { active: 1, cooldown: 2, inactive: 3 };
     const items = rows
@@ -73,7 +98,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         if (statusOrder[a.status] !== statusOrder[b.status]) {
           return statusOrder[a.status] - statusOrder[b.status];
         }
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return a.id - b.id;
       });
 
     res.json({ items, total: items.length });
@@ -138,11 +163,38 @@ router.post('/sync', async (req: AuthRequest, res: Response) => {
 // ─── POST /api/credentials ────────────────────────────────────────────────────
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { provider_name, label, credentials, model_id } = req.body;
+    const { provider_name, label, credentials, model_id, custom_id } = req.body;
 
     if (!provider_name || !credentials || typeof credentials !== 'object') {
       res.status(400).json({ error: 'provider_name dan credentials wajib diisi' });
       return;
+    }
+
+    let targetId: number;
+
+    if (custom_id !== undefined && custom_id !== null && custom_id !== '') {
+      targetId = Number(custom_id);
+      if (isNaN(targetId) || targetId < 1) {
+        res.status(400).json({ error: 'ID / Prioritas harus berupa angka positif (>= 1)' });
+        return;
+      }
+
+      // Check if targetId is already used by an active credential
+      const existingActive = await db
+        .select({ id: providerCredentials.id, label: providerCredentials.label })
+        .from(providerCredentials)
+        .where(and(eq(providerCredentials.id, targetId), isNull(providerCredentials.deletedAt)))
+        .limit(1);
+
+      if (existingActive.length > 0) {
+        res.status(409).json({
+          error: `⚠️ ID ${targetId} sudah digunakan oleh credential "${existingActive[0].label || 'Credential'}"! Harap gunakan ID lain yang belum ada.`
+        });
+        return;
+      }
+    } else {
+      // Auto-assign lowest available GAP ID starting from 1!
+      targetId = await getLowestAvailableId();
     }
 
     // Extract main key string if available (api_key, secret_key, private_key)
@@ -176,18 +228,19 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const kHash = kHashKeyOnly || kHashFull;
 
     // Encrypt credentials
-    // Store as: encrypt({ raw: credentials })
     const credentialsCiphertext = encrypt(
       Buffer.from(JSON.stringify({ raw: credentials })).toString('base64'),
     );
 
-    await syncProviderCredentialsSequence();
+    // Purge any soft-deleted row with targetId to avoid primary key collision
+    await db.delete(providerCredentials).where(eq(providerCredentials.id, targetId));
 
     const [created] = await db
       .insert(providerCredentials)
       .values({
+        id: targetId,
         providerName: provider_name,
-        label: label || provider_name,
+        label: label || `${provider_name.toUpperCase()} Key ${targetId}`,
         modelId: model_id || '',
         credentialsCiphertext,
         keyHash: kHash,
@@ -201,6 +254,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         status: providerCredentials.status,
         createdAt: providerCredentials.createdAt,
       });
+
+    await syncProviderCredentialsSequence();
 
     // Invalidate cache
     credentialCache.invalidate(provider_name);
@@ -225,11 +280,34 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { label, credentials, status, model_id } = req.body;
+    const currentId = Number(id);
+    const { label, credentials, status, model_id, custom_id, new_id } = req.body;
 
     const updateData: Partial<typeof providerCredentials.$inferInsert> = {
       updatedAt: new Date(),
     };
+
+    const targetNewId = custom_id !== undefined ? Number(custom_id) : new_id !== undefined ? Number(new_id) : null;
+
+    if (targetNewId !== null && !isNaN(targetNewId) && targetNewId > 0 && targetNewId !== currentId) {
+      // Check if targetNewId is used by another active credential
+      const existingActive = await db
+        .select({ id: providerCredentials.id, label: providerCredentials.label })
+        .from(providerCredentials)
+        .where(and(eq(providerCredentials.id, targetNewId), isNull(providerCredentials.deletedAt)))
+        .limit(1);
+
+      if (existingActive.length > 0) {
+        res.status(409).json({
+          error: `⚠️ ID ${targetNewId} sudah digunakan oleh credential "${existingActive[0].label}"! Harap gunakan ID lain.`
+        });
+        return;
+      }
+
+      // Purge soft-deleted row with targetNewId
+      await db.delete(providerCredentials).where(eq(providerCredentials.id, targetNewId));
+      updateData.id = targetNewId;
+    }
 
     if (label !== undefined) updateData.label = label;
     if (status !== undefined) updateData.status = status;
