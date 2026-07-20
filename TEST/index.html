@@ -341,17 +341,18 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .toast-container {
-      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      position: fixed; top: 24px; right: 24px; z-index: 999;
       display: flex; flex-direction: column; gap: 8px;
     }
     .toast {
       background: var(--surface2); border: 1px solid var(--border2);
       border-radius: 10px; padding: 12px 16px;
       font-size: 13px; max-width: 320px;
-      animation: slideIn .3s ease;
+      animation: slideIn .3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
 
     .empty-state {
       text-align: center; padding: 48px 24px; color: var(--muted);
@@ -475,13 +476,7 @@
               <div style="flex:1;">
                 <label>Model</label>
                 <select id="chat-model">
-                  <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                  <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (groq)</option>
-                  <option value="mistral-small-latest">mistral-small-latest</option>
-                  <option value="command-r-plus">command-r-plus (cohere)</option>
-                  <option value="deepseek-chat">deepseek-chat</option>
+                  <option value="">— Harap Load Model Terlebih Dahulu —</option>
                 </select>
               </div>
               <!-- Temperature -->
@@ -730,20 +725,10 @@ let stats = { req: 0, ok: 0, err: 0, latencies: [] };
 let batchRunning = false;
 let batchAborted = false;
 
-const BASE_MODELS = [
-  'gemini-2.5-flash','gemini-2.0-flash','gemini-2.0-flash-lite',
-  'gemini-1.5-flash','gemini-1.5-pro',
-  'llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it',
-  'mistral-small-latest','mistral-large-latest',
-  'command-r-plus','command-r',
-  'deepseek-chat',
-  'llama3.1-70b','llama3.1-8b',
-];
-
 /* ─────────────────────────────────────────────────────────────────────
    INIT
 ───────────────────────────────────────────────────────────────────── */
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   // Restore saved key
   const lastKey = localStorage.getItem('gw_last_key');
   if (lastKey) document.getElementById('gw-key').value = lastKey;
@@ -752,9 +737,14 @@ window.addEventListener('DOMContentLoaded', () => {
   if (lastUrl) document.getElementById('base-url').value = lastUrl;
 
   renderSavedKeys();
-  initBatchModels();
   updateDocs();
-  pingServer();
+  await pingServer(true); // silent ping on load
+
+  if (lastKey) {
+    await loadAllModels(true); // auto-load models silently on start if key exists
+  } else {
+    initBatchModels();
+  }
 
   // Ctrl+Enter to send
   document.getElementById('chat-msg').addEventListener('keydown', e => {
@@ -765,7 +755,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('gw-key').addEventListener('input', updateDocs);
   document.getElementById('base-url').addEventListener('input', () => {
     updateDocs();
-    pingServer();
+    pingServer(true);
   });
 });
 
@@ -818,21 +808,26 @@ function showTab(name) {
 /* ─────────────────────────────────────────────────────────────────────
    PING SERVER
 ───────────────────────────────────────────────────────────────────── */
-async function pingServer() {
+async function pingServer(silent = false) {
   const dot    = document.getElementById('server-dot');
   const status = document.getElementById('server-status');
   try {
     const t = Date.now();
-    await fetch(getBase() + '/v1/models', { signal: AbortSignal.timeout(5000) });
+    const headers = {};
+    const key = getKey();
+    if (key) headers['Authorization'] = `Bearer ${key}`;
+    const res = await fetch(getBase() + '/v1/models', { headers, signal: AbortSignal.timeout(5000) });
     const ms = Date.now() - t;
     dot.style.background   = 'var(--green)';
     status.textContent     = `Server OK • ${ms}ms`;
     status.style.color     = 'var(--green)';
-  } catch {
+    if (!silent) toast(`Ping Sukses! Server aktif dan merespon dalam ${ms}ms.`, 'success');
+  } catch(e) {
     dot.style.background   = 'var(--red)';
     dot.style.animation    = 'none';
     status.textContent     = 'Server tidak tersambung';
     status.style.color     = 'var(--red)';
+    if (!silent) toast('Ping Gagal! Cek koneksi server atau API Key Anda.', 'error');
   }
 }
 
@@ -886,7 +881,7 @@ function removeKey(i) {
 /* ─────────────────────────────────────────────────────────────────────
    LOAD MODELS
 ───────────────────────────────────────────────────────────────────── */
-async function loadAllModels() {
+async function loadAllModels(silent = false) {
   const spinner = document.getElementById('model-load-spinner');
   spinner.classList.remove('hidden');
   try {
@@ -909,9 +904,13 @@ async function loadAllModels() {
 
     // Update chat model select
     const sel = document.getElementById('chat-model');
-    sel.innerHTML = allModels.map(m =>
-      `<option value="${m.id}">${m.id} (${m.provider})</option>`
-    ).join('');
+    if (allModels.length > 0) {
+      sel.innerHTML = allModels.map(m =>
+        `<option value="${m.id}">${m.id} (${m.provider})</option>`
+      ).join('');
+    } else {
+      sel.innerHTML = '<option value="">— Harap Load Model Terlebih Dahulu —</option>';
+    }
 
     // Update batch
     initBatchModels();
@@ -925,11 +924,13 @@ async function loadAllModels() {
     });
 
     renderModelTable();
-    showTab('models');
-    toast(`${allModels.length} model dimuat dalam ${ms}ms`, 'success');
+    if (!silent) {
+      showTab('models');
+      toast(`${allModels.length} model dimuat dalam ${ms}ms`, 'success');
+    }
     addLog(`<span class="log-ok">[GET]</span> <span class="log-dim">/v1/models →</span> <span class="log-white">${allModels.length} models</span> <span class="log-info">${ms}ms</span>`);
   } catch(e) {
-    toast('Gagal memuat model: ' + e.message, 'error');
+    if (!silent) toast('Gagal memuat model: ' + e.message, 'error');
     addLog(`<span class="log-err">[ERR]</span> <span class="log-dim">loadAllModels →</span> ${e.message}`);
   } finally {
     spinner.classList.add('hidden');
@@ -1110,14 +1111,21 @@ function copyResponse() {
    BATCH TEST
 ───────────────────────────────────────────────────────────────────── */
 function initBatchModels() {
-  const models = allModels.length ? allModels.map(m=>m.id) : BASE_MODELS;
   const container = document.getElementById('batch-models-list');
-  container.innerHTML = models.map(id => `
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;color:var(--muted);">
-      <input type="checkbox" name="bm" value="${id}" checked style="width:auto;" />
-      <span class="mono">${id}</span>
-    </label>
-  `).join('');
+  if (allModels.length > 0) {
+    container.innerHTML = allModels.map(m => `
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;color:var(--muted);">
+        <input type="checkbox" name="bm" value="${m.id}" checked style="width:auto;" />
+        <span class="mono">${m.id}</span>
+      </label>
+    `).join('');
+  } else {
+    container.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;">
+        ⚠️ Tidak ada model yang termuat. Silakan isi Gateway Key dan klik "Load Semua Model" untuk memuat daftar model dari database backend.
+      </div>
+    `;
+  }
 }
 
 function selectAllBatch(val) {
