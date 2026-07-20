@@ -552,7 +552,7 @@ export default function Providers() {
 
         {/* Credentials Table / List section */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
               <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                 <Key className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
@@ -567,7 +567,7 @@ export default function Providers() {
             
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Select value={filterProvider} onValueChange={setFilterProvider}>
-                <SelectTrigger className="flex-1 sm:flex-initial min-w-[130px] sm:w-[170px] h-8 text-xs bg-secondary/50 border-border/40">
+                <SelectTrigger className="flex-1 sm:flex-initial min-w-[130px] sm:w-[180px] h-8 text-xs bg-secondary/50 border-border/40">
                   <SelectValue placeholder="Filter Provider" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
@@ -588,19 +588,21 @@ export default function Providers() {
                 disabled={isSyncing} 
                 variant="outline" 
                 size="sm"
-                className="h-8 px-2.5 text-xs bg-secondary/40 border-border/40 hover:bg-secondary/80 gap-1.5"
+                className="bg-secondary/40 border-border/40 hover:bg-secondary/80 text-sm gap-2 flex-1 sm:flex-none"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span className="hidden xs:inline">Sync</span> Cache
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Sync Cache</span>
               </Button>
 
               <Button
                 onClick={openCreateModal}
                 size="sm"
-                className="h-8 px-3 text-xs bg-primary hover:bg-primary/90 font-medium shrink-0"
+                className="bg-primary hover:bg-primary/90 text-sm flex-1 sm:flex-none"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Tambah Credential
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Tambah Credential</span>
+                <span className="sm:hidden">Tambah</span>
+              </Button>
               </Button>
             </div>
           </div>
