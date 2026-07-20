@@ -14,7 +14,7 @@ interface Props {
   collapsed?: boolean;
 }
 
-type LangTab = 'curl' | 'javascript' | 'python' | 'openai_sdk';
+type LangTab = 'curl' | 'javascript' | 'python' | 'openai_sdk' | 'openclaw';
 type Section = 'chat' | 'models' | 'reference' | 'ai_prompt';
 
 interface Model {
@@ -413,6 +413,24 @@ const res = await client.chat.completions.create({
 console.log(res.choices[0].message.content);
 */
 `,
+    openclaw:
+      `# ─── Konfigurasi OpenClaw (.env / settings UI) ──────────────────────
+# Integrasi AI Gateway ke OpenClaw kompatibel penuh dengan format OpenAI.
+
+# 1. Atur Base URL mengarah ke Gateway API Anda:
+# (Gunakan prefix /v1 atau /api/v1)
+baseUrl: "${BASE_URL}/v1"
+
+# 2. Atur API Key dengan Gateway API Key Anda:
+apiKey: "${displayKey}"
+
+# 3. Pilih tipe API:
+api: "openai-completions"
+
+# 4. Tentukan Model yang ingin digunakan (sesuai target provider):
+# (Misalnya: ${defaultModel})
+model: "${defaultModel}"
+`,
   };
 
   const modelsExamples: Record<LangTab, string> = {
@@ -500,6 +518,17 @@ for (const m of models.data) {
   console.log(m.id, '—', m.owned_by);
 }
 */
+`,
+    openclaw:
+      `# ─── Informasi Endpoint Model OpenClaw ──────────────────────────────
+# OpenClaw secara otomatis melakukan query ke endpoint /models untuk memuat list model.
+
+# Base URL API:
+${BASE_URL}/v1
+
+# Endpoint list model yang diakses:
+GET ${BASE_URL}/v1/models
+Authorization: Bearer ${displayKey}
 `,
   };
 
@@ -680,12 +709,13 @@ for (const m of models.data) {
                         <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
                         <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
                         <LangTab active={langTab === 'openai_sdk'} onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
+                        <LangTab active={langTab === 'openclaw'} onClick={() => setLangTab('openclaw')} label="🦞 OpenClaw" />
                       </div>
 
                       <CodeBlock
                         code={chatExamples[langTab]}
                         id={`chat-${langTab}`}
-                        lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab}
+                        lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab === 'openclaw' ? 'yaml' : langTab}
                       />
 
                       {/* Response example */}
@@ -736,12 +766,13 @@ for (const m of models.data) {
                         <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
                         <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
                         <LangTab active={langTab === 'openai_sdk'} onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
+                        <LangTab active={langTab === 'openclaw'} onClick={() => setLangTab('openclaw')} label="🦞 OpenClaw" />
                       </div>
 
                       <CodeBlock
                         code={modelsExamples[langTab]}
                         id={`models-${langTab}`}
-                        lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab}
+                        lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab === 'openclaw' ? 'yaml' : langTab}
                       />
 
                       {/* Response */}
