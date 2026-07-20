@@ -14,6 +14,20 @@ import { getBestCachedCredential, getCachedCredentials, updateLocalCredentialSta
 const router = Router();
 router.use(gatewayRateLimiter);
 
+// Extract gateway API key depending on route prefix (Bearer for v1 / api/v1, X-API-Key for gateway / api/gateway)
+function getGatewayApiKey(req: Request): string | undefined {
+  const isV1Path = req.baseUrl.startsWith('/v1') || req.baseUrl.startsWith('/api/v1') || req.path.startsWith('/v1') || req.path.startsWith('/api/v1');
+  if (isV1Path) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7).trim();
+    }
+    return undefined;
+  } else {
+    return (req.headers['x-api-key'] || req.headers['x-api-key'] || req.headers.authorization?.replace('Bearer ', '')) as string | undefined;
+  }
+}
+
 // ─── Provider API configurations ──────────────────────────────────────────────
 interface ProviderConfig {
   baseUrl: string;
@@ -474,24 +488,38 @@ async function writeLog(data: {
 // ─── GET /gateway/models & /v1/models (OpenAI Standard Format) ─────────────
 router.get(['/models', '/v1/models'], async (req: Request, res: Response) => {
   try {
-    const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
+    const rawApiKey = getGatewayApiKey(req);
+    if (!rawApiKey) {
+      res.status(401).json({
+        error: {
+          message: 'Invalid API key',
+          type: 'invalid_request_error'
+        }
+      });
+      return;
+    }
+
+    const gatewayKey = await validateGatewayKey(rawApiKey);
+    if (!gatewayKey) {
+      res.status(401).json({
+        error: {
+          message: 'Invalid API key',
+          type: 'invalid_request_error'
+        }
+      });
+      return;
+    }
+
     let allowedProvs: string[] | null = null;
     let lockedModelId: string | null = null;
 
-    if (rawApiKey) {
-      const gatewayKey = await validateGatewayKey(rawApiKey);
-      if (!gatewayKey) {
-        res.status(401).json({ error: 'Invalid API key' });
-        return;
-      }
-      if (gatewayKey.provider) {
-        allowedProvs = [gatewayKey.provider.toLowerCase()];
-      } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
-        allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
-      }
-      if (gatewayKey.modelId && gatewayKey.modelId !== '') {
-        lockedModelId = gatewayKey.modelId;
-      }
+    if (gatewayKey.provider) {
+      allowedProvs = [gatewayKey.provider.toLowerCase()];
+    } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
+      allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
+    }
+    if (gatewayKey.modelId && gatewayKey.modelId !== '') {
+      lockedModelId = gatewayKey.modelId;
     }
 
     let dbModels = await db.select().from(aiModels).orderBy(asc(aiModels.provider), asc(aiModels.displayName));
@@ -530,24 +558,38 @@ router.get(['/models', '/v1/models'], async (req: Request, res: Response) => {
 router.get('/:provider/models', async (req: Request, res: Response) => {
   try {
     const providerName = req.params.provider.toLowerCase();
-    const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
+    const rawApiKey = getGatewayApiKey(req);
+    if (!rawApiKey) {
+      res.status(401).json({
+        error: {
+          message: 'Invalid API key',
+          type: 'invalid_request_error'
+        }
+      });
+      return;
+    }
+
+    const gatewayKey = await validateGatewayKey(rawApiKey);
+    if (!gatewayKey) {
+      res.status(401).json({
+        error: {
+          message: 'Invalid API key',
+          type: 'invalid_request_error'
+        }
+      });
+      return;
+    }
+
     let allowedProvs: string[] | null = null;
     let lockedModelId: string | null = null;
 
-    if (rawApiKey) {
-      const gatewayKey = await validateGatewayKey(rawApiKey);
-      if (!gatewayKey) {
-        res.status(401).json({ error: 'Invalid API key' });
-        return;
-      }
-      if (gatewayKey.provider) {
-        allowedProvs = [gatewayKey.provider.toLowerCase()];
-      } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
-        allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
-      }
-      if (gatewayKey.modelId && gatewayKey.modelId !== '') {
-        lockedModelId = gatewayKey.modelId;
-      }
+    if (gatewayKey.provider) {
+      allowedProvs = [gatewayKey.provider.toLowerCase()];
+    } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
+      allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
+    }
+    if (gatewayKey.modelId && gatewayKey.modelId !== '') {
+      lockedModelId = gatewayKey.modelId;
     }
 
     if (allowedProvs && !allowedProvs.includes(providerName)) {
@@ -596,12 +638,33 @@ router.post('/chat/completions', async (req: Request, res: Response, next: any) 
   const modelId = req.body.model || req.body.model_id || '';
   let provider = 'gemini';
 
-  if (modelId.includes('llama') || modelId.includes('mixtral') || modelId.includes('gemma') || modelId.includes('groq')) {
-    provider = 'groq';
-  } else if (modelId.includes('gpt') || modelId.includes('o1') || modelId.includes('o3')) {
-    provider = 'openai';
-  } else if (modelId.includes('deepseek')) {
-    provider = 'deepseek';
+  if (modelId) {
+    const existingModel = await db
+      .select({ modelId: aiModels.modelId, provider: aiModels.provider })
+      .from(aiModels)
+      .where(eq(aiModels.modelId, modelId))
+      .limit(1);
+
+    if (existingModel.length > 0) {
+      provider = existingModel[0].provider.toLowerCase();
+    } else {
+      if (modelId.includes('llama') || modelId.includes('mixtral') || modelId.includes('gemma') || modelId.includes('groq')) {
+        provider = 'groq';
+      } else if (modelId.includes('gpt') || modelId.includes('o1') || modelId.includes('o3')) {
+        provider = 'openai';
+      } else if (modelId.includes('deepseek')) {
+        provider = 'deepseek';
+      } else {
+        res.status(400).json({
+          error: {
+            message: "Model not supported",
+            type: "invalid_request_error",
+            code: "model_not_supported"
+          }
+        });
+        return;
+      }
+    }
   }
 
   req.params = { ...req.params, provider };
@@ -613,24 +676,37 @@ router.post('/chat/completions', async (req: Request, res: Response, next: any) 
 router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: Response) => {
   const startTime = Date.now();
   const providerName = (req.params.provider || 'gemini').toLowerCase();
-  const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
+  const rawApiKey = getGatewayApiKey(req);
 
   // 1. Validate gateway key
   if (!rawApiKey) {
-    res.status(401).json({ error: 'X-API-Key header is required' });
+    res.status(401).json({
+      error: {
+        message: 'Invalid API key',
+        type: 'invalid_request_error'
+      }
+    });
     return;
   }
 
   const gatewayKey = await validateGatewayKey(rawApiKey);
   if (!gatewayKey) {
-    res.status(401).json({ error: 'Invalid or expired API key' });
+    res.status(401).json({
+      error: {
+        message: 'Invalid API key',
+        type: 'invalid_request_error'
+      }
+    });
     return;
   }
 
   // 2. Check provider restriction
   if (gatewayKey.provider && gatewayKey.provider !== '' && gatewayKey.provider !== providerName) {
     res.status(403).json({
-      error: `Key ini khusus untuk provider ${gatewayKey.provider} saja.`,
+      error: {
+        message: `Key ini khusus untuk provider ${gatewayKey.provider} saja.`,
+        type: 'invalid_request_error'
+      }
     });
     return;
   }
@@ -638,15 +714,17 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
   if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
     if (!(gatewayKey.allowedProviders as string[]).includes(providerName)) {
       res.status(403).json({
-        error: `Provider "${providerName}" not allowed for this key. Allowed: ${(gatewayKey.allowedProviders as string[]).join(', ')}`,
+        error: {
+          message: `Provider "${providerName}" not allowed for this key. Allowed: ${(gatewayKey.allowedProviders as string[]).join(', ')}`,
+          type: 'invalid_request_error'
+        }
       });
       return;
     }
   }
 
   // 3. Determine specific model to route
-  // 3. Determine specific model to route
-  let targetModelId = req.body.model_id;
+  let targetModelId = req.body.model_id || req.body.model;
   if (gatewayKey.modelId && gatewayKey.modelId !== '') {
     targetModelId = gatewayKey.modelId;
   } else {
@@ -690,6 +768,33 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
         else if (providerName === 'groq') targetModelId = 'llama-3.3-70b-versatile';
         else if (providerName === 'deepseek') targetModelId = 'deepseek-chat';
         else targetModelId = 'gemini-2.5-flash';
+      }
+    }
+  }
+
+  // Validate model support
+  if (targetModelId) {
+    const existingModel = await db
+      .select({ modelId: aiModels.modelId })
+      .from(aiModels)
+      .where(eq(aiModels.modelId, targetModelId))
+      .limit(1);
+
+    if (existingModel.length === 0) {
+      const standardModels = [
+        'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro',
+        'llama-3.3-70b-versatile', 'llama3.1-70b', 'deepseek-chat', 'gpt-4o-mini',
+        'gpt-4o', 'gpt-3.5-turbo', 'claude-3-5-sonnet', 'claude-3-opus'
+      ];
+      if (!standardModels.includes(targetModelId)) {
+        res.status(400).json({
+          error: {
+            message: "Model not supported",
+            type: "invalid_request_error",
+            code: "model_not_supported"
+          }
+        });
+        return;
       }
     }
   }
@@ -813,7 +918,10 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
   }
 
   res.status(lastStatusCode).json({
-    error: `Gateway Rotation Exhausted: All available credentials failed. Last error: ${lastErrorMsg || 'No active credentials available'}`
+    error: {
+      message: `Gateway Rotation Exhausted: All available credentials failed. Last error: ${lastErrorMsg || 'No active credentials available'}`,
+      type: 'api_error'
+    }
   });
 });
 

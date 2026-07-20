@@ -67,6 +67,8 @@ app.use('/api/playground', playgroundRoutes);
 app.use('/api/models', modelsRoutes);
 app.use('/api/providers', providersRoutes);
 app.use('/api/v1', internalKeysRoutes);
+app.use('/api/v1', gatewayRoutes);
+app.use('/api/gateway', gatewayRoutes);
 
 // Settings routes (no /api prefix — matches frontend calls)
 app.use('/settings', settingsRoutes);
