@@ -891,7 +891,10 @@ async function loadAllModels() {
   spinner.classList.remove('hidden');
   try {
     const t   = Date.now();
-    const res = await fetch(getBase() + '/v1/models');
+    const headers = {};
+    const key = getKey();
+    if (key) headers['Authorization'] = `Bearer ${key}`;
+    const res = await fetch(getBase() + '/v1/models', { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     allModels  = json.data || [];

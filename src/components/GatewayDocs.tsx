@@ -179,7 +179,11 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const fetchAllModels = async () => {
     setModelsLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/v1/models`);
+      const headers: Record<string, string> = {};
+      if (gatewayKey && gatewayKey !== 'YOUR_GATEWAY_KEY') {
+        headers['Authorization'] = `Bearer ${gatewayKey}`;
+      }
+      const res = await fetch(`${BASE_URL}/v1/models`, { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const data: Model[] = json?.data || [];

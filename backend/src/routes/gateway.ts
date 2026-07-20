@@ -456,9 +456,37 @@ async function writeLog(data: {
 }
 
 // ─── GET /gateway/models & /v1/models (OpenAI Standard Format) ─────────────
-router.get(['/models', '/v1/models'], async (_req: Request, res: Response) => {
+router.get(['/models', '/v1/models'], async (req: Request, res: Response) => {
   try {
-    const dbModels = await db.select().from(aiModels).orderBy(asc(aiModels.provider), asc(aiModels.displayName));
+    const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
+    let allowedProvs: string[] | null = null;
+    let lockedModelId: string | null = null;
+
+    if (rawApiKey) {
+      const gatewayKey = await validateGatewayKey(rawApiKey);
+      if (!gatewayKey) {
+        res.status(401).json({ error: 'Invalid API key' });
+        return;
+      }
+      if (gatewayKey.provider) {
+        allowedProvs = [gatewayKey.provider.toLowerCase()];
+      } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
+        allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
+      }
+      if (gatewayKey.modelId && gatewayKey.modelId !== '') {
+        lockedModelId = gatewayKey.modelId;
+      }
+    }
+
+    let dbModels = await db.select().from(aiModels).orderBy(asc(aiModels.provider), asc(aiModels.displayName));
+
+    if (allowedProvs) {
+      dbModels = dbModels.filter(m => allowedProvs!.includes(m.provider.toLowerCase()));
+    }
+
+    if (lockedModelId) {
+      dbModels = dbModels.filter(m => m.modelId.toLowerCase() === lockedModelId!.toLowerCase());
+    }
 
     const data = dbModels.map(m => ({
       id: m.modelId,
@@ -486,11 +514,43 @@ router.get(['/models', '/v1/models'], async (_req: Request, res: Response) => {
 router.get('/:provider/models', async (req: Request, res: Response) => {
   try {
     const providerName = req.params.provider.toLowerCase();
-    const dbModels = await db
+    const rawApiKey = (req.headers['x-api-key'] || (req.headers.authorization as string)?.replace('Bearer ', '')) as string | undefined;
+    let allowedProvs: string[] | null = null;
+    let lockedModelId: string | null = null;
+
+    if (rawApiKey) {
+      const gatewayKey = await validateGatewayKey(rawApiKey);
+      if (!gatewayKey) {
+        res.status(401).json({ error: 'Invalid API key' });
+        return;
+      }
+      if (gatewayKey.provider) {
+        allowedProvs = [gatewayKey.provider.toLowerCase()];
+      } else if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
+        allowedProvs = (gatewayKey.allowedProviders as string[]).map(p => p.toLowerCase());
+      }
+      if (gatewayKey.modelId && gatewayKey.modelId !== '') {
+        lockedModelId = gatewayKey.modelId;
+      }
+    }
+
+    if (allowedProvs && !allowedProvs.includes(providerName)) {
+      res.json({
+        object: 'list',
+        data: [],
+      });
+      return;
+    }
+
+    let dbModels = await db
       .select()
       .from(aiModels)
       .where(eq(aiModels.provider, providerName))
       .orderBy(asc(aiModels.displayName));
+
+    if (lockedModelId) {
+      dbModels = dbModels.filter(m => m.modelId.toLowerCase() === lockedModelId!.toLowerCase());
+    }
 
     const data = dbModels.map(m => ({
       id: m.modelId,
