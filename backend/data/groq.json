@@ -1,0 +1,158 @@
+[
+  {
+    "id": 23,
+    "provider_name": "groq",
+    "label": "GROQ Key 3",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 31,
+    "provider_name": "groq",
+    "label": "GROQ Key 5",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 67,
+    "provider_name": "groq",
+    "label": "GROQ Key 9",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 151,
+    "provider_name": "groq",
+    "label": "Gloo",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 142,
+    "provider_name": "groq",
+    "label": "Groq3",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 143,
+    "provider_name": "groq",
+    "label": "P",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 144,
+    "provider_name": "groq",
+    "label": "Biasa",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 145,
+    "provider_name": "groq",
+    "label": "Cek",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 146,
+    "provider_name": "groq",
+    "label": "Bhu",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 148,
+    "provider_name": "groq",
+    "label": "Gelo",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 149,
+    "provider_name": "groq",
+    "label": "Gloo",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  },
+  {
+    "id": 150,
+    "provider_name": "groq",
+    "label": "Broo",
+    "status": "active",
+    "credentials": {
+      "api_key": "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"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

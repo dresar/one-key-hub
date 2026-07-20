@@ -1,0 +1,15 @@
+[
+  {
+    "id": 139,
+    "provider_name": "mistral",
+    "label": "WW",
+    "status": "active",
+    "credentials": {
+      "api_key": "4bNsgUXaigjK6LCr0h1Hc3TZx9U2xNBX"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]

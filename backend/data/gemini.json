@@ -1,0 +1,15 @@
+[
+  {
+    "id": 181,
+    "provider_name": "gemini",
+    "label": "TES",
+    "status": "active",
+    "credentials": {
+      "api_key": "AQ.Ab8RN6K_Locej3bLs9sW6sw5LnIXrz3E4ZpGob7s2mmdIAMhUQ"
+    },
+    "total_requests": 0,
+    "failed_requests": 0,
+    "last_error": null,
+    "cooldown_until": null
+  }
+]
