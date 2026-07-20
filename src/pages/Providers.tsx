@@ -657,7 +657,7 @@ export default function Providers() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {selectedIds.length > 0 && (
                     <Button
                       variant="destructive"
@@ -667,7 +667,7 @@ export default function Providers() {
                       className="text-xs gap-1.5 h-8 bg-destructive hover:bg-destructive/90"
                     >
                       {isBulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                      Hapus Massal ({selectedIds.length} Key)
+                      Hapus ({selectedIds.length})
                     </Button>
                   )}
 
@@ -680,7 +680,7 @@ export default function Providers() {
                       className="text-xs gap-1.5 h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      Hapus SEMUA Key {filterProvider.toUpperCase()} ({credentials.filter(c => c.provider_name === filterProvider).length})
+                      Hapus {filterProvider.toUpperCase()} ({credentials.filter(c => c.provider_name === filterProvider).length})
                     </Button>
                   )}
 
@@ -690,16 +690,16 @@ export default function Providers() {
                       size="sm"
                       onClick={async () => {
                         const inactiveCount = credentials.filter(c => c.status === 'inactive').length;
-                        if (!confirm(`Hapus SEMUA ${inactiveCount} key dengan status INACTIVE/Terblokir?`)) return;
+                        if (!confirm(`Hapus ${inactiveCount} key dengan status INACTIVE/Terblokir?`)) return;
                         setIsBulkDeleting(true);
                         try {
                           const inactiveIds = credentials.filter(c => c.status === 'inactive').map(c => c.id);
                           const { data } = await api.post('/api/credentials/bulk-delete', { ids: inactiveIds });
-                          toast.success(data.message || `${inactiveCount} key inactive berhasil dihapus`);
+                          toast.success(data.message || `${inactiveCount} key inaktif berhasil dihapus`);
                           setSelectedIds([]);
                           fetchCredentials();
                         } catch (err: any) {
-                          toast.error(err.response?.data?.error || 'Gagal hapus key inactive');
+                          toast.error(err.response?.data?.error || 'Gagal hapus key inaktif');
                         } finally {
                           setIsBulkDeleting(false);
                         }
@@ -708,7 +708,7 @@ export default function Providers() {
                       className="text-xs gap-1.5 h-8 border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      Hapus SEMUA Key Inactive ({credentials.filter(c => c.status === 'inactive').length})
+                      Hapus Inaktif ({credentials.filter(c => c.status === 'inactive').length})
                     </Button>
                   )}
                 </div>
