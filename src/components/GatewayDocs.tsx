@@ -171,20 +171,53 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   // Default model changes with provider — this is what makes examples update
   const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.0-flash';
 
-  const aiSystemPrompt = `Kamu adalah asisten AI pemrograman. Saya menggunakan Unified AI Gateway (rotasi API key otomatis) dengan spesifikasi berikut:
+  const promptProviderName = provider === 'all' ? 'semua provider AI (Gemini, Groq, OpenAI, DeepSeek, dll.)' : provider.toUpperCase();
 
-- Base URL API: \`${BASE_URL}/v1\`
-- Gateway API Key: \`${displayKey}\`
+  const aiSystemPrompt = `# DOKUMENTASI & INSTRUKSI INTEGRASI UNIFIED AI GATEWAY (ROTASI API KEY OTOMATIS)
 
-Semua request chat completions (seperti GPT, Gemini, Llama, Mistral, Cohere, DeepSeek) harus dikirim ke:
-- Endpoint: \`${BASE_URL}/v1/chat/completions\`
-- Header Autentikasi: \`Authorization: Bearer ${displayKey}\`
-- Format Request: Mengikuti standar format OpenAI Chat Completions (misal: JSON body dengan \`model\`, \`messages\`, \`temperature\`, \`max_tokens\`).
+Dokumen ini berisi spesifikasi lengkap cara memanggil API Gateway untuk digunakan oleh AI Assistant (seperti ChatGPT, Claude, Cursor, dll.) agar dapat menulis kode integrasi yang tepat tanpa salah endpoint.
 
-Daftar model yang tersedia dapat diambil via:
-- Endpoint: \`${BASE_URL}/v1/models\`
+## 🔑 Setelan Kredensial API
+- **Base URL API**: \`${BASE_URL}/v1\`
+- **Gateway API Key**: \`${displayKey}\` ${gatewayKey.includes('...') ? '\n*(Catatan: Ini adalah Preview Key. Gateway kami secara unik mengizinkan penggunaan Preview Key ini secara langsung untuk mempermudah pemanggilan lokal/testing!)*' : ''}
+- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Bebas)' : provider}\`
+- **Default Model**: \`${defaultModel}\`
 
-Ketika menulis kode pemrograman untuk saya (JavaScript/Node.js, Python, cURL, PHP, Go, dll.), selalu gunakan Base URL dan API Key di atas. Jika menggunakan SDK resmi OpenAI (python-openai, openai-node), arahkan parameter \`base_url\` / \`baseURL\` ke \`${BASE_URL}/v1\` dan \`api_key\` / \`apiKey\` ke \`${displayKey}\`.`;
+---
+
+## 🛰️ Panduan Endpoint & Cara Routing
+
+### 1. Endpoint OpenAI-Compatible (Rekomendasi Utama)
+Gunakan endpoint ini untuk memanggil model dengan format request standar OpenAI. Sangat cocok jika Anda menggunakan SDK resmi OpenAI (\`openai\` npm package atau \`openai\` python package).
+- **URL**: \`${BASE_URL}/v1/chat/completions\`
+- **Header**:
+  - \`Authorization: Bearer ${displayKey}\`
+  - \`Content-Type: application/json\`
+- **Body JSON**:
+  \`\`\`json
+  {
+    "model": "${defaultModel}",
+    "messages": [
+      { "role": "system", "content": "Kamu adalah asisten AI." },
+      { "role": "user", "content": "Halo!" }
+    ],
+    "temperature": 0.7
+  }
+  \`\`\`
+
+### 2. Endpoint Khusus Provider (\${promptProviderName})
+Jika Anda ingin mengirimkan request langsung ke provider tertentu, Anda bisa mengarahkan request ke path khusus gateway:
+- **URL**: \`${BASE_URL}/gateway/${provider === 'all' ? 'gemini' : provider}/chat\`
+- **Header**:
+  - \`X-API-Key: ${displayKey}\`
+  - \`Content-Type: application/json\`
+
+---
+
+## 🤖 Aturan Penulisan Kode untuk Developer/AI Assistant:
+1. **Selalu Arahkan Base URL**: Jangan pernah menggunakan URL resmi Google Gemini (\`generativelanguage.googleapis.com\`), Groq (\`api.groq.com\`), atau OpenAI (\`api.openai.com\`). Arahkan baseUrl/host ke \`${BASE_URL}/v1\`.
+2. **Autentikasi**: Selalu gunakan Gateway API Key \`${displayKey}\` di header Authorization / X-API-Key.
+3. **Model & Rotasi**: Jika key ini dikunci ke model tertentu, gunakan model \`${defaultModel}\`. Jika terjadi limit kuota (429) atau error pada API Key utama provider, gateway akan melakukan **rotasi otomatis di sisi backend** ke key cadangan tanpa membutuhkan perubahan kode apapun di sisi client.`;
 
   // Load models when section switches to models
   useEffect(() => {
