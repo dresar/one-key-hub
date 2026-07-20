@@ -32,22 +32,22 @@ interface Model {
 const BASE_URL = 'http://localhost:3000';
 
 const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string }> = {
-  gemini:    { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30',    badge: 'bg-blue-500/20 text-blue-300',    emoji: '🔵' },
-  groq:      { color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', badge: 'bg-orange-500/20 text-orange-300', emoji: '🟠' },
-  openai:    { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300', emoji: '🟢' },
-  mistral:   { color: 'bg-rose-500/10 text-rose-400 border-rose-500/30',    badge: 'bg-rose-500/20 text-rose-300',    emoji: '🌸' },
-  cohere:    { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣' },
-  deepseek:  { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',    badge: 'bg-cyan-500/20 text-cyan-300',    emoji: '🔷' },
-  cerebras:  { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡' },
-  together:  { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮' },
-  xai:       { color: 'bg-slate-500/10 text-slate-400 border-slate-500/30',  badge: 'bg-slate-500/20 text-slate-300',  emoji: '⚫' },
+  gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵' },
+  groq: { color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', badge: 'bg-orange-500/20 text-orange-300', emoji: '🟠' },
+  openai: { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300', emoji: '🟢' },
+  mistral: { color: 'bg-rose-500/10 text-rose-400 border-rose-500/30', badge: 'bg-rose-500/20 text-rose-300', emoji: '🌸' },
+  cohere: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣' },
+  deepseek: { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', badge: 'bg-cyan-500/20 text-cyan-300', emoji: '🔷' },
+  cerebras: { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡' },
+  together: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮' },
+  xai: { color: 'bg-slate-500/10 text-slate-400 border-slate-500/30', badge: 'bg-slate-500/20 text-slate-300', emoji: '⚫' },
 };
 
 // ── Copy hook ─────────────────────────────────────────────────────────────────
 function useCopy() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copy = useCallback(async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text).catch(() => {});
+    await navigator.clipboard.writeText(text).catch(() => { });
     setCopiedId(id);
     toast.success('Tersalin ke clipboard!');
     setTimeout(() => setCopiedId(null), 2000);
@@ -93,8 +93,8 @@ function CodeBlock({ code, id, lang = 'bash' }: { code: string; id: string; lang
 // ── Method badge ──────────────────────────────────────────────────────────────
 function MethodBadge({ method }: { method: string }) {
   const colors: Record<string, string> = {
-    GET:    'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    POST:   'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    POST: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     DELETE: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
   return (
@@ -111,11 +111,10 @@ function SectionTab({ active, onClick, icon: Icon, label, badge }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
-        active
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${active
           ? 'border-primary text-primary'
           : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border/60'
-      }`}
+        }`}
     >
       <Icon className="w-4 h-4" />
       {label}
@@ -131,16 +130,28 @@ function LangTab({ active, onClick, label }: { active: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-        active
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active
           ? 'bg-primary text-primary-foreground shadow-sm'
           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-      }`}
+        }`}
     >
       {label}
     </button>
   );
 }
+
+// ── Provider → default model map ───────────────────────────────────────────────
+const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
+  gemini: 'gemini-2.5-flash',
+  groq: 'llama-3.3-70b-versatile',
+  openai: 'gpt-4o-mini',
+  mistral: 'mistral-small-latest',
+  cohere: 'command-r-plus',
+  deepseek: 'deepseek-chat',
+  cerebras: 'llama3.1-70b',
+  together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  xai: 'grok-beta',
+};
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultProvider = 'gemini', collapsed = false }: Props) {
@@ -155,6 +166,8 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const [allProviders, setAllProviders] = useState<string[]>([]);
 
   const displayKey = gatewayKey.startsWith('YOUR') ? 'YOUR_GATEWAY_KEY' : gatewayKey;
+  // Default model changes with provider — this is what makes examples update
+  const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.0-flash';
 
   // Load models when section switches to models
   useEffect(() => {
@@ -191,12 +204,12 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   // ── Code examples per language / section ──────────────────────────────────
   const chatExamples: Record<LangTab, string> = {
     curl:
-`# ─── Chat Completion (OpenAI-compatible) ────────────────────────────
+      `# ─── Chat Completion (OpenAI-compatible) ────────────────────────────
 curl ${BASE_URL}/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${displayKey}" \\
   -d '{
-    "model": "gemini-2.0-flash",
+    "model": "${defaultModel}",
     "messages": [
       {"role": "system",  "content": "Kamu adalah asisten AI yang cerdas."},
       {"role": "user",    "content": "Jelaskan konsep machine learning dalam 3 kalimat."}
@@ -210,7 +223,7 @@ curl ${BASE_URL}/gateway/${provider}/chat \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: ${displayKey}" \\
   -d '{
-    "model": "gemini-2.0-flash",
+    "model": "${defaultModel}",
     "messages": [{"role": "user", "content": "Halo dunia!"}]
   }'
 
@@ -218,10 +231,11 @@ curl ${BASE_URL}/gateway/${provider}/chat \\
 curl ${BASE_URL}/
 `,
     javascript:
-`// ─── JavaScript / Node.js (Fetch API) ────────────────────────────────
+      `// ─── JavaScript / Node.js (Fetch API) ────────────────────────────────
 const GATEWAY_KEY = '${displayKey}';
+const MODEL       = '${defaultModel}'; // provider: ${provider}
 
-async function chat(messages, model = 'gemini-2.0-flash') {
+async function chat(messages, model = MODEL) {
   const res = await fetch('${BASE_URL}/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -259,17 +273,18 @@ console.log(await sendMessage('Halo!'));
 console.log(await sendMessage('Apa tindak lanjut dari jawaban sebelumnya?'));
 `,
     python:
-`# ─── Python (requests) ──────────────────────────────────────────────
+      `# ─── Python (requests) ──────────────────────────────────────────────
 import requests
 
-GATEWAY_KEY = '${displayKey}'
-BASE        = '${BASE_URL}'
-HEADERS     = {
+GATEWAY_KEY   = '${displayKey}'
+BASE          = '${BASE_URL}'
+DEFAULT_MODEL = '${defaultModel}'  # provider: ${provider}
+HEADERS       = {
     'Content-Type': 'application/json',
     'Authorization': f'Bearer {GATEWAY_KEY}',
 }
 
-def chat(messages: list, model: str = 'gemini-2.0-flash') -> str:
+def chat(messages: list, model: str = DEFAULT_MODEL) -> str:
     """Kirim pesan ke AI dan dapatkan balasan."""
     res = requests.post(
         f'{BASE}/v1/chat/completions',
@@ -287,12 +302,13 @@ print(reply)
 
 # Contoh multi-provider dengan rotasi otomatis
 models_to_try = [
-    ('gemini-2.0-flash', 'gemini'),
-    ('llama-3.3-70b-versatile', 'groq'),
-    ('mistral-small-latest', 'mistral'),
+    '${defaultModel}',          # ${provider}
+    'gemini-2.0-flash',         # gemini
+    'llama-3.3-70b-versatile',  # groq
+    'mistral-small-latest',     # mistral
 ]
 
-for model_id, _ in models_to_try:
+for model_id in models_to_try:
     try:
         answer = chat([{'role': 'user', 'content': 'Hello!'}], model=model_id)
         print(f"✅ {model_id}: {answer[:80]}...")
@@ -301,7 +317,7 @@ for model_id, _ in models_to_try:
         print(f"❌ {model_id}: {e}")
 `,
     openai_sdk:
-`# ─── OpenAI Python SDK ──────────────────────────────────────────────
+      `# ─── OpenAI Python SDK ──────────────────────────────────────────────
 from openai import OpenAI
 
 # Cukup ganti base_url & api_key — semua method OpenAI bekerja!
@@ -310,17 +326,21 @@ client = OpenAI(
     api_key='${displayKey}',
 )
 
-# Chat completion
+# Chat completion — model: ${provider}
 response = client.chat.completions.create(
-    model='gemini-2.0-flash',
+    model='${defaultModel}',
     messages=[
         {'role': 'system', 'content': 'Kamu adalah pakar teknologi AI.'},
-        {'role': 'user',   'content': 'Jelaskan perbedaan GPT-4 dan Gemini.'},
+        {'role': 'user',   'content': 'Jelaskan kemampuan model ${provider} ini.'},
     ],
     max_tokens=512,
     temperature=0.8,
 )
 print(response.choices[0].message.content)
+
+# List semua model
+for m in client.models.list():
+    print(m.id)
 
 # ─── OpenAI JavaScript / TypeScript SDK ──────────────────────────────
 /*
@@ -329,24 +349,21 @@ import OpenAI from 'openai';
 const client = new OpenAI({
   baseURL: '${BASE_URL}/v1',
   apiKey:  '${displayKey}',
-  dangerouslyAllowBrowser: true,   // hanya untuk browser
+  dangerouslyAllowBrowser: true,
 });
 
-const stream = client.chat.completions.stream({
-  model: 'gemini-2.0-flash',
-  messages: [{ role: 'user', content: 'Ceritakan sejarah internet.' }],
+const res = await client.chat.completions.create({
+  model: '${defaultModel}',
+  messages: [{ role: 'user', content: 'Ceritakan tentang ${provider}.' }],
 });
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content ?? '');
-}
+console.log(res.choices[0].message.content);
 */
 `,
   };
 
   const modelsExamples: Record<LangTab, string> = {
     curl:
-`# ─── List Semua Model (61+ model dari semua provider) ────────────────
+      `# ─── List Semua Model (61+ model dari semua provider) ────────────────
 curl ${BASE_URL}/v1/models \\
   -H "Authorization: Bearer ${displayKey}"
 
@@ -363,7 +380,7 @@ curl ${BASE_URL}/gateway/deepseek/models
 curl ${BASE_URL}/v1/models | jq '.data[] | select(.provider == "gemini") | .id'
 `,
     javascript:
-`// ─── List semua model ─────────────────────────────────────────────────
+      `// ─── List semua model ─────────────────────────────────────────────────
 const res = await fetch('${BASE_URL}/v1/models', {
   headers: { 'Authorization': 'Bearer ${displayKey}' },
 });
@@ -386,7 +403,7 @@ const provRes = await fetch('${BASE_URL}/gateway/gemini/models');
 const { data: geminiOnly } = await provRes.json();
 `,
     python:
-`# ─── List semua model via requests ──────────────────────────────────
+      `# ─── List semua model via requests ──────────────────────────────────
 import requests
 
 res = requests.get(
@@ -409,7 +426,7 @@ for prov, ids in sorted(by_provider.items()):
         print(f"   - {mid}")
 `,
     openai_sdk:
-`# ─── OpenAI Python SDK — List Model ──────────────────────────────────
+      `# ─── OpenAI Python SDK — List Model ──────────────────────────────────
 from openai import OpenAI
 
 client = OpenAI(
@@ -494,11 +511,11 @@ for (const m of models.data) {
 }`;
 
   const endpointRef = [
-    { method: 'POST', path: '/v1/chat/completions',        desc: 'Chat completion (OpenAI-compatible)',    auth: 'Bearer / X-API-Key' },
-    { method: 'POST', path: '/gateway/:provider/chat',     desc: 'Chat via provider tertentu',           auth: 'X-API-Key'           },
-    { method: 'GET',  path: '/v1/models',                  desc: 'List semua model (61+ model)',          auth: 'Tidak wajib'         },
-    { method: 'GET',  path: '/gateway/models',             desc: 'List semua model (alias)',              auth: 'Tidak wajib'         },
-    { method: 'GET',  path: '/gateway/:provider/models',   desc: 'List model per provider',              auth: 'Tidak wajib'         },
+    { method: 'POST', path: '/v1/chat/completions', desc: 'Chat completion (OpenAI-compatible)', auth: 'Bearer / X-API-Key' },
+    { method: 'POST', path: '/gateway/:provider/chat', desc: 'Chat via provider tertentu', auth: 'X-API-Key' },
+    { method: 'GET', path: '/v1/models', desc: 'List semua model (61+ model)', auth: 'Tidak wajib' },
+    { method: 'GET', path: '/gateway/models', desc: 'List semua model (alias)', auth: 'Tidak wajib' },
+    { method: 'GET', path: '/gateway/:provider/models', desc: 'List model per provider', auth: 'Tidak wajib' },
   ];
 
   return (
@@ -558,9 +575,9 @@ for (const m of models.data) {
 
               {/* ── Section Tabs ─────────────────────────────────────── */}
               <div className="flex border-b border-border/30 mt-4 px-5 gap-1 overflow-x-auto scrollbar-none">
-                <SectionTab active={section === 'chat'}    onClick={() => setSection('chat')}      icon={MessageSquare} label="Chat Completions" />
-                <SectionTab active={section === 'models'}  onClick={() => setSection('models')}    icon={List}          label="Models" badge="61+" />
-                <SectionTab active={section === 'reference'} onClick={() => setSection('reference')} icon={Hash}        label="API Reference" />
+                <SectionTab active={section === 'chat'} onClick={() => setSection('chat')} icon={MessageSquare} label="Chat Completions" />
+                <SectionTab active={section === 'models'} onClick={() => setSection('models')} icon={List} label="Models" badge="61+" />
+                <SectionTab active={section === 'reference'} onClick={() => setSection('reference')} icon={Hash} label="API Reference" />
               </div>
 
               <div className="p-5 space-y-5">
@@ -591,11 +608,10 @@ for (const m of models.data) {
                             <button
                               key={p}
                               onClick={() => setProvider(p)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all capitalize ${
-                                provider === p
+                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all capitalize ${provider === p
                                   ? PROVIDER_META[p].color
                                   : 'border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground'
-                              }`}
+                                }`}
                             >
                               {PROVIDER_META[p].emoji} {p}
                             </button>
@@ -605,10 +621,10 @@ for (const m of models.data) {
 
                       {/* Lang tabs */}
                       <div className="flex gap-1.5 flex-wrap">
-                        <LangTab active={langTab === 'curl'}       onClick={() => setLangTab('curl')}       label="🖥 cURL" />
-                        <LangTab active={langTab === 'javascript'}  onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
-                        <LangTab active={langTab === 'python'}      onClick={() => setLangTab('python')}     label="🐍 Python" />
-                        <LangTab active={langTab === 'openai_sdk'}  onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
+                        <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
+                        <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
+                        <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
+                        <LangTab active={langTab === 'openai_sdk'} onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
                       </div>
 
                       <CodeBlock
@@ -661,10 +677,10 @@ for (const m of models.data) {
 
                       {/* Lang tabs */}
                       <div className="flex gap-1.5 flex-wrap">
-                        <LangTab active={langTab === 'curl'}       onClick={() => setLangTab('curl')}       label="🖥 cURL" />
-                        <LangTab active={langTab === 'javascript'}  onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
-                        <LangTab active={langTab === 'python'}      onClick={() => setLangTab('python')}     label="🐍 Python" />
-                        <LangTab active={langTab === 'openai_sdk'}  onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
+                        <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
+                        <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
+                        <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
+                        <LangTab active={langTab === 'openai_sdk'} onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
                       </div>
 
                       <CodeBlock
@@ -915,11 +931,11 @@ curl ${BASE_URL}/v1/chat/completions \\
                         </p>
                         <div className="space-y-1.5">
                           {[
-                            { code: '401', color: 'text-red-400',    desc: 'Gateway Key tidak valid atau tidak ditemukan' },
-                            { code: '403', color: 'text-red-400',    desc: 'Key tidak aktif atau semua API key provider gagal' },
-                            { code: '429', color: 'text-amber-400',  desc: 'Rate limit — gateway akan auto-retry ke key berikutnya' },
+                            { code: '401', color: 'text-red-400', desc: 'Gateway Key tidak valid atau tidak ditemukan' },
+                            { code: '403', color: 'text-red-400', desc: 'Key tidak aktif atau semua API key provider gagal' },
+                            { code: '429', color: 'text-amber-400', desc: 'Rate limit — gateway akan auto-retry ke key berikutnya' },
                             { code: '503', color: 'text-orange-400', desc: 'Semua API key sedang cooldown — coba beberapa saat lagi' },
-                            { code: '200', color: 'text-green-400',  desc: 'Sukses — respons berhasil dikembalikan' },
+                            { code: '200', color: 'text-green-400', desc: 'Sukses — respons berhasil dikembalikan' },
                           ].map(e => (
                             <div key={e.code} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border/20">
                               <span className={`text-xs font-bold font-mono w-8 ${e.color}`}>{e.code}</span>
