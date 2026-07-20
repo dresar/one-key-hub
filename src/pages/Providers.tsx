@@ -3,13 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Server, Plus, Edit2, Trash2, Loader2,
   RefreshCw, Shield, CheckCircle, XCircle, Clock, PlayCircle, Key, Activity,
-  Eye, EyeOff, Copy, Check
+  Eye, EyeOff, Copy, Check, MoreVertical
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -772,55 +779,53 @@ export default function Providers() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0">
-                      {cred.status === 'cooldown' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleReactivate(cred)}
-                          className="text-xs text-warning hover:bg-warning/10"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                          Reaktivasi
-                        </Button>
-                      )}
+                    <div className="flex items-center gap-1.5 shrink-0 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleTestCredential(cred)}
                         disabled={isTestingId !== null}
-                        className="text-xs text-primary hover:text-primary/95 hover:bg-primary/10 mr-1"
+                        className="text-xs text-primary hover:text-primary/95 hover:bg-primary/10 h-8 px-2.5"
                       >
                         {isTestingId === cred.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
                         ) : (
-                          <PlayCircle className="w-3.5 h-3.5 mr-1.5" />
+                          <PlayCircle className="w-3.5 h-3.5 mr-1" />
                         )}
                         Test Key
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleCopyCredentialKey(cred)}
-                        title="Salin API Key"
-                      >
-                        {copiedCredId === cred.id ? (
-                          <Check className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                        )}
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(cred)} title="Edit Credential">
-                        <Edit2 className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => { setSelectedCred(cred); setIsDeleteDialogOpen(true); }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44 bg-card border-border">
+                          <DropdownMenuItem onClick={() => handleCopyCredentialKey(cred)} className="text-xs gap-2 cursor-pointer">
+                            {copiedCredId === cred.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            Salin API Key
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditModal(cred)} className="text-xs gap-2 cursor-pointer">
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Edit Credential
+                          </DropdownMenuItem>
+                          {cred.status === 'cooldown' && (
+                            <DropdownMenuItem onClick={() => handleReactivate(cred)} className="text-xs gap-2 text-warning cursor-pointer">
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              Reaktivasi Key
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => { setSelectedCred(cred); setIsDeleteDialogOpen(true); }}
+                            className="text-xs gap-2 text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Hapus Key
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </motion.div>
                 ))}
