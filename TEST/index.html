@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>One Key Hub — Gateway Test Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080b10;
+      --surface:     #0d1117;
+      --surface2:    #161b22;
+      --surface3:    #1c2432;
+      --border:      rgba(255,255,255,0.08);
+      --border2:     rgba(255,255,255,0.14);
+      --text:        #e6edf3;
+      --muted:       #7d8590;
+      --primary:     #7c3aed;
+      --primary-glow:#a855f7;
+      --green:       #3fb950;
+      --red:         #f85149;
+      --yellow:      #d29922;
+      --blue:        #58a6ff;
+      --cyan:        #39d0d8;
+      --orange:      #f0883e;
+      --radius:      12px;
+      --font:        'Inter', sans-serif;
+      --mono:        'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ──────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 99px; }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,11,16,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 15px; font-weight: 700;
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .status-dot {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(63,185,80,.4); }
+      50%      { opacity: .8; box-shadow: 0 0 0 5px rgba(63,185,80,0); }
+    }
+
+    /* ── Main Grid ──────────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: auto;
+      gap: 0;
+      flex: 1;
+    }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    aside {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 16px;
+      overflow-y: auto;
+      max-height: calc(100vh - 60px);
+      position: sticky; top: 60px;
+    }
+
+    /* ── Content Area ────────────────────────────────────────────── */
+    .content {
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-body { padding: 18px; }
+
+    /* ── Section labels ─────────────────────────────────────────── */
+    .section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      padding: 2px 0 6px;
+    }
+
+    /* ── Inputs ─────────────────────────────────────────────────── */
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 5px; }
+    input, select, textarea {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+    textarea { resize: vertical; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+    select option { background: var(--surface2); }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .2s; padding: 9px 16px;
+    }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--primary); color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-glow); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,58,237,.4); }
+    .btn-ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+    .btn-green  { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.25); }
+    .btn-green:hover:not(:disabled)  { background: rgba(63,185,80,.25); }
+    .btn-red    { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.25); }
+    .btn-red:hover:not(:disabled)    { background: rgba(248,81,73,.25); }
+    .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+    .btn-full { width: 100%; }
+
+    /* ── Badge ───────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center;
+      font-size: 10px; font-weight: 700; padding: 2px 7px;
+      border-radius: 99px; border: 1px solid;
+    }
+    .badge-green  { background: rgba(63,185,80,.1);  color: var(--green);  border-color: rgba(63,185,80,.25); }
+    .badge-red    { background: rgba(248,81,73,.1);  color: var(--red);    border-color: rgba(248,81,73,.25); }
+    .badge-yellow { background: rgba(210,153,34,.1); color: var(--yellow); border-color: rgba(210,153,34,.25); }
+    .badge-blue   { background: rgba(88,166,255,.1); color: var(--blue);   border-color: rgba(88,166,255,.25); }
+    .badge-purple { background: rgba(124,58,237,.1); color: var(--primary-glow); border-color: rgba(124,58,237,.25); }
+
+    .method-badge {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .method-get  { background: rgba(63,185,80,.15); color: var(--green); }
+    .method-post { background: rgba(88,166,255,.15); color: var(--blue); }
+
+    /* ── Code block ─────────────────────────────────────────────── */
+    .code-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .code-block-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--surface3);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block-lang { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+    pre {
+      margin: 0; padding: 14px;
+      font-family: var(--mono); font-size: 11.5px; line-height: 1.7;
+      color: #cdd9e5; overflow-x: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────────── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 18px; gap: 2px; overflow-x: auto; }
+    .tab {
+      padding: 10px 14px; font-size: 12px; font-weight: 500;
+      color: var(--muted); cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s; white-space: nowrap;
+    }
+    .tab.active { color: var(--primary-glow); border-bottom-color: var(--primary); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* ── Result item ─────────────────────────────────────────────── */
+    .result-item {
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      display: flex; align-items: flex-start; gap: 10px;
+      animation: fadeIn .3s ease;
+    }
+    .result-ok   { border-left: 3px solid var(--green); background: rgba(63,185,80,.04); }
+    .result-err  { border-left: 3px solid var(--red);   background: rgba(248,81,73,.04); }
+    .result-warn { border-left: 3px solid var(--yellow); background: rgba(210,153,34,.04); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── Model table ─────────────────────────────────────────────── */
+    .model-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .model-table th {
+      text-align: left; padding: 9px 12px;
+      background: var(--surface3); color: var(--muted);
+      font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .model-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .model-table tr:hover td { background: rgba(255,255,255,.02); }
+    .model-table tr:last-child td { border-bottom: none; }
+    .mono { font-family: var(--mono); }
+
+    /* ── Provider pill ───────────────────────────────────────────── */
+    .provider-pill {
+      font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 99px; border: 1px solid;
+      text-transform: capitalize;
+    }
+    .prov-gemini  { background: rgba(88,166,255,.1); color: #58a6ff; border-color: rgba(88,166,255,.25); }
+    .prov-groq    { background: rgba(240,136,62,.1); color: var(--orange); border-color: rgba(240,136,62,.25); }
+    .prov-openai  { background: rgba(63,185,80,.1); color: var(--green); border-color: rgba(63,185,80,.25); }
+    .prov-mistral { background: rgba(248,81,73,.1); color: var(--red); border-color: rgba(248,81,73,.25); }
+    .prov-cohere  { background: rgba(163,85,247,.1); color: var(--primary-glow); border-color: rgba(163,85,247,.25); }
+    .prov-deepseek{ background: rgba(57,208,216,.1); color: var(--cyan); border-color: rgba(57,208,216,.25); }
+    .prov-cerebras{ background: rgba(210,153,34,.1); color: var(--yellow); border-color: rgba(210,153,34,.25); }
+    .prov-default { background: rgba(125,133,144,.1); color: var(--muted); border-color: rgba(125,133,144,.25); }
+
+    /* ── Stats bar ───────────────────────────────────────────────── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .stat-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--muted); }
+
+    /* ── Log output ──────────────────────────────────────────────── */
+    #log-output {
+      font-family: var(--mono); font-size: 12px; line-height: 1.7;
+      color: var(--text); max-height: 340px; overflow-y: auto;
+    }
+    .log-ok    { color: var(--green); }
+    .log-err   { color: var(--red); }
+    .log-warn  { color: var(--yellow); }
+    .log-info  { color: var(--blue); }
+    .log-dim   { color: var(--muted); }
+    .log-white { color: var(--text); }
+
+    /* ── Search bar ──────────────────────────────────────────────── */
+    .search-wrapper { position: relative; }
+    .search-wrapper input { padding-left: 32px; }
+    .search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 14px; pointer-events: none;
+    }
+
+    /* ── Filter strip ─────────────────────────────────────────────── */
+    .filter-strip { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn {
+      font-size: 11px; font-weight: 600; padding: 4px 10px;
+      border-radius: 99px; border: 1px solid var(--border);
+      color: var(--muted); cursor: pointer; transition: all .2s;
+      background: transparent;
+    }
+    .filter-btn.active { border-color: var(--primary); color: var(--primary-glow); background: rgba(124,58,237,.1); }
+    .filter-btn:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+    /* ── Misc ─────────────────────────────────────────────────────── */
+    .flex { display: flex; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; }
+    .w-full { width: 100%; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .text-muted { color: var(--muted); font-size: 12px; }
+    .text-green { color: var(--green); }
+    .text-red   { color: var(--red); }
+    .text-center { text-align: center; }
+    .bold { font-weight: 700; }
+    .hidden { display: none !important; }
+    .spinner {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: currentColor;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast-container {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; max-width: 320px;
+      animation: slideIn .3s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .empty-state {
+      text-align: center; padding: 48px 24px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 13px; }
+
+    /* Tabs pane */
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── HEADER ───────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔑</div>
+      <span>Gateway Test Playground</span>
+      <span class="badge badge-purple">v2</span>
+    </div>
+    <div class="header-right">
+      <span class="status-dot">
+        <span class="dot" id="server-dot"></span>
+        <span id="server-status">Menghubungkan...</span>
+      </span>
+      <span class="text-muted">|</span>
+      <span class="text-muted" style="font-size:12px;">Port <b>9090</b></span>
+    </div>
+  </header>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- ── SIDEBAR ──────────────────────────────────────────────────── -->
+    <aside>
+      <div class="section-label">⚙️ Konfigurasi</div>
+
+      <!-- Gateway Key -->
+      <div>
+        <label for="gw-key">Gateway Key</label>
+        <div class="flex gap-2">
+          <input id="gw-key" type="text" placeholder="AR_xxxxxx_yyyyyy" style="font-family:var(--mono);font-size:11px;" />
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button class="btn btn-ghost btn-sm flex-1" onclick="clearKey()">Hapus</button>
+          <button class="btn btn-green btn-sm flex-1" onclick="saveKey()">💾 Simpan</button>
+        </div>
+      </div>
+
+      <!-- Base URL -->
+      <div>
+        <label for="base-url">Backend URL</label>
+        <input id="base-url" type="text" value="http://localhost:3000" />
+      </div>
+
+      <!-- Quick key saved -->
+      <div id="saved-keys-section" class="hidden">
+        <div class="section-label">🔑 Key Tersimpan</div>
+        <div id="saved-keys-list"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);" />
+
+      <!-- Quick actions -->
+      <div class="section-label">⚡ Quick Actions</div>
+      <button class="btn btn-primary btn-full" onclick="pingServer()">📡 Ping Server</button>
+      <button class="btn btn-ghost btn-full" onclick="loadAllModels()">🤖 Load Semua Model</button>
+      <button class="btn btn-ghost btn-full" onclick="showTab('batch')">🧪 Batch Test Keys</button>
+
+      <hr style="border:none;border-top:1px solid var(--border);" />
+      <div class="section-label">📊 Session Stats</div>
+      <div style="font-size:12px;color:var(--muted);line-height:2;">
+        Request: <b id="stat-req" style="color:var(--text)">0</b><br/>
+        Sukses:  <b id="stat-ok" style="color:var(--green)">0</b><br/>
+        Gagal:   <b id="stat-err" style="color:var(--red)">0</b><br/>
+        Avg Latency: <b id="stat-lat" style="color:var(--blue)">—</b>
+      </div>
+    </aside>
+
+    <!-- ── CONTENT ───────────────────────────────────────────────────── -->
+    <div class="content">
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-card">
+          <div class="stat-value" id="s-total">—</div>
+          <div class="stat-label">Total Model</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="s-providers">—</div>
+          <div class="stat-label">Provider</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="s-vision">—</div>
+          <div class="stat-label">Vision Model</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="s-latency">—</div>
+          <div class="stat-label">Latency Terakhir</div>
+        </div>
+      </div>
+
+      <!-- Main Tabs -->
+      <div class="card">
+        <div class="tabs">
+          <div class="tab active" onclick="showTab('chat')" id="tab-chat">💬 Chat Test</div>
+          <div class="tab" onclick="showTab('models')" id="tab-models">🤖 Model Browser</div>
+          <div class="tab" onclick="showTab('batch')" id="tab-batch">🧪 Batch Key Test</div>
+          <div class="tab" onclick="showTab('log')" id="tab-log">📋 Request Log</div>
+          <div class="tab" onclick="showTab('docs')" id="tab-docs">📖 API Docs</div>
+        </div>
+
+        <!-- ════════════ CHAT TAB ════════════ -->
+        <div class="tab-pane active" id="pane-chat">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+            <div class="flex gap-3">
+              <!-- Model select -->
+              <div style="flex:1;">
+                <label>Model</label>
+                <select id="chat-model">
+                  <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                  <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (groq)</option>
+                  <option value="mistral-small-latest">mistral-small-latest</option>
+                  <option value="command-r-plus">command-r-plus (cohere)</option>
+                  <option value="deepseek-chat">deepseek-chat</option>
+                </select>
+              </div>
+              <!-- Temperature -->
+              <div style="width:140px;">
+                <label>Temperature: <b id="temp-val">0.7</b></label>
+                <input type="range" id="chat-temp" min="0" max="2" step="0.1" value="0.7"
+                  oninput="document.getElementById('temp-val').textContent=this.value"
+                  style="padding:6px 0;cursor:pointer;" />
+              </div>
+              <!-- Max tokens -->
+              <div style="width:120px;">
+                <label>Max Tokens</label>
+                <input type="number" id="chat-maxtokens" value="512" min="1" max="8192" />
+              </div>
+            </div>
+
+            <!-- System prompt -->
+            <div>
+              <div class="flex items-center justify-between">
+                <label>System Prompt <span class="text-muted">(opsional)</span></label>
+                <button class="btn btn-ghost btn-sm" onclick="clearSystem()">Hapus</button>
+              </div>
+              <textarea id="chat-system" rows="2" placeholder="Kamu adalah asisten AI yang membantu..."></textarea>
+            </div>
+
+            <!-- User message -->
+            <div>
+              <label>User Message</label>
+              <textarea id="chat-msg" rows="4" placeholder="Ketik pesan Anda di sini...&#10;&#10;Tekan Ctrl+Enter untuk kirim."></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3 items-center">
+              <button class="btn btn-primary" id="btn-send" onclick="sendChat()" style="min-width:120px;">
+                <span id="send-spinner" class="spinner hidden"></span>
+                <span id="send-label">▶ Kirim</span>
+              </button>
+              <button class="btn btn-ghost" onclick="clearChat()">🗑 Bersihkan</button>
+              <div class="flex-1"></div>
+              <span id="chat-latency" class="text-muted"></span>
+            </div>
+
+            <!-- Response -->
+            <div id="chat-response-area" class="hidden">
+              <div class="section-label">🤖 Respons AI</div>
+              <div class="code-block">
+                <div class="code-block-header">
+                  <span class="code-block-lang" id="resp-model-label">—</span>
+                  <button class="btn btn-ghost btn-sm" onclick="copyResponse()">📋 Salin</button>
+                </div>
+                <pre id="chat-response-text" style="color:#3fb950;"></pre>
+              </div>
+              <div class="mt-2 flex gap-3" style="font-size:11px;color:var(--muted);">
+                <span>Tokens: <b id="resp-tokens" style="color:var(--text)">—</b></span>
+                <span>Latency: <b id="resp-latency" style="color:var(--blue)">—</b></span>
+                <span>Provider: <b id="resp-provider" style="color:var(--primary-glow)">—</b></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ════════════ MODELS TAB ════════════ -->
+        <div class="tab-pane" id="pane-models">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="flex gap-2 items-center">
+              <div class="search-wrapper flex-1">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="model-search" placeholder="Cari model ID, nama, atau provider..." oninput="filterModels()" />
+              </div>
+              <button class="btn btn-primary" onclick="loadAllModels()">
+                <span id="model-load-spinner" class="spinner hidden"></span>
+                🔄 Load Models
+              </button>
+            </div>
+            <!-- Provider filter -->
+            <div class="filter-strip" id="provider-filters">
+              <button class="filter-btn active" onclick="setProviderFilter('all',this)">Semua</button>
+            </div>
+            <!-- Table -->
+            <div id="model-table-wrapper" style="overflow:auto;max-height:500px;border-radius:8px;border:1px solid var(--border);">
+              <div class="empty-state">
+                <div class="icon">🤖</div>
+                <p>Klik "Load Models" untuk memuat daftar model</p>
+              </div>
+            </div>
+            <p id="model-count" class="text-muted text-center"></p>
+          </div>
+        </div>
+
+        <!-- ════════════ BATCH TEST TAB ════════════ -->
+        <div class="tab-pane" id="pane-batch">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div style="padding:12px;border-radius:8px;background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.15);font-size:12px;color:var(--blue);">
+              💡 Batch test mengirim pesan singkat ke setiap model yang dipilih menggunakan Gateway Key Anda. Berguna untuk mengecek model mana yang aktif dan responsif.
+            </div>
+
+            <div class="flex gap-3">
+              <div style="flex:1;">
+                <label>Test Message</label>
+                <input type="text" id="batch-msg" value="Jawab 1 kata: SIAP" />
+              </div>
+              <div style="width:120px;">
+                <label>Timeout (ms)</label>
+                <input type="number" id="batch-timeout" value="15000" min="1000" />
+              </div>
+            </div>
+
+            <!-- Model checkboxes -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label>Model yang diuji</label>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm" onclick="selectAllBatch(true)">Pilih Semua</button>
+                  <button class="btn btn-ghost btn-sm" onclick="selectAllBatch(false)">Batal</button>
+                </div>
+              </div>
+              <div id="batch-models-list" style="max-height:220px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;padding:2px;">
+                <!-- Generated by JS -->
+              </div>
+            </div>
+
+            <!-- Run button -->
+            <div class="flex gap-3 items-center">
+              <button class="btn btn-primary" id="btn-batch" onclick="runBatch()" style="min-width:160px;">
+                <span id="batch-spinner" class="spinner hidden"></span>
+                <span id="batch-label">▶ Jalankan Batch Test</span>
+              </button>
+              <button class="btn btn-ghost" onclick="clearBatchResults()">🗑 Bersihkan</button>
+              <span id="batch-progress" class="text-muted flex-1 text-center"></span>
+              <button class="btn btn-ghost btn-sm" onclick="copyBatchResults()">📋 Salin Hasil</button>
+            </div>
+
+            <!-- Results -->
+            <div id="batch-results" style="max-height:360px;overflow-y:auto;"></div>
+
+          </div>
+        </div>
+
+        <!-- ════════════ LOG TAB ════════════ -->
+        <div class="tab-pane" id="pane-log">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="flex items-center justify-between">
+              <span class="section-label">📋 Request Log (lebih baru di atas)</span>
+              <button class="btn btn-ghost btn-sm" onclick="clearLog()">🗑 Bersihkan</button>
+            </div>
+            <div id="log-output">
+              <p class="text-muted" style="font-size:12px;">Belum ada request. Kirim chat atau jalankan batch test...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════════ DOCS TAB ════════════ -->
+        <div class="tab-pane" id="pane-docs">
+          <div class="card-body" style="display:flex;flex-direction:column;gap:18px;">
+
+            <!-- Endpoint table -->
+            <div>
+              <div class="section-label">📡 Semua Endpoint</div>
+              <div class="code-block" style="overflow:auto;max-height:260px;">
+                <table class="model-table">
+                  <thead>
+                    <tr>
+                      <th>Method</th><th>Path</th><th>Auth</th><th>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="method-badge method-post">POST</span></td>
+                      <td class="mono">/v1/chat/completions</td>
+                      <td>Bearer</td>
+                      <td>Chat (OpenAI-compatible)</td>
+                    </tr>
+                    <tr>
+                      <td><span class="method-badge method-post">POST</span></td>
+                      <td class="mono">/gateway/:provider/chat</td>
+                      <td>X-API-Key</td>
+                      <td>Chat via provider tertentu</td>
+                    </tr>
+                    <tr>
+                      <td><span class="method-badge method-get">GET</span></td>
+                      <td class="mono">/v1/models</td>
+                      <td>Bebas</td>
+                      <td>List 61+ model</td>
+                    </tr>
+                    <tr>
+                      <td><span class="method-badge method-get">GET</span></td>
+                      <td class="mono">/gateway/models</td>
+                      <td>Bebas</td>
+                      <td>Alias /v1/models</td>
+                    </tr>
+                    <tr>
+                      <td><span class="method-badge method-get">GET</span></td>
+                      <td class="mono">/gateway/:provider/models</td>
+                      <td>Bebas</td>
+                      <td>Model per provider</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- cURL examples -->
+            <div>
+              <div class="section-label">🖥 cURL Examples</div>
+              <div class="code-block mt-2">
+                <div class="code-block-header">
+                  <span class="code-block-lang">bash</span>
+                  <button class="btn btn-ghost btn-sm" onclick="copyCurl()">📋 Salin</button>
+                </div>
+                <pre id="docs-curl"></pre>
+              </div>
+            </div>
+
+            <!-- Python example -->
+            <div>
+              <div class="section-label">🐍 Python</div>
+              <div class="code-block mt-2">
+                <div class="code-block-header">
+                  <span class="code-block-lang">python</span>
+                  <button class="btn btn-ghost btn-sm" onclick="copyPython()">📋 Salin</button>
+                </div>
+                <pre id="docs-python"></pre>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────────────────── */
+let savedKeys  = JSON.parse(localStorage.getItem('gw_keys') || '[]');
+let allModels  = [];
+let filteredProvider = 'all';
+let stats = { req: 0, ok: 0, err: 0, latencies: [] };
+let batchRunning = false;
+let batchAborted = false;
+
+const BASE_MODELS = [
+  'gemini-2.5-flash','gemini-2.0-flash','gemini-2.0-flash-lite',
+  'gemini-1.5-flash','gemini-1.5-pro',
+  'llama-3.3-70b-versatile','llama-3.1-8b-instant','gemma2-9b-it',
+  'mistral-small-latest','mistral-large-latest',
+  'command-r-plus','command-r',
+  'deepseek-chat',
+  'llama3.1-70b','llama3.1-8b',
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  // Restore saved key
+  const lastKey = localStorage.getItem('gw_last_key');
+  if (lastKey) document.getElementById('gw-key').value = lastKey;
+
+  const lastUrl = localStorage.getItem('gw_base_url');
+  if (lastUrl) document.getElementById('base-url').value = lastUrl;
+
+  renderSavedKeys();
+  initBatchModels();
+  updateDocs();
+  pingServer();
+
+  // Ctrl+Enter to send
+  document.getElementById('chat-msg').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') sendChat();
+  });
+
+  // Auto-update docs on key change
+  document.getElementById('gw-key').addEventListener('input', updateDocs);
+  document.getElementById('base-url').addEventListener('input', () => {
+    updateDocs();
+    pingServer();
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────────────────────────────── */
+function getKey()  { return document.getElementById('gw-key').value.trim(); }
+function getBase() { return document.getElementById('base-url').value.replace(/\/$/, ''); }
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  const icons = { info:'ℹ️', success:'✅', error:'❌', warn:'⚠️' };
+  el.className = 'toast';
+  el.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
+  c.appendChild(el);
+  setTimeout(() => el.style.opacity='0', 2500);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function updateStats() {
+  document.getElementById('stat-req').textContent = stats.req;
+  document.getElementById('stat-ok').textContent  = stats.ok;
+  document.getElementById('stat-err').textContent = stats.err;
+  const avg = stats.latencies.length
+    ? Math.round(stats.latencies.reduce((a,b)=>a+b,0)/stats.latencies.length)
+    : null;
+  document.getElementById('stat-lat').textContent = avg ? avg+'ms' : '—';
+  document.getElementById('s-latency').textContent = avg ? avg+'ms' : '—';
+}
+
+function addLog(html) {
+  const el = document.getElementById('log-output');
+  const line = document.createElement('div');
+  line.innerHTML = html;
+  el.insertBefore(line, el.firstChild);
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────────────────────────────── */
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'docs') updateDocs();
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   PING SERVER
+───────────────────────────────────────────────────────────────────── */
+async function pingServer() {
+  const dot    = document.getElementById('server-dot');
+  const status = document.getElementById('server-status');
+  try {
+    const t = Date.now();
+    await fetch(getBase() + '/v1/models', { signal: AbortSignal.timeout(5000) });
+    const ms = Date.now() - t;
+    dot.style.background   = 'var(--green)';
+    status.textContent     = `Server OK • ${ms}ms`;
+    status.style.color     = 'var(--green)';
+  } catch {
+    dot.style.background   = 'var(--red)';
+    dot.style.animation    = 'none';
+    status.textContent     = 'Server tidak tersambung';
+    status.style.color     = 'var(--red)';
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   KEY MANAGEMENT
+───────────────────────────────────────────────────────────────────── */
+function saveKey() {
+  const k = getKey();
+  if (!k) return toast('Masukkan Gateway Key dulu', 'warn');
+  if (!savedKeys.includes(k)) {
+    savedKeys.unshift(k);
+    if (savedKeys.length > 10) savedKeys.pop();
+    localStorage.setItem('gw_keys', JSON.stringify(savedKeys));
+  }
+  localStorage.setItem('gw_last_key', k);
+  localStorage.setItem('gw_base_url', getBase());
+  renderSavedKeys();
+  toast('Key disimpan!', 'success');
+}
+
+function clearKey() {
+  document.getElementById('gw-key').value = '';
+  localStorage.removeItem('gw_last_key');
+}
+
+function useKey(k) {
+  document.getElementById('gw-key').value = k;
+  localStorage.setItem('gw_last_key', k);
+}
+
+function renderSavedKeys() {
+  const sec  = document.getElementById('saved-keys-section');
+  const list = document.getElementById('saved-keys-list');
+  if (!savedKeys.length) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  list.innerHTML = savedKeys.map((k, i) => `
+    <div class="flex items-center gap-2 mb-1" style="font-size:11px;">
+      <span class="mono" style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="${k}">${k.substring(0,28)}…</span>
+      <button class="btn btn-ghost btn-sm" onclick="useKey('${k}')">Pakai</button>
+      <button class="btn btn-red btn-sm" onclick="removeKey(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeKey(i) {
+  savedKeys.splice(i, 1);
+  localStorage.setItem('gw_keys', JSON.stringify(savedKeys));
+  renderSavedKeys();
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   LOAD MODELS
+───────────────────────────────────────────────────────────────────── */
+async function loadAllModels() {
+  const spinner = document.getElementById('model-load-spinner');
+  spinner.classList.remove('hidden');
+  try {
+    const t   = Date.now();
+    const res = await fetch(getBase() + '/v1/models');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    allModels  = json.data || [];
+    const ms   = Date.now() - t;
+
+    // Stats
+    const providers   = [...new Set(allModels.map(m => m.provider))];
+    const visionCount = allModels.filter(m => m.supports_vision).length;
+    document.getElementById('s-total').textContent     = allModels.length;
+    document.getElementById('s-providers').textContent = providers.length;
+    document.getElementById('s-vision').textContent    = visionCount;
+
+    // Update chat model select
+    const sel = document.getElementById('chat-model');
+    sel.innerHTML = allModels.map(m =>
+      `<option value="${m.id}">${m.id} (${m.provider})</option>`
+    ).join('');
+
+    // Update batch
+    initBatchModels();
+
+    // Render filters
+    const filters = document.getElementById('provider-filters');
+    filters.innerHTML = `<button class="filter-btn ${filteredProvider==='all'?'active':''}" onclick="setProviderFilter('all',this)">Semua (${allModels.length})</button>`;
+    providers.sort().forEach(p => {
+      const cnt = allModels.filter(m=>m.provider===p).length;
+      filters.innerHTML += `<button class="filter-btn" onclick="setProviderFilter('${p}',this)">${p} (${cnt})</button>`;
+    });
+
+    renderModelTable();
+    showTab('models');
+    toast(`${allModels.length} model dimuat dalam ${ms}ms`, 'success');
+    addLog(`<span class="log-ok">[GET]</span> <span class="log-dim">/v1/models →</span> <span class="log-white">${allModels.length} models</span> <span class="log-info">${ms}ms</span>`);
+  } catch(e) {
+    toast('Gagal memuat model: ' + e.message, 'error');
+    addLog(`<span class="log-err">[ERR]</span> <span class="log-dim">loadAllModels →</span> ${e.message}`);
+  } finally {
+    spinner.classList.add('hidden');
+  }
+}
+
+function filterModels() { renderModelTable(); }
+
+function setProviderFilter(p, btn) {
+  filteredProvider = p;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderModelTable();
+}
+
+function renderModelTable() {
+  const query = (document.getElementById('model-search').value || '').toLowerCase();
+  let list = allModels;
+  if (filteredProvider !== 'all') list = list.filter(m => m.provider === filteredProvider);
+  if (query) list = list.filter(m =>
+    m.id.toLowerCase().includes(query) ||
+    (m.display_name||'').toLowerCase().includes(query) ||
+    m.provider.toLowerCase().includes(query)
+  );
+
+  const wrapper = document.getElementById('model-table-wrapper');
+  const count   = document.getElementById('model-count');
+
+  if (!list.length) {
+    wrapper.innerHTML = `<div class="empty-state"><div class="icon">😕</div><p>Tidak ada model yang cocok</p></div>`;
+    count.textContent = '';
+    return;
+  }
+
+  count.textContent = `Menampilkan ${list.length} dari ${allModels.length} model`;
+
+  wrapper.innerHTML = `
+    <table class="model-table">
+      <thead>
+        <tr>
+          <th>Model ID</th>
+          <th>Provider</th>
+          <th>Context</th>
+          <th>Vision</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map(m => `
+          <tr>
+            <td>
+              <div class="mono" style="font-size:12px;color:var(--text);">${m.id}</div>
+              <div style="font-size:10px;color:var(--muted);">${m.display_name||''}</div>
+            </td>
+            <td><span class="provider-pill prov-${m.provider||'default'}">${m.provider}</span></td>
+            <td class="mono" style="color:var(--muted);font-size:11px;">
+              ${m.context_window >= 1000000
+                ? `<span style="color:var(--green)">${(m.context_window/1000000).toFixed(1)}M</span>`
+                : `${Math.round(m.context_window/1000)}K`}
+            </td>
+            <td>${m.supports_vision ? '<span style="color:var(--green);">👁 Ya</span>' : '<span style="color:var(--muted);">—</span>'}</td>
+            <td>
+              <button class="btn btn-ghost btn-sm" onclick="useModelForChat('${m.id}')">💬 Test</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function useModelForChat(id) {
+  const sel = document.getElementById('chat-model');
+  // find or add option
+  let found = false;
+  for (const opt of sel.options) { if (opt.value === id) { sel.value = id; found = true; break; } }
+  if (!found) {
+    const o = new Option(id, id);
+    sel.add(o);
+    sel.value = id;
+  }
+  showTab('chat');
+  toast(`Model diset ke: ${id}`, 'success');
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   CHAT
+───────────────────────────────────────────────────────────────────── */
+async function sendChat() {
+  const key     = getKey();
+  const model   = document.getElementById('chat-model').value;
+  const userMsg = document.getElementById('chat-msg').value.trim();
+  const sysMsg  = document.getElementById('chat-system').value.trim();
+  const temp    = parseFloat(document.getElementById('chat-temp').value);
+  const maxTok  = parseInt(document.getElementById('chat-maxtokens').value);
+
+  if (!key)     return toast('Masukkan Gateway Key dulu!', 'warn');
+  if (!userMsg) return toast('Tulis pesan dulu!', 'warn');
+
+  // UI loading
+  const btnSend   = document.getElementById('btn-send');
+  const spinner   = document.getElementById('send-spinner');
+  const label     = document.getElementById('send-label');
+  btnSend.disabled = true;
+  spinner.classList.remove('hidden');
+  label.textContent = 'Mengirim...';
+
+  const area = document.getElementById('chat-response-area');
+  area.classList.add('hidden');
+
+  const messages = [];
+  if (sysMsg) messages.push({ role: 'system', content: sysMsg });
+  messages.push({ role: 'user', content: userMsg });
+
+  const t0 = Date.now();
+  stats.req++;
+  try {
+    const res = await fetch(getBase() + '/v1/chat/completions', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({ model, messages, temperature: temp, max_tokens: maxTok }),
+    });
+
+    const json = await res.json();
+    const ms   = Date.now() - t0;
+    stats.latencies.push(ms);
+
+    if (!res.ok) throw new Error(json.error?.message || json.error || `HTTP ${res.status}`);
+
+    const content  = json.choices?.[0]?.message?.content || json.text || JSON.stringify(json);
+    const tokens   = json.usage?.total_tokens;
+    const usedProv = json.provider || json.model || model;
+
+    // Show response
+    document.getElementById('chat-response-text').textContent = content;
+    document.getElementById('resp-model-label').textContent   = json.model || model;
+    document.getElementById('resp-tokens').textContent        = tokens ?? '—';
+    document.getElementById('resp-latency').textContent       = ms + 'ms';
+    document.getElementById('resp-provider').textContent      = usedProv;
+    area.classList.remove('hidden');
+    document.getElementById('chat-latency').textContent       = `✅ ${ms}ms`;
+
+    stats.ok++;
+    document.getElementById('s-latency').textContent = ms + 'ms';
+    addLog(`<span class="log-ok">[POST]</span> <span class="log-dim">/v1/chat/completions</span> model=<span class="log-info">${model}</span> → <span class="log-ok">200</span> <span class="log-info">${ms}ms</span> tokens=${tokens||'?'}`);
+    toast(`Respons diterima dalam ${ms}ms`, 'success');
+  } catch(e) {
+    stats.err++;
+    document.getElementById('chat-latency').textContent = `❌ ${e.message}`;
+    addLog(`<span class="log-err">[ERR]</span> <span class="log-dim">/v1/chat/completions</span> model=<span class="log-info">${model}</span> → <span class="log-err">${e.message}</span>`);
+    toast('Gagal: ' + e.message, 'error');
+  } finally {
+    btnSend.disabled = false;
+    spinner.classList.add('hidden');
+    label.textContent = '▶ Kirim';
+    updateStats();
+  }
+}
+
+function clearChat() {
+  document.getElementById('chat-msg').value = '';
+  document.getElementById('chat-response-area').classList.add('hidden');
+  document.getElementById('chat-latency').textContent = '';
+}
+
+function clearSystem() { document.getElementById('chat-system').value = ''; }
+
+function copyResponse() {
+  const t = document.getElementById('chat-response-text').textContent;
+  navigator.clipboard.writeText(t);
+  toast('Respons disalin!', 'success');
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   BATCH TEST
+───────────────────────────────────────────────────────────────────── */
+function initBatchModels() {
+  const models = allModels.length ? allModels.map(m=>m.id) : BASE_MODELS;
+  const container = document.getElementById('batch-models-list');
+  container.innerHTML = models.map(id => `
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;color:var(--muted);">
+      <input type="checkbox" name="bm" value="${id}" checked style="width:auto;" />
+      <span class="mono">${id}</span>
+    </label>
+  `).join('');
+}
+
+function selectAllBatch(val) {
+  document.querySelectorAll('input[name=bm]').forEach(c => c.checked = val);
+}
+
+async function runBatch() {
+  if (batchRunning) { batchAborted = true; return; }
+
+  const key     = getKey();
+  const msg     = document.getElementById('batch-msg').value.trim();
+  const timeout = parseInt(document.getElementById('batch-timeout').value);
+  const checked = [...document.querySelectorAll('input[name=bm]:checked')].map(c=>c.value);
+
+  if (!key)           return toast('Masukkan Gateway Key dulu!', 'warn');
+  if (!checked.length) return toast('Pilih minimal 1 model!', 'warn');
+
+  batchRunning = true; batchAborted = false;
+  const btn   = document.getElementById('btn-batch');
+  const spin  = document.getElementById('batch-spinner');
+  const label = document.getElementById('batch-label');
+  btn.classList.add('btn-red');
+  btn.classList.remove('btn-primary');
+  spin.classList.remove('hidden');
+  label.textContent = '⏹ Stop';
+
+  const results = document.getElementById('batch-results');
+  results.innerHTML = '';
+  const progress = document.getElementById('batch-progress');
+
+  let passed = 0, failed = 0;
+
+  for (let i = 0; i < checked.length; i++) {
+    if (batchAborted) break;
+    const model = checked[i];
+    progress.textContent = `${i+1}/${checked.length} — ${model}`;
+
+    const t0 = Date.now();
+    stats.req++;
+    let ok = false;
+    let detail = '';
+    try {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), timeout);
+      const res  = await fetch(getBase() + '/v1/chat/completions', {
+        method:  'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model, messages:[{role:'user',content:msg}], max_tokens:30 }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      const ms   = Date.now() - t0;
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message || `HTTP ${res.status}`);
+      const content = json.choices?.[0]?.message?.content?.trim() || json.text?.trim() || '(empty)';
+      detail = `"${content.substring(0,80)}"`;
+      ok = true; passed++; stats.ok++;
+      stats.latencies.push(ms);
+
+      results.insertAdjacentHTML('beforeend', `
+        <div class="result-item result-ok">
+          <span style="font-size:16px;">✅</span>
+          <div style="flex:1;min-width:0;">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="mono" style="font-size:12px;color:var(--text);">${model}</span>
+              <span class="badge badge-green">${ms}ms</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">${detail}</div>
+          </div>
+        </div>
+      `);
+      addLog(`<span class="log-ok">[BATCH ✅]</span> <span class="log-info">${model}</span> ${ms}ms → ${detail}`);
+    } catch(e) {
+      const ms = Date.now() - t0;
+      failed++; stats.err++;
+      const errMsg = e.name === 'AbortError' ? 'Timeout' : e.message;
+      results.insertAdjacentHTML('beforeend', `
+        <div class="result-item result-err">
+          <span style="font-size:16px;">❌</span>
+          <div style="flex:1;min-width:0;">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="mono" style="font-size:12px;color:var(--text);">${model}</span>
+              <span class="badge badge-red">${ms}ms</span>
+            </div>
+            <div style="font-size:11px;color:var(--red);margin-top:3px;">${errMsg}</div>
+          </div>
+        </div>
+      `);
+      addLog(`<span class="log-err">[BATCH ❌]</span> <span class="log-info">${model}</span> ${ms}ms → ${errMsg}`);
+    }
+    updateStats();
+    // Small delay to avoid burst
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  const total = passed + failed;
+  const stopped = batchAborted ? ' (dihentikan)' : '';
+  progress.textContent = `Selesai${stopped}: ${passed}/${total} sukses`;
+  results.insertAdjacentHTML('afterbegin', `
+    <div style="padding:12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:12px;font-size:12px;">
+      📊 <b>Ringkasan:</b> ${passed} sukses, ${failed} gagal dari ${total} model yang diuji${stopped}
+    </div>
+  `);
+  toast(`Batch selesai: ${passed}/${total} sukses`, passed===total?'success':'warn');
+
+  batchRunning = false; batchAborted = false;
+  btn.classList.remove('btn-red');
+  btn.classList.add('btn-primary');
+  spin.classList.add('hidden');
+  label.textContent = '▶ Jalankan Batch Test';
+}
+
+function clearBatchResults() {
+  document.getElementById('batch-results').innerHTML = '';
+  document.getElementById('batch-progress').textContent = '';
+}
+
+function copyBatchResults() {
+  const items = document.querySelectorAll('#batch-results .result-item');
+  const text  = [...items].map(el => el.textContent.trim().replace(/\s+/g,' ')).join('\n');
+  navigator.clipboard.writeText(text);
+  toast('Hasil batch disalin!', 'success');
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   LOG
+───────────────────────────────────────────────────────────────────── */
+function clearLog() {
+  document.getElementById('log-output').innerHTML =
+    '<p class="text-muted" style="font-size:12px;">Log dibersihkan.</p>';
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   DOCS
+───────────────────────────────────────────────────────────────────── */
+function updateDocs() {
+  const key  = getKey() || 'YOUR_GATEWAY_KEY';
+  const base = getBase();
+  const curl = `# ─── Chat Completion ──────────────────────────────────────────
+curl ${base}/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${key}" \\
+  -d '{
+    "model": "gemini-2.0-flash",
+    "messages": [{"role": "user", "content": "Halo!"}]
+  }'
+
+# ─── List Semua Model ──────────────────────────────────────────
+curl ${base}/v1/models
+
+# ─── List Model per Provider ───────────────────────────────────
+curl ${base}/gateway/gemini/models
+curl ${base}/gateway/groq/models
+curl ${base}/gateway/mistral/models
+
+# ─── Chat via Provider Spesifik ───────────────────────────────
+curl ${base}/gateway/gemini/chat \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${key}" \\
+  -d '{"model":"gemini-2.0-flash","messages":[{"role":"user","content":"Test"}]}'`;
+
+  const python = `import requests
+
+GATEWAY_KEY = '${key}'
+BASE        = '${base}'
+HEADERS     = {
+    'Content-Type': 'application/json',
+    'Authorization': f'Bearer {GATEWAY_KEY}',
+}
+
+# Chat
+def chat(msg, model='gemini-2.0-flash'):
+    res = requests.post(
+        f'{BASE}/v1/chat/completions',
+        headers=HEADERS,
+        json={'model': model, 'messages': [{'role': 'user', 'content': msg}]},
+        timeout=30,
+    )
+    res.raise_for_status()
+    return res.json()['choices'][0]['message']['content']
+
+print(chat('Halo dunia!'))
+
+# List models
+models = requests.get(f'{BASE}/v1/models').json()['data']
+print(f'Total: {len(models)} models')
+for m in models[:5]:
+    print(f"  {m['id']} ({m['provider']}) ctx={m['context_window']}")
+
+# OpenAI SDK (pip install openai)
+from openai import OpenAI
+client = OpenAI(base_url=f'{BASE}/v1', api_key=GATEWAY_KEY)
+res = client.chat.completions.create(
+    model='gemini-2.0-flash',
+    messages=[{'role': 'user', 'content': 'Hello!'}],
+)
+print(res.choices[0].message.content)`;
+
+  document.getElementById('docs-curl').textContent   = curl;
+  document.getElementById('docs-python').textContent = python;
+}
+
+function copyCurl() {
+  navigator.clipboard.writeText(document.getElementById('docs-curl').textContent);
+  toast('cURL disalin!', 'success');
+}
+
+function copyPython() {
+  navigator.clipboard.writeText(document.getElementById('docs-python').textContent);
+  toast('Python disalin!', 'success');
+}
+</script>
+</body>
+</html>

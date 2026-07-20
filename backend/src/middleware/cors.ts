@@ -13,6 +13,7 @@ const allowedOrigins = [
   'http://localhost:8080',
   'http://localhost:3000',
   'http://localhost:4173',
+  'http://localhost:9090',   // TEST playground
   'https://airotation.my.id',
   'https://www.airotation.my.id',
 ].filter(Boolean);
