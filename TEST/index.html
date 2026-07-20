@@ -734,7 +734,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (lastKey) document.getElementById('gw-key').value = lastKey;
 
   const lastUrl = localStorage.getItem('gw_base_url');
-  if (lastUrl) document.getElementById('base-url').value = lastUrl;
+  if (lastUrl) {
+    document.getElementById('base-url').value = lastUrl;
+  } else {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    document.getElementById('base-url').value = isLocal ? 'http://localhost:3000' : 'https://one.apprentice.cyou/api';
+  }
 
   renderSavedKeys();
   updateDocs();

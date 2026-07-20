@@ -29,7 +29,9 @@ interface Model {
   created: number;
 }
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL as string || 'http://localhost:3000').replace(/\/api\/?$/, '')
+  : 'https://one.apprentice.cyou/api';
 
 const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string }> = {
   gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵' },
