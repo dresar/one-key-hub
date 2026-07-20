@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:backend": "npx -y kill-port 3000 && cd backend && node app.js",
-    "dev:all": "npx -y kill-port 3000 8080 && concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"cd backend && node app.js\" \"vite\"",
+    "build:backend": "cd backend && npm run build",
+    "dev:backend": "npx -y kill-port 3000 && cd backend && npm run build && node app.js",
+    "dev:all": "npx -y kill-port 3000 8080 && concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,magenta\" --kill-others-on-fail \"cd backend && npm run build && node app.js\" \"vite\"",
     "dev:local": "concurrently \"cd ai.apprentice.cyou && npm run dev\" \"vite\"",
     "build": "vite build",
     "build:dev": "vite build --mode development",
