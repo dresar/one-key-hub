@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../db/client';
-import { gatewayKeys } from '../db/schema';
+import { gatewayKeys, cdnFiles } from '../db/schema';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateGatewayKey, hashValue, keyPreview } from '../lib/crypto';
 import { gatewayKeyCache, statsCache } from '../lib/cache';
@@ -162,10 +162,16 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    // Cascade soft-delete all CDN files uploaded by this gateway key
+    await db
+      .update(cdnFiles)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(cdnFiles.gatewayKeyId, id), isNull(cdnFiles.deletedAt)));
+
     gatewayKeyCache.delete(id);
     statsCache.clear();
 
-    res.json({ message: 'Gateway key berhasil dihapus' });
+    res.json({ message: 'Gateway key dan semua record CDN gambar miliknya berhasil dihapus dari database' });
   } catch (err) {
     console.error('[Keys] Delete error:', err);
     res.status(500).json({ error: 'Gagal menghapus gateway key' });

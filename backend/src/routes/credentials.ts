@@ -561,7 +561,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
             signal: controller.signal,
           }
         );
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
@@ -583,7 +583,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -605,7 +605,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -629,7 +629,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.content?.[0]?.text || JSON.stringify(data);
@@ -651,7 +651,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -673,7 +673,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.text || JSON.stringify(data);
@@ -695,7 +695,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -717,7 +717,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -739,7 +739,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -761,7 +761,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
@@ -783,7 +783,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
             signal: controller.signal,
           }
         );
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = Array.isArray(data)
@@ -798,7 +798,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           `https://api.openweathermap.org/data/2.5/weather?q=Jakarta&appid=${apiKey}`,
           { signal: controller.signal }
         );
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = `Weather OK: Temp ${data?.main?.temp}K, Jakarta`;
@@ -811,7 +811,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           `https://newsapi.org/v2/top-headlines?country=id&apiKey=${apiKey}`,
           { signal: controller.signal }
         );
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = `News OK: Found ${data?.totalResults} articles`;
@@ -823,7 +823,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
         const response = await fetch(`https://api.apify.com/v2/users/me?token=${token}`, {
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = `Apify OK: User ${data?.data?.username || data?.data?.email}`;
@@ -879,7 +879,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           },
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           answerText = `Uploadcare OK: Connected to project "${data?.name || 'Unnamed'}"`;
@@ -892,7 +892,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
           headers: { 'X-Api-Key': apiKey },
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
           const credits = data?.data?.attributes?.credits || {};
@@ -918,7 +918,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
         const response = await fetch(`https://pixabay.com/api/?key=${apiKey}&per_page=3`, {
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok && Array.isArray(data?.hits)) {
           testSuccess = true;
           answerText = 'Pixabay OK: Connected successfully.';
@@ -942,7 +942,7 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
         const response = await fetch(`https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=1`, {
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok && data?.meta?.status === 200) {
           testSuccess = true;
           answerText = 'Giphy OK: Connected successfully.';

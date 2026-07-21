@@ -84,6 +84,24 @@ export const aiModels = pgTable('ai_models', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ─── CDN Files Table (Storage Gateway Uploads) ────────────────────────────────
+export const cdnFiles = pgTable('cdn_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  gatewayKeyId: uuid('gateway_key_id').notNull(),
+  provider: varchar('provider', { length: 50 }).notNull(), // imagekit | cloudinary | uploadcare
+  credentialId: integer('credential_id'),
+  fileId: text('file_id'),
+  url: text('url').notNull(),
+  fileName: text('file_name'),
+  fileSize: integer('file_size'),
+  mimeType: text('mime_type'),
+  width: integer('width'),
+  height: integer('height'),
+  autoRotated: boolean('auto_rotated').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+});
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type ProviderCredential = typeof providerCredentials.$inferSelect;
@@ -91,4 +109,6 @@ export type GatewayKey = typeof gatewayKeys.$inferSelect;
 export type RequestLog = typeof requestLogs.$inferSelect;
 export type RotationSetting = typeof rotationSettings.$inferSelect;
 export type AiModel = typeof aiModels.$inferSelect;
+export type CdnFile = typeof cdnFiles.$inferSelect;
+
 

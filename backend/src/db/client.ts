@@ -179,10 +179,29 @@ export async function initDatabase(): Promise<void> {
         `;
       }
       console.log(`[Seed] ✅ Seeded ${defaultModels.length} default AI models.`);
-    } else {
       // Just in case, clean up any old residues
       await sql`DELETE FROM ai_models WHERE provider IN ('openai', 'anthropic', 'together', 'perplexity')`;
     }
+
+    // 10. CDN Files table (Storage Gateway Uploads)
+    await sql`
+      CREATE TABLE IF NOT EXISTS cdn_files (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        gateway_key_id UUID NOT NULL REFERENCES gateway_keys(id) ON DELETE CASCADE,
+        provider VARCHAR(50) NOT NULL,
+        credential_id INT,
+        file_id TEXT,
+        url TEXT NOT NULL,
+        file_name TEXT,
+        file_size INT,
+        mime_type TEXT,
+        width INT,
+        height INT,
+        auto_rotated BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        deleted_at TIMESTAMPTZ
+      )
+    `;
 
     console.log('[DB] Database initialized successfully');
   } catch (err) {

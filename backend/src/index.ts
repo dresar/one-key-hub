@@ -23,6 +23,7 @@ import internalKeysRoutes from './routes/internalKeys';
 import gatewayRoutes from './routes/gateway';
 import modelsRoutes from './routes/models';
 import providersRoutes from './routes/providers';
+import storageRoutes from './routes/storage';
 import { initializeCredentialSync } from './services/credentialSync';
 import { reindexAllCredentials } from './routes/credentials';
 
@@ -67,6 +68,7 @@ app.use('/api/logs', logsRoutes);
 app.use('/api/playground', playgroundRoutes);
 app.use('/api/models', modelsRoutes);
 app.use('/api/providers', providersRoutes);
+app.use('/api/v1/storage', storageRoutes);
 app.use('/api/v1', internalKeysRoutes);
 app.use('/api/v1', gatewayRoutes);
 app.use('/api/gateway', gatewayRoutes);
@@ -76,6 +78,8 @@ app.use('/settings', settingsRoutes);
 app.use('/users', settingsRoutes);
 
 // ─── Gateway Routes (no auth — uses X-API-Key or Authorization Bearer) ──────
+app.use('/v1/storage', storageRoutes);
+app.use('/api/storage', storageRoutes);
 app.use('/gateway', gatewayRoutes);
 app.use('/v1', gatewayRoutes);
 

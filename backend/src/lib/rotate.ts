@@ -70,7 +70,6 @@ export async function reportCredentialFailure(
   if (newFailedCount >= 100) {
     // Soft delete locally and in DB
     await updateLocalCredentialStats(cred.id, cred.provider_name, {
-      id: targetId,
       failed_requests: newFailedCount,
       status: 'inactive',
       last_error: errorMessage || 'Error count reached 100',
@@ -102,7 +101,6 @@ export async function reportCredentialFailure(
     const cooldownUntil = new Date(Date.now() + COOLDOWN_DURATION_MS);
 
     await updateLocalCredentialStats(cred.id, cred.provider_name, {
-      id: targetId,
       failed_requests: newFailedCount,
       status: 'cooldown',
       cooldown_until: cooldownUntil.toISOString(),
@@ -115,7 +113,6 @@ export async function reportCredentialFailure(
   } else {
     // Increment failure count locally only (write-behind DB flush will sync this)
     await updateLocalCredentialStats(cred.id, cred.provider_name, {
-      id: targetId,
       failed_requests: newFailedCount,
     });
   }

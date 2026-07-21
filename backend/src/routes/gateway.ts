@@ -467,6 +467,7 @@ async function writeLog(data: {
     const [log] = await db.insert(requestLogs).values({
       id: uuidv4(),
       ...data,
+      credentialId: data.credentialId ? Number(data.credentialId) : undefined,
     }).returning();
 
     // Emit realtime event
@@ -833,7 +834,7 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
         signal: AbortSignal.timeout(1_500),
       });
 
-      const responseData = await upstreamRes.json();
+      const responseData: any = await upstreamRes.json();
       const responseTimeMs = Date.now() - startTime;
 
       if (!upstreamRes.ok) {
@@ -964,7 +965,7 @@ router.post('/:provider/images/generations', async (req: Request, res: Response)
       signal: AbortSignal.timeout(60_000),
     });
 
-    const responseData = await upstreamRes.json();
+    const responseData: any = await upstreamRes.json();
 
     if (!upstreamRes.ok) {
       const errorMsg = responseData?.error?.message || `HTTP ${upstreamRes.status}`;
@@ -1263,7 +1264,7 @@ router.all('/:provider/proxy', async (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'image/png');
         res.send(imageBuffer);
         return;
-      } catch (err) {
+      } catch (err: any) {
         res.status(500).json({ error: `Remove.bg proxy failed: ${err.message}` });
         return;
       }
