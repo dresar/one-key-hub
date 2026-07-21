@@ -173,22 +173,23 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
 
   const promptProviderName = provider === 'all' ? 'semua provider AI (Gemini, Groq, OpenAI, DeepSeek, dll.)' : provider.toUpperCase();
 
-  const aiSystemPrompt = `# DOKUMENTASI & INSTRUKSI INTEGRASI UNIFIED AI GATEWAY (ROTASI API KEY OTOMATIS)
+  const aiSystemPrompt = `# 🤖 MASTER AI CODING PROMPT & SYSTEM SPECIFICATION FOR ONE KEY HUB
 
-Dokumen ini berisi spesifikasi lengkap cara memanggil API Gateway untuk digunakan oleh AI Assistant (seperti ChatGPT, Claude, Cursor, dll.) agar dapat menulis kode integrasi yang tepat tanpa salah endpoint.
+## 📌 ATURAN WAJIB SEBELUM MENULIS KODE KE PROJECT UTAMA
+Anda adalah AI Developer Assistant. **SEBELUM** meletakkan atau mengubah kode di project utama, Anda **WAJIB MEMBUAT FILE UJI COBA TERPISAH** (misalnya \`test-one-key-hub.js\` atau \`test_gateway.py\`) untuk menguji konektivitas Gateway API Key, endpoint AI Chat (\`/v1/chat/completions\`), dan endpoint Storage CDN (\`/v1/storage/upload\`).
+Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`200 OK\` / \`201 Created\`), barulah Anda mengimplementasikan kode ke dalam komponen project utama.
 
-## 🔑 Setelan Kredensial API
+---
+
+## 🔑 Setelan Kredensial & Server Gateway
 - **Base URL API**: \`${BASE_URL}/v1\`
-- **Gateway API Key**: \`${displayKey}\` ${gatewayKey.includes('...') ? '\n*(Catatan: Ini adalah Preview Key. Gateway kami secara unik mengizinkan penggunaan Preview Key ini secara langsung untuk mempermudah pemanggilan lokal/testing!)*' : ''}
-- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Bebas)' : provider}\`
+- **Gateway API Key**: \`${displayKey}\`
+- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Full Access)' : provider}\`
 - **Default Model**: \`${defaultModel}\`
 
 ---
 
-## 🛰️ Panduan Endpoint & Cara Routing
-
-### 1. Endpoint OpenAI-Compatible (Rekomendasi Utama)
-Gunakan endpoint ini untuk memanggil model dengan format request standar OpenAI. Sangat cocok jika Anda menggunakan SDK resmi OpenAI (\`openai\` npm package atau \`openai\` python package).
+## 🛰️ 1. ENDPOINT AI CHAT & COMPLETIONS (OpenAI Standard Format)
 - **URL**: \`${BASE_URL}/v1/chat/completions\`
 - **Header**:
   - \`Authorization: Bearer ${displayKey}\`
@@ -198,26 +199,67 @@ Gunakan endpoint ini untuk memanggil model dengan format request standar OpenAI.
   {
     "model": "${defaultModel}",
     "messages": [
-      { "role": "system", "content": "Kamu adalah asisten AI." },
+      { "role": "system", "content": "Kamu adalah asisten AI yang cerdas." },
       { "role": "user", "content": "Halo!" }
     ],
     "temperature": 0.7
   }
   \`\`\`
 
-### 2. Endpoint Khusus Provider (\${promptProviderName})
-Jika Anda ingin mengirimkan request langsung ke provider tertentu, Anda bisa mengarahkan request ke path khusus gateway:
-- **URL**: \`${BASE_URL}/gateway/${provider === 'all' ? 'gemini' : provider}/chat\`
-- **Header**:
-  - \`X-API-Key: ${displayKey}\`
-  - \`Content-Type: application/json\`
+---
+
+## 📸 2. ENDPOINT STORAGE GATEWAY (Multi-CDN Failover & Auto-Rotate)
+Sistem otomatis melakukan rotasi orientasi EXIF dan auto-failover (ImageKit -> Cloudinary -> Uploadcare).
+
+- **Upload File (Base64 / URL)**:
+  - **URL**: \`${BASE_URL}/storage/upload\`
+  - **Header**: \`Authorization: Bearer ${displayKey}\`, \`Content-Type: application/json\`
+  - **Body JSON**:
+    \`\`\`json
+    {
+      "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "file_name": "foto_profile.png",
+      "auto_rotate": true
+    }
+    \`\`\`
+- **List File Terunggah Milik API Key Ini**:
+  - **URL**: \`${BASE_URL}/storage/list?page=1&limit=20\`
+  - **Header**: \`Authorization: Bearer ${displayKey}\`
+- **Hapus File CDN**:
+  - **URL**: \`${BASE_URL}/storage/files/:id\`
+  - **Header**: \`Authorization: Bearer ${displayKey}\`
 
 ---
 
-## 🤖 Aturan Penulisan Kode untuk Developer/AI Assistant:
-1. **Selalu Arahkan Base URL**: Jangan pernah menggunakan URL resmi Google Gemini (\`generativelanguage.googleapis.com\`), Groq (\`api.groq.com\`), atau OpenAI (\`api.openai.com\`). Arahkan baseUrl/host ke \`${BASE_URL}/v1\`.
-2. **Autentikasi**: Selalu gunakan Gateway API Key \`${displayKey}\` di header Authorization / X-API-Key.
-3. **Model & Rotasi**: Jika key ini dikunci ke model tertentu, gunakan model \`${defaultModel}\`. Jika terjadi limit kuota (429) atau error pada API Key utama provider, gateway akan melakukan **rotasi otomatis di sisi backend** ke key cadangan tanpa membutuhkan perubahan kode apapun di sisi client.`;
+## 🧪 3. SKRIP TEST UJI COBA WAJIB (\`test-one-key-hub.js\`)
+AI wajib membuat dan menjalankan file ini terlebih dahulu sebelum mengubah project utama:
+
+\`\`\`javascript
+const GATEWAY_KEY = '${displayKey}';
+const BASE_URL = '${BASE_URL}/v1';
+
+async function runTest() {
+  console.log('🚀 Testing One Key Hub Gateway...');
+
+  // 1. Test AI Chat
+  const chatRes = await fetch(\`\${BASE_URL}/chat/completions\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },
+    body: JSON.stringify({ model: '${defaultModel}', messages: [{ role: 'user', content: 'Tes koneksi' }] })
+  });
+  console.log('1. AI Chat Status:', chatRes.status, await chatRes.json());
+
+  // 2. Test Storage Upload
+  const uploadRes = await fetch(\`\${BASE_URL}/storage/upload\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },
+    body: JSON.stringify({ file: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', auto_rotate: true })
+  });
+  console.log('2. Storage Upload Status:', uploadRes.status, await uploadRes.json());
+}
+
+runTest();
+\`\`\``;
 
   // Load models when section switches to models
   useEffect(() => {

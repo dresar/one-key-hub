@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   KeyRound, ArrowLeft, Loader2, 
-  Copy, Shield, Settings, CheckCircle, HelpCircle, HardDrive, Cpu
+  Copy, Shield, Settings, CheckCircle, HelpCircle, HardDrive, Cpu, Image as ImageIcon, Sparkles
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import GatewayDocs from '@/components/GatewayDocs';
@@ -55,6 +55,10 @@ export default function ApiKeyForm() {
       const { data } = await api.get('/api/providers');
       const items: ProviderItem[] = data?.items || data || [];
       setProviderOptions(items);
+
+      if (!isEditMode && !formData.name) {
+        setFormData(prev => ({ ...prev, name: 'Universal Gateway Key (Full Access)' }));
+      }
     } catch (error) {
       console.error('Error fetching providers:', error);
       toast.error('Gagal memuat list provider');
@@ -96,6 +100,42 @@ export default function ApiKeyForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleProviderChange = (val: string) => {
+    const selectedProviderObj = providerOptions.find(p => p.value === val);
+    const grp = selectedProviderObj?.group || '';
+
+    // Auto-generate suggested name if current name is empty or auto-generated
+    let suggestedName = formData.name;
+    const isAutoName = !formData.name || formData.name.startsWith('Key ') || formData.name.startsWith('Universal ');
+
+    if (isAutoName) {
+      if (val === '_all') {
+        suggestedName = 'Universal Gateway Key (Full Access)';
+      } else if (grp === 'Media' || grp === 'Storage') {
+        suggestedName = `Key ${selectedProviderObj?.label || val} CDN Storage`;
+      } else if (grp === 'AI') {
+        suggestedName = `Key ${selectedProviderObj?.label || val} AI`;
+      } else {
+        suggestedName = `Key ${selectedProviderObj?.label || val} Gateway`;
+      }
+    }
+
+    let defaultModelType = formData.model_type;
+    if (grp === 'Media' || grp === 'Storage' || grp === 'Image') {
+      defaultModelType = 'image';
+    } else if (grp === 'AI') {
+      defaultModelType = 'text';
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      provider: val,
+      name: suggestedName,
+      model_id: '',
+      model_type: defaultModelType,
+    }));
   };
 
   const copyPlaintextKey = async () => {
@@ -166,9 +206,14 @@ export default function ApiKeyForm() {
     'Tools': '🛠️ Utilities & Tools',
   };
 
-  // Filter models depending on selected provider
+  // Helper flags
+  const selectedProviderObj = providerOptions.find(p => p.value === formData.provider);
   const isUniversal = !formData.provider || formData.provider === '_all';
-  const filteredModels = !isUniversal
+  const isAiProvider = selectedProviderObj?.group === 'AI';
+  const isMediaStorageProvider = selectedProviderObj?.group === 'Media' || selectedProviderObj?.group === 'Storage' || selectedProviderObj?.group === 'Image';
+
+  // Filter models depending on selected provider
+  const filteredModels = isAiProvider
     ? models.filter(m => m.provider.toLowerCase() === formData.provider.toLowerCase())
     : [];
 
@@ -246,32 +291,32 @@ export default function ApiKeyForm() {
             >
               <form onSubmit={handleSubmit} className="space-y-6">
                 
-                {/* Step 1: Select Provider & Model */}
+                {/* Step 1: Select Provider */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    Pilih Target Provider & Model
+                    Pilih Target Provider API
                   </h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     {/* Primary Provider Selector */}
-                    <div className="space-y-2">
-                      <Label htmlFor="provider-select">1. Target Provider API</Label>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="provider-select">1. Pilih Provider (AI / Media CDN / Storage / Universal)</Label>
                       <Select 
                         value={formData.provider || '_all'} 
-                        onValueChange={(val) => setFormData({ ...formData, provider: val, model_id: '' })}
+                        onValueChange={handleProviderChange}
                       >
-                        <SelectTrigger id="provider-select" className="bg-secondary/50 border-border/40">
+                        <SelectTrigger id="provider-select" className="bg-secondary/50 border-border/40 h-11">
                           <SelectValue placeholder="Semua Provider (Full Gateway Access)" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border max-h-[350px]">
-                          <SelectItem value="_all" className="font-semibold text-primary">
+                          <SelectItem value="_all" className="font-semibold text-primary py-2.5">
                             🌐 Semua Provider (Full Gateway Access / AI & Storage CDN)
                           </SelectItem>
                           
                           {Object.keys(groupedProviders).map((grp) => (
                             <SelectGroup key={grp}>
-                              <SelectLabel className="text-xs uppercase text-muted-foreground font-bold pt-2">
+                              <SelectLabel className="text-xs uppercase text-muted-foreground font-bold pt-3 pb-1">
                                 {groupTitles[grp] || grp}
                               </SelectLabel>
                               {groupedProviders[grp].map((p) => (
@@ -285,27 +330,60 @@ export default function ApiKeyForm() {
                       </Select>
                     </div>
 
-                    {/* Specific Model Selector */}
-                    <div className="space-y-2">
-                      <Label htmlFor="model-select">2. Model Khusus (Opsional)</Label>
-                      <Select 
-                        value={formData.model_id || '_none'} 
-                        onValueChange={(val) => setFormData({ ...formData, model_id: val === '_none' ? '' : val })}
-                        disabled={isUniversal}
+                    {/* ONLY SHOW Model Selector IF IT IS AN AI PROVIDER */}
+                    {isAiProvider && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-2 md:col-span-2"
                       >
-                        <SelectTrigger id="model-select" className="bg-secondary/50 border-border/40">
-                          <SelectValue placeholder={isUniversal ? "Semua Model / Storage CDN (Bebas)" : "Semua Model (Bebas)"} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          <SelectItem value="_none">Semua Model (Bebas)</SelectItem>
-                          {filteredModels.map(m => (
-                            <SelectItem key={m.model_id} value={m.model_id}>
-                              {m.display_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        <Label htmlFor="model-select">2. Model Khusus AI (Opsional)</Label>
+                        <Select 
+                          value={formData.model_id || '_none'} 
+                          onValueChange={(val) => setFormData({ ...formData, model_id: val === '_none' ? '' : val })}
+                        >
+                          <SelectTrigger id="model-select" className="bg-secondary/50 border-border/40">
+                            <SelectValue placeholder="Semua Model (Bebas)" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="_none">Semua Model (Bebas)</SelectItem>
+                            {filteredModels.map(m => (
+                              <SelectItem key={m.model_id} value={m.model_id}>
+                                {m.display_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </motion.div>
+                    )}
+
+                    {/* Helper Banner for Storage CDN */}
+                    {isMediaStorageProvider && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="md:col-span-2 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-3"
+                      >
+                        <ImageIcon className="w-5 h-5 text-blue-400 shrink-0" />
+                        <div>
+                          <strong>Media & Storage CDN Provider:</strong> Tidak memerlukan pilihan model AI. Gateway Key ini dikunci khusus untuk pengunggahan file, auto-rotation EXIF, dan manajemen CDN ({selectedProviderObj?.label}).
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Helper Banner for Universal Key */}
+                    {isUniversal && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="md:col-span-2 p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-center gap-3"
+                      >
+                        <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                        <div>
+                          <strong>Universal Gateway Key:</strong> Key ini dapat digunakan untuk memanggil seluruh AI Models (Gemini, Groq, DeepSeek, dll.) DAN Storage CDN API (/v1/storage/upload) tanpa batasan provider.
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
 
@@ -344,44 +422,67 @@ export default function ApiKeyForm() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="model-type-select">Batasan Tipe Model</Label>
-                      <Select 
-                        value={formData.model_type || '_all'} 
-                        onValueChange={(val) => setFormData({ ...formData, model_type: val === '_all' ? '' : val })}
-                      >
-                        <SelectTrigger id="model-type-select" className="bg-secondary/50 border-border/40">
-                          <SelectValue placeholder="Semua Tipe (Bebas)" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
-                          <SelectItem value="_all">Semua Tipe (Bebas)</SelectItem>
-                          <SelectItem value="text">Text Generation (Chat/Completions)</SelectItem>
-                          <SelectItem value="image">Image / Media Generation & Storage</SelectItem>
-                          <SelectItem value="audio">Audio Generation</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {isEditMode && (
+                  {/* Show Model Type restriction only if it's AI or Universal */}
+                  {(isAiProvider || isUniversal) && (
+                    <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="status-select">Status Key</Label>
+                        <Label htmlFor="model-type-select">Batasan Tipe Model</Label>
                         <Select 
-                          value={formData.status} 
-                          onValueChange={(val) => setFormData({ ...formData, status: val })}
+                          value={formData.model_type || '_all'} 
+                          onValueChange={(val) => setFormData({ ...formData, model_type: val === '_all' ? '' : val })}
                         >
-                          <SelectTrigger id="status-select" className="bg-secondary/50 border-border/40">
-                            <SelectValue placeholder="Pilih Status" />
+                          <SelectTrigger id="model-type-select" className="bg-secondary/50 border-border/40">
+                            <SelectValue placeholder="Semua Tipe (Bebas)" />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
-                            <SelectItem value="active">Active (Dapat Digunakan)</SelectItem>
-                            <SelectItem value="inactive">Inactive (Dinonaktifkan Sementara)</SelectItem>
-                            <SelectItem value="suspended">Suspended (Ditangguhkan Total)</SelectItem>
+                            <SelectItem value="_all">Semua Tipe (Bebas)</SelectItem>
+                            <SelectItem value="text">Text Generation (Chat/Completions)</SelectItem>
+                            <SelectItem value="image">Image / Vision Generation</SelectItem>
+                            <SelectItem value="audio">Audio Generation</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                  </div>
+
+                      {isEditMode && (
+                        <div className="space-y-2">
+                          <Label htmlFor="status-select">Status Key</Label>
+                          <Select 
+                            value={formData.status} 
+                            onValueChange={(val) => setFormData({ ...formData, status: val })}
+                          >
+                            <SelectTrigger id="status-select" className="bg-secondary/50 border-border/40">
+                              <SelectValue placeholder="Pilih Status" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                              <SelectItem value="active">Active (Dapat Digunakan)</SelectItem>
+                              <SelectItem value="inactive">Inactive (Dinonaktifkan Sementara)</SelectItem>
+                              <SelectItem value="suspended">Suspended (Ditangguhkan Total)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {isMediaStorageProvider && isEditMode && (
+                    <div className="space-y-2">
+                      <Label htmlFor="status-select">Status Key</Label>
+                      <Select 
+                        value={formData.status} 
+                        onValueChange={(val) => setFormData({ ...formData, status: val })}
+                      >
+                        <SelectTrigger id="status-select" className="bg-secondary/50 border-border/40">
+                          <SelectValue placeholder="Pilih Status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="active">Active (Dapat Digunakan)</SelectItem>
+                          <SelectItem value="inactive">Inactive (Dinonaktifkan Sementara)</SelectItem>
+                          <SelectItem value="suspended">Suspended (Ditangguhkan Total)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                 </div>
 
                 {/* Footer Buttons */}
