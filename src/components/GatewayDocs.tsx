@@ -41,7 +41,7 @@ interface UserGatewayKey {
 
 const BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_URL as string || 'http://localhost:3000').replace(/\/api\/?$/, '')
-  : 'https://airotation.my.id';
+  : (typeof window !== 'undefined' ? window.location.origin : 'https://one.apprentice.cyou');
 
 const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string; category: 'ai' | 'storage' | 'other' }> = {
   gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵', category: 'ai' },

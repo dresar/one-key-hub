@@ -83,18 +83,29 @@ async function uploadToImageKit(
 
 /**
  * Upload to Cloudinary
- * Credential format: cloud_name|api_key|api_secret
+ * Credential format: object { cloud_name, api_key, api_secret } or pipe-separated string "cloud_name|api_key|api_secret"
  */
 async function uploadToCloudinary(
   creds: Record<string, string>,
   params: StorageUploadParams
 ): Promise<{ fileId: string; url: string; width?: number; height?: number; size?: number; mimeType?: string }> {
-  const apiKeyRaw = creds.api_key || creds.credentials || '';
-  const parts = apiKeyRaw.split('|').map((p) => p.trim());
+  let cloudName = creds.cloud_name || '';
+  let apiKey = creds.cloudinary_api_key || '';
+  let apiSecret = creds.api_secret || '';
 
-  const cloudName = creds.cloud_name || parts[0] || '';
-  const apiKey = creds.cloudinary_api_key || parts[1] || '';
-  const apiSecret = creds.api_secret || parts[2] || '';
+  if (creds.api_key && !creds.api_key.includes('|')) {
+    apiKey = creds.api_key;
+  }
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    const rawStr = creds.credentials || creds.api_key || '';
+    if (rawStr.includes('|')) {
+      const parts = rawStr.split('|').map((p) => p.trim());
+      cloudName = cloudName || parts[0] || '';
+      apiKey = apiKey || parts[1] || '';
+      apiSecret = apiSecret || parts[2] || '';
+    }
+  }
 
   if (!cloudName || !apiKey || !apiSecret) {
     throw new Error('Cloudinary credentials (cloud_name|api_key|api_secret) incomplete');
@@ -102,16 +113,8 @@ async function uploadToCloudinary(
 
   const timestamp = Math.floor(Date.now() / 1000);
   
-  // Build signature with auto-rotation (angle=auto)
-  const angleParam = params.autoRotate !== false ? 'auto' : '';
-  let paramsToSign: Record<string, string | number> = { timestamp };
-  if (angleParam) {
-    paramsToSign.angle = angleParam;
-  }
-
-  // Sort keys alphabetically for Cloudinary signature calculation
-  const sortedKeys = Object.keys(paramsToSign).sort();
-  const signString = sortedKeys.map((key) => `${key}=${paramsToSign[key]}`).join('&') + apiSecret;
+  // Calculate signature: timestamp=<timestamp><apiSecret>
+  const signString = `timestamp=${timestamp}${apiSecret}`;
   const signature = crypto.createHash('sha1').update(signString).digest('hex');
 
   const formData = new URLSearchParams();
@@ -119,9 +122,6 @@ async function uploadToCloudinary(
   formData.append('api_key', apiKey);
   formData.append('timestamp', String(timestamp));
   formData.append('signature', signature);
-  if (angleParam) {
-    formData.append('angle', angleParam);
-  }
 
   const response = await axios.post(
     `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
