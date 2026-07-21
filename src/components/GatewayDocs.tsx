@@ -256,7 +256,7 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
       ``,
       `## 📸 ENDPOINT STORAGE GATEWAY SERVICE`,
       ``,
-      `### 1. Upload File (Base64 / Remote URL)`,
+      `### 1. Upload File (Base64 String atau Remote URL)`,
       `- **URL**: \`${BASE_URL}/v1/storage/upload\``,
       `- **Method**: \`POST\``,
       `- **Header**:`,
@@ -282,17 +282,27 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
       `      "file_id": "foto_produk",`,
       `      "file_name": "foto_produk.png",`,
       `      "file_size": 15420,`,
+      `      "mime_type": "image/png",`,
+      `      "width": 1024,`,
+      `      "height": 1024,`,
+      `      "auto_rotated": true,`,
       `      "created_at": "2026-07-21T13:40:00.000Z"`,
       `    }`,
       `  }`,
       `  \`\`\``,
       ``,
       `### 2. List Berkas CDN Terunggah Milik API Key Ini`,
-      `- **URL**: \`${BASE_URL}/v1/storage/list?page=1&limit=20\``,
+      `- **URL**: \`${BASE_URL}/v1/storage/list?page=1&limit=20&provider=${provider}&search=\``,
+      `- **Method**: \`GET\``,
+      `- **Header**: \`Authorization: Bearer ${displayKey}\``,
+      `- **Query Params Optional**: \`page\` (default 1), \`limit\` (default 20), \`provider\` (cloudinary/imagekit/uploadcare), \`search\` (nama file)`,
+      ``,
+      `### 3. Detail Berkas CDN Berdasarkan ID`,
+      `- **URL**: \`${BASE_URL}/v1/storage/files/:id\``,
       `- **Method**: \`GET\``,
       `- **Header**: \`Authorization: Bearer ${displayKey}\``,
       ``,
-      `### 3. Hapus Berkas CDN dari Database`,
+      `### 4. Hapus Berkas CDN dari Database`,
       `- **URL**: \`${BASE_URL}/v1/storage/files/:id\``,
       `- **Method**: \`DELETE\``,
       `- **Header**: \`Authorization: Bearer ${displayKey}\``,
@@ -319,6 +329,7 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
       `  const data = await uploadRes.json();`,
       `  if (uploadRes.ok && data.success) {`,
       `    console.log('✅ Storage CDN Upload Berhasil!');`,
+      `    console.log('   Record ID        :', data.file.id);`,
       `    console.log('   Provider Terpakai:', data.file.provider);`,
       `    console.log('   Direct CDN URL   :', data.file.url);`,
       `  } else {`,
@@ -568,7 +579,7 @@ model: "${defaultModel}"
 
   const storageExamples: Record<LangTab, string> = {
     curl:
-      `# ─── Upload File ke Storage CDN (Cloudinary / ImageKit / Uploadcare) ──
+      `# ─── 1. Upload File ke Storage CDN (Base64 atau Remote URL) ─────────────
 curl ${BASE_URL}/v1/storage/upload \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${displayKey}" \\
@@ -578,11 +589,15 @@ curl ${BASE_URL}/v1/storage/upload \\
     "auto_rotate": true${provider !== 'all' ? `,\n    "provider": "${provider}"` : ''}
   }'
 
-# ─── List Semua File CDN milik API Key ini ──────────────────────────
-curl ${BASE_URL}/v1/storage/list?page=1&limit=20 \\
+# ─── 2. List Berkas CDN milik API Key ini (dengan filter & search) ─────
+curl "${BASE_URL}/v1/storage/list?page=1&limit=20&provider=${provider === 'all' ? 'cloudinary' : provider}&search=" \\
   -H "Authorization: Bearer ${displayKey}"
 
-# ─── Hapus File CDN dari Database ──────────────────────────────────
+# ─── 3. Detail Berkas CDN Berdasarkan ID ──────────────────────────────
+curl ${BASE_URL}/v1/storage/files/YOUR_FILE_ID \\
+  -H "Authorization: Bearer ${displayKey}"
+
+# ─── 4. Hapus Berkas CDN dari Database ─────────────────────────────────
 curl -X DELETE ${BASE_URL}/v1/storage/files/YOUR_FILE_ID \\
   -H "Authorization: Bearer ${displayKey}"
 `,
@@ -591,7 +606,7 @@ curl -X DELETE ${BASE_URL}/v1/storage/files/YOUR_FILE_ID \\
 const GATEWAY_KEY = '${displayKey}';
 const BASE_URL    = '${BASE_URL}/v1';
 
-// 1. Upload Gambar dengan Auto Failover & Auto Rotation EXIF
+// 1. Upload Gambar (Base64 atau Remote URL)
 async function uploadToCDN(fileBase64OrUrl, fileName) {
   const res = await fetch(\`\${BASE_URL}/storage/upload\`, {
     method: 'POST',
@@ -603,26 +618,44 @@ async function uploadToCDN(fileBase64OrUrl, fileName) {
       file: fileBase64OrUrl,
       file_name: fileName,
       auto_rotate: true,
-      provider: '${provider === 'all' ? 'imagekit' : provider}'
+      provider: '${provider === 'all' ? 'cloudinary' : provider}'
     }),
   });
 
   const data = await res.json();
   if (data.success) {
-    console.log('✅ CDN URL:', data.file.url);
-    console.log(' Cloud Provider:', data.file.provider);
-    return data.file.url;
+    console.log('✅ Record ID  :', data.file.id);
+    console.log('✅ Direct URL :', data.file.url);
+    console.log('✅ Provider   :', data.file.provider);
+    return data.file;
   }
   throw new Error(data.error?.message || 'Upload gagal');
 }
 
 // 2. List Daftar File yang Terunggah
-async function listMyCDNFiles() {
-  const res = await fetch(\`\${BASE_URL}/storage/list?page=1&limit=20\`, {
+async function listMyCDNFiles(page = 1, limit = 20) {
+  const res = await fetch(\`\${BASE_URL}/storage/list?page=\${page}&limit=\${limit}&provider=${provider === 'all' ? 'cloudinary' : provider}\`, {
     headers: { 'Authorization': \`Bearer \${GATEWAY_KEY}\` }
   });
   const data = await res.json();
-  console.log('Files:', data.items);
+  console.log('Files:', data.items, 'Total:', data.pagination?.total);
+}
+
+// 3. Detail File CDN
+async function getCDNFileDetail(fileId) {
+  const res = await fetch(\`\${BASE_URL}/storage/files/\${fileId}\`, {
+    headers: { 'Authorization': \`Bearer \${GATEWAY_KEY}\` }
+  });
+  return await res.json();
+}
+
+// 4. Hapus File CDN
+async function deleteCDNFile(fileId) {
+  const res = await fetch(\`\${BASE_URL}/storage/files/\${fileId}\`, {
+    method: 'DELETE',
+    headers: { 'Authorization': \`Bearer \${GATEWAY_KEY}\` }
+  });
+  return await res.json();
 }
 `,
     python:
@@ -632,11 +665,13 @@ import requests
 GATEWAY_KEY = '${displayKey}'
 BASE_URL    = '${BASE_URL}/v1'
 
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': f'Bearer {GATEWAY_KEY}'
+}
+
+# 1. Upload Gambar (Base64 atau Remote URL)
 def upload_image_to_cdn(base64_or_url, file_name):
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {GATEWAY_KEY}'
-    }
     payload = {
         'file': base64_or_url,
         'file_name': file_name,
@@ -647,13 +682,25 @@ def upload_image_to_cdn(base64_or_url, file_name):
     data = res.json()
     if res.status_code == 201 and data.get('success'):
         print('✅ Direct CDN URL:', data['file']['url'])
-        return data['file']['url']
+        print('   Record ID    :', data['file']['id'])
+        return data['file']
     else:
         print('❌ Upload Error:', data)
 
-def list_cdn_files():
-    res = requests.get(f'{BASE_URL}/storage/list', headers={'Authorization': f'Bearer {GATEWAY_KEY}'})
+# 2. List Berkas CDN Terunggah
+def list_cdn_files(page=1, limit=20):
+    res = requests.get(f'{BASE_URL}/storage/list?page={page}&limit={limit}', headers=headers)
     print('Total Files:', res.json())
+
+# 3. Detail File CDN
+def get_cdn_file_detail(file_id):
+    res = requests.get(f'{BASE_URL}/storage/files/{file_id}', headers=headers)
+    return res.json()
+
+# 4. Hapus File CDN
+def delete_cdn_file(file_id):
+    res = requests.delete(f'{BASE_URL}/storage/files/{file_id}', headers=headers)
+    return res.json()
 `,
     openai_sdk:
       `# ─── Integrasi Storage Gateway dalam Python ────────────────────────
