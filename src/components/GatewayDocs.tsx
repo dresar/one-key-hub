@@ -4,9 +4,10 @@ import {
   Copy, Check, Terminal, Code2, Globe, BookOpen,
   ChevronDown, ChevronUp, Cpu, Zap, RefreshCw,
   MessageSquare, List, Eye, Hash, Search, ExternalLink,
-  Server, Shield, AlertCircle
+  Server, Shield, AlertCircle, Image as ImageIcon, HardDrive
 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/services/api';
 
 interface Props {
   gatewayKey?: string;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 type LangTab = 'curl' | 'javascript' | 'python' | 'openai_sdk' | 'openclaw';
-type Section = 'chat' | 'models' | 'reference' | 'ai_prompt';
+type Section = 'chat' | 'storage' | 'models' | 'reference' | 'ai_prompt';
 
 interface Model {
   id: string;
@@ -29,20 +30,34 @@ interface Model {
   created: number;
 }
 
+interface UserGatewayKey {
+  id: string;
+  name: string;
+  key_preview: string;
+  provider: string;
+  model_id?: string;
+  status: string;
+}
+
 const BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_URL as string || 'http://localhost:3000').replace(/\/api\/?$/, '')
-  : 'https://one.apprentice.cyou/api';
+  : 'https://airotation.my.id';
 
-const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string }> = {
-  gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵' },
-  groq: { color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', badge: 'bg-orange-500/20 text-orange-300', emoji: '🟠' },
-  openai: { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300', emoji: '🟢' },
-  mistral: { color: 'bg-rose-500/10 text-rose-400 border-rose-500/30', badge: 'bg-rose-500/20 text-rose-300', emoji: '🌸' },
-  cohere: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣' },
-  deepseek: { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', badge: 'bg-cyan-500/20 text-cyan-300', emoji: '🔷' },
-  cerebras: { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡' },
-  together: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮' },
-  xai: { color: 'bg-slate-500/10 text-slate-400 border-slate-500/30', badge: 'bg-slate-500/20 text-slate-300', emoji: '⚫' },
+const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string; category: 'ai' | 'storage' | 'other' }> = {
+  gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵', category: 'ai' },
+  groq: { color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', badge: 'bg-orange-500/20 text-orange-300', emoji: '🟠', category: 'ai' },
+  openai: { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300', emoji: '🟢', category: 'ai' },
+  deepseek: { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', badge: 'bg-cyan-500/20 text-cyan-300', emoji: '🔷', category: 'ai' },
+  mistral: { color: 'bg-rose-500/10 text-rose-400 border-rose-500/30', badge: 'bg-rose-500/20 text-rose-300', emoji: '🌸', category: 'ai' },
+  cohere: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣', category: 'ai' },
+  cerebras: { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡', category: 'ai' },
+  together: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮', category: 'ai' },
+  
+  // Storage & Media CDN Providers
+  cloudinary: { color: 'bg-sky-500/10 text-sky-400 border-sky-500/30', badge: 'bg-sky-500/20 text-sky-300', emoji: '☁️', category: 'storage' },
+  imagekit: { color: 'bg-teal-500/10 text-teal-400 border-teal-500/30', badge: 'bg-teal-500/20 text-teal-300', emoji: '🖼️', category: 'storage' },
+  uploadcare: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '📤', category: 'storage' },
+  removebg: { color: 'bg-pink-500/10 text-pink-400 border-pink-500/30', badge: 'bg-pink-500/20 text-pink-300', emoji: '✂️', category: 'storage' },
 };
 
 // ── Copy hook ─────────────────────────────────────────────────────────────────
@@ -62,7 +77,7 @@ function CodeBlock({ code, id, lang = 'bash' }: { code: string; id: string; lang
   const { copy, copiedId } = useCopy();
   const langLabels: Record<string, string> = {
     bash: 'cURL / Shell', javascript: 'JavaScript', python: 'Python',
-    typescript: 'TypeScript', json: 'JSON Response', text: 'Text',
+    typescript: 'TypeScript', json: 'JSON Response', text: 'Text', markdown: 'Markdown Prompt'
   };
   return (
     <div className="rounded-xl overflow-hidden border border-border/40 bg-[#0d1117]">
@@ -152,7 +167,6 @@ const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
   deepseek: 'deepseek-chat',
   cerebras: 'llama3.1-70b',
   together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-  xai: 'grok-beta',
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -161,17 +175,71 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const [section, setSection] = useState<Section>('chat');
   const [langTab, setLangTab] = useState<LangTab>('curl');
   const [provider, setProvider] = useState(defaultProvider);
+
+  // User Gateway Key Selector State
+  const [userKeys, setUserKeys] = useState<UserGatewayKey[]>([]);
+  const [selectedKeyId, setSelectedKeyId] = useState<string>('custom');
+  const [activeKeyString, setActiveKeyString] = useState<string>(gatewayKey);
+
   const [models, setModels] = useState<Model[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsFilter, setModelsFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
   const [allProviders, setAllProviders] = useState<string[]>([]);
 
-  const displayKey = gatewayKey.startsWith('YOUR') ? 'YOUR_GATEWAY_KEY' : gatewayKey;
-  // Default model changes with provider — this is what makes examples update
-  const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.0-flash';
+  useEffect(() => {
+    fetchUserKeys();
+  }, []);
 
-  const promptProviderName = provider === 'all' ? 'semua provider AI (Gemini, Groq, OpenAI, DeepSeek, dll.)' : provider.toUpperCase();
+  const fetchUserKeys = async () => {
+    try {
+      const { data } = await api.get('/api/keys');
+      const items: UserGatewayKey[] = data?.items || data || [];
+      if (items.length > 0) {
+        setUserKeys(items);
+        // Pre-select first key or matching prop
+        const match = items.find(k => k.key_preview === gatewayKey || k.id === gatewayKey) || items[0];
+        setSelectedKeyId(match.id);
+        setActiveKeyString(match.key_preview);
+
+        if (match.provider) {
+          handleProviderChange(match.provider);
+        }
+      }
+    } catch {
+      // User might be guest/unauthenticated
+    }
+  };
+
+  const handleKeySelect = (keyId: string) => {
+    setSelectedKeyId(keyId);
+    if (keyId === 'custom') {
+      setActiveKeyString(gatewayKey);
+      return;
+    }
+
+    const matchedKey = userKeys.find(k => k.id === keyId);
+    if (matchedKey) {
+      setActiveKeyString(matchedKey.key_preview);
+      if (matchedKey.provider) {
+        handleProviderChange(matchedKey.provider);
+      }
+    }
+  };
+
+  const handleProviderChange = (prov: string) => {
+    setProvider(prov);
+    const meta = PROVIDER_META[prov.toLowerCase()];
+    if (meta?.category === 'storage') {
+      setSection('storage'); // Auto-switch to Storage CDN Docs!
+    } else if (meta?.category === 'ai') {
+      setSection('chat'); // Auto-switch to AI Chat Docs!
+    }
+  };
+
+  const displayKey = activeKeyString.startsWith('YOUR') ? 'YOUR_GATEWAY_KEY' : activeKeyString;
+  const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.5-flash';
+  const currentProviderMeta = PROVIDER_META[provider.toLowerCase()];
 
   const aiSystemPrompt = `# 🤖 MASTER AI CODING PROMPT & SYSTEM SPECIFICATION FOR ONE KEY HUB
 
@@ -184,7 +252,7 @@ Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`20
 ## 🔑 Setelan Kredensial & Server Gateway
 - **Base URL API**: \`${BASE_URL}/v1\`
 - **Gateway API Key**: \`${displayKey}\`
-- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Full Access)' : provider}\`
+- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Full Access)' : provider.toUpperCase()}\`
 - **Default Model**: \`${defaultModel}\`
 
 ---
@@ -212,21 +280,22 @@ Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`20
 Sistem otomatis melakukan rotasi orientasi EXIF dan auto-failover (ImageKit -> Cloudinary -> Uploadcare).
 
 - **Upload File (Base64 / URL)**:
-  - **URL**: \`${BASE_URL}/storage/upload\`
+  - **URL**: \`${BASE_URL}/v1/storage/upload\`
   - **Header**: \`Authorization: Bearer ${displayKey}\`, \`Content-Type: application/json\`
   - **Body JSON**:
     \`\`\`json
     {
       "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       "file_name": "foto_profile.png",
-      "auto_rotate": true
+      "auto_rotate": true,
+      "provider": "${provider}"
     }
     \`\`\`
 - **List File Terunggah Milik API Key Ini**:
-  - **URL**: \`${BASE_URL}/storage/list?page=1&limit=20\`
+  - **URL**: \`${BASE_URL}/v1/storage/list?page=1&limit=20\`
   - **Header**: \`Authorization: Bearer ${displayKey}\`
 - **Hapus File CDN**:
-  - **URL**: \`${BASE_URL}/storage/files/:id\`
+  - **URL**: \`${BASE_URL}/v1/storage/files/:id\`
   - **Header**: \`Authorization: Bearer ${displayKey}\`
 
 ---
@@ -272,8 +341,8 @@ runTest();
     setModelsLoading(true);
     try {
       const headers: Record<string, string> = {};
-      if (gatewayKey && gatewayKey !== 'YOUR_GATEWAY_KEY') {
-        headers['Authorization'] = `Bearer ${gatewayKey}`;
+      if (displayKey && displayKey !== 'YOUR_GATEWAY_KEY') {
+        headers['Authorization'] = `Bearer ${displayKey}`;
       }
       const res = await fetch(`${BASE_URL}/v1/models`, { headers });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -284,7 +353,7 @@ runTest();
       setAllProviders(provs);
     } catch {
       toast.error('Gagal memuat daftar model dari server');
-    } finally {
+    } fontally: {
       setModelsLoading(false);
     }
   };
@@ -313,23 +382,11 @@ curl ${BASE_URL}/v1/chat/completions \\
     "max_tokens": 1024,
     "temperature": 0.7
   }'
-
-# ─── Chat via provider tertentu ──────────────────────────────────────
-curl ${BASE_URL}/gateway/${provider}/chat \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: ${displayKey}" \\
-  -d '{
-    "model": "${defaultModel}",
-    "messages": [{"role": "user", "content": "Halo dunia!"}]
-  }'
-
-# ─── Cek semua endpoint aktif ─────────────────────────────────────────
-curl ${BASE_URL}/
 `,
     javascript:
       `// ─── JavaScript / Node.js (Fetch API) ────────────────────────────────
 const GATEWAY_KEY = '${displayKey}';
-const MODEL       = '${defaultModel}'; // provider: ${provider}
+const MODEL       = '${defaultModel}';
 
 async function chat(messages, model = MODEL) {
   const res = await fetch('${BASE_URL}/v1/chat/completions', {
@@ -343,304 +400,177 @@ async function chat(messages, model = MODEL) {
 
   if (!res.ok) throw new Error(\`Gateway error: \${res.status}\`);
   const data = await res.json();
-
-  // Supports both OpenAI format & direct text response
   return data.choices?.[0]?.message?.content ?? data.text ?? data;
 }
 
-// Contoh penggunaan
-const answer = await chat([
-  { role: 'system', content: 'Kamu adalah asisten AI.' },
-  { role: 'user',   content: 'Apa itu neural network?' },
-]);
-console.log(answer);
-
-// ─── Multi-turn conversation ──────────────────────────────────────────
-const history = [];
-
-async function sendMessage(userMsg) {
-  history.push({ role: 'user', content: userMsg });
-  const reply = await chat(history);
-  history.push({ role: 'assistant', content: reply });
-  return reply;
-}
-
-console.log(await sendMessage('Halo!'));
-console.log(await sendMessage('Apa tindak lanjut dari jawaban sebelumnya?'));
+console.log(await chat([{ role: 'user', content: 'Halo!' }]));
 `,
     python:
       `# ─── Python (requests) ──────────────────────────────────────────────
 import requests
 
 GATEWAY_KEY   = '${displayKey}'
-BASE          = '${BASE_URL}'
-DEFAULT_MODEL = '${defaultModel}'  # provider: ${provider}
-HEADERS       = {
-    'Content-Type': 'application/json',
-    'Authorization': f'Bearer {GATEWAY_KEY}',
-}
+BASE          = '${BASE_URL}/v1'
+DEFAULT_MODEL = '${defaultModel}'
 
 def chat(messages: list, model: str = DEFAULT_MODEL) -> str:
-    """Kirim pesan ke AI dan dapatkan balasan."""
     res = requests.post(
-        f'{BASE}/v1/chat/completions',
-        headers=HEADERS,
+        f'{BASE}/chat/completions',
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {GATEWAY_KEY}'},
         json={'model': model, 'messages': messages},
         timeout=60,
     )
     res.raise_for_status()
-    data = res.json()
-    return data['choices'][0]['message']['content']
+    return res.json()['choices'][0]['message']['content']
 
-# Contoh sederhana
-reply = chat([{'role': 'user', 'content': 'Apa itu deep learning?'}])
-print(reply)
-
-# Contoh multi-provider dengan rotasi otomatis
-models_to_try = [
-    '${defaultModel}',          # ${provider}
-    'gemini-2.0-flash',         # gemini
-    'llama-3.3-70b-versatile',  # groq
-    'mistral-small-latest',     # mistral
-]
-
-for model_id in models_to_try:
-    try:
-        answer = chat([{'role': 'user', 'content': 'Hello!'}], model=model_id)
-        print(f"✅ {model_id}: {answer[:80]}...")
-        break
-    except Exception as e:
-        print(f"❌ {model_id}: {e}")
+print(chat([{'role': 'user', 'content': 'Halo!'}]))
 `,
     openai_sdk:
       `# ─── OpenAI Python SDK ──────────────────────────────────────────────
 from openai import OpenAI
 
-# Cukup ganti base_url & api_key — semua method OpenAI bekerja!
 client = OpenAI(
     base_url='${BASE_URL}/v1',
     api_key='${displayKey}',
 )
 
-# Chat completion — model: ${provider}
 response = client.chat.completions.create(
     model='${defaultModel}',
-    messages=[
-        {'role': 'system', 'content': 'Kamu adalah pakar teknologi AI.'},
-        {'role': 'user',   'content': 'Jelaskan kemampuan model ${provider} ini.'},
-    ],
-    max_tokens=512,
-    temperature=0.8,
+    messages=[{'role': 'user', 'content': 'Ceritakan tentang AI.'}],
 )
 print(response.choices[0].message.content)
-
-# List semua model
-for m in client.models.list():
-    print(m.id)
-
-# ─── OpenAI JavaScript / TypeScript SDK ──────────────────────────────
-/*
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  baseURL: '${BASE_URL}/v1',
-  apiKey:  '${displayKey}',
-  dangerouslyAllowBrowser: true,
-});
-
-const res = await client.chat.completions.create({
-  model: '${defaultModel}',
-  messages: [{ role: 'user', content: 'Ceritakan tentang ${provider}.' }],
-});
-console.log(res.choices[0].message.content);
-*/
 `,
     openclaw:
       `# ─── Konfigurasi OpenClaw (.env / settings UI) ──────────────────────
-# Integrasi AI Gateway ke OpenClaw kompatibel penuh dengan format OpenAI.
-
-# 1. Atur Base URL mengarah ke Gateway API Anda:
-# (Gunakan prefix /v1 atau /api/v1)
 baseUrl: "${BASE_URL}/v1"
-
-# 2. Atur API Key dengan Gateway API Key Anda:
 apiKey: "${displayKey}"
-
-# 3. Pilih tipe API:
 api: "openai-completions"
-
-# 4. Tentukan Model yang ingin digunakan (sesuai target provider):
-# (Misalnya: ${defaultModel})
 model: "${defaultModel}"
 `,
   };
 
-  const modelsExamples: Record<LangTab, string> = {
+  // Storage CDN Examples
+  const storageExamples: Record<LangTab, string> = {
     curl:
-      `# ─── List Semua Model (61+ model dari semua provider) ────────────────
-curl ${BASE_URL}/v1/models \\
+      `# ─── Upload File ke Storage CDN (Cloudinary / ImageKit / Uploadcare) ──
+curl ${BASE_URL}/v1/storage/upload \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${displayKey}" \\
+  -d '{
+    "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...",
+    "file_name": "foto_produk.png",
+    "auto_rotate": true${provider !== 'all' ? `,\n    "provider": "${provider}"` : ''}
+  }'
+
+# ─── List Semua File CDN milik API Key ini ──────────────────────────
+curl ${BASE_URL}/v1/storage/list?page=1&limit=20 \\
   -H "Authorization: Bearer ${displayKey}"
 
-# ─── List Model per Provider ──────────────────────────────────────────
-curl ${BASE_URL}/gateway/gemini/models \\
-  -H "X-API-Key: ${displayKey}"
-
-curl ${BASE_URL}/gateway/groq/models
-curl ${BASE_URL}/gateway/mistral/models
-curl ${BASE_URL}/gateway/cohere/models
-curl ${BASE_URL}/gateway/deepseek/models
-
-# ─── Contoh filter model dengan jq ──────────────────────────────────
-curl ${BASE_URL}/v1/models | jq '.data[] | select(.provider == "gemini") | .id'
+# ─── Hapus File CDN dari Database ──────────────────────────────────
+curl -X DELETE ${BASE_URL}/v1/storage/files/YOUR_FILE_ID \\
+  -H "Authorization: Bearer ${displayKey}"
 `,
     javascript:
-      `// ─── List semua model ─────────────────────────────────────────────────
-const res = await fetch('${BASE_URL}/v1/models', {
-  headers: { 'Authorization': 'Bearer ${displayKey}' },
-});
-const { data: models } = await res.json();
-console.log(\`Total: \${models.length} model\`);
+      `// ─── Storage Gateway CDN Client (JavaScript / Node.js) ──────────────
+const GATEWAY_KEY = '${displayKey}';
+const BASE_URL    = '${BASE_URL}/v1';
 
-// Filter per provider
-const geminiModels = models.filter(m => m.provider === 'gemini');
-const groqModels   = models.filter(m => m.provider === 'groq');
+// 1. Upload Gambar dengan Auto Failover & Auto Rotation EXIF
+async function uploadToCDN(fileBase64OrUrl, fileName) {
+  const res = await fetch(\`\${BASE_URL}/storage/upload\`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': \`Bearer \${GATEWAY_KEY}\`,
+    },
+    body: JSON.stringify({
+      file: fileBase64OrUrl,
+      file_name: fileName,
+      auto_rotate: true,
+      provider: '${provider === 'all' ? 'imagekit' : provider}'
+    }),
+  });
 
-// Tampilkan dalam tabel
-console.table(geminiModels.map(m => ({
-  id:       m.id,
-  context:  m.context_window,
-  vision:   m.supports_vision,
-})));
+  const data = await res.json();
+  if (data.success) {
+    console.log('✅ CDN URL:', data.file.url);
+    console.log(' Cloud Provider:', data.file.provider);
+    return data.file.url;
+  }
+  throw new Error(data.error?.message || 'Upload gagal');
+}
 
-// ─── List model provider tertentu ────────────────────────────────────
-const provRes = await fetch('${BASE_URL}/gateway/gemini/models');
-const { data: geminiOnly } = await provRes.json();
+// 2. List Daftar File yang Terunggah
+async function listMyCDNFiles() {
+  const res = await fetch(\`\${BASE_URL}/storage/list?page=1&limit=20\`, {
+    headers: { 'Authorization': \`Bearer \${GATEWAY_KEY}\` }
+  });
+  const data = await res.json();
+  console.log('Files:', data.items);
+}
 `,
     python:
-      `# ─── List semua model via requests ──────────────────────────────────
+      `# ─── Storage Gateway CDN Client (Python requests) ────────────────────
 import requests
 
-res = requests.get(
-    '${BASE_URL}/v1/models',
-    headers={'Authorization': 'Bearer ${displayKey}'},
-)
-models = res.json().get('data', [])
+GATEWAY_KEY = '${displayKey}'
+BASE_URL    = '${BASE_URL}/v1'
 
-print(f"Total: {len(models)} model tersedia\\n")
+def upload_image_to_cdn(base64_or_url, file_name):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {GATEWAY_KEY}'
+    }
+    payload = {
+        'file': base64_or_url,
+        'file_name': file_name,
+        'auto_rotate': True,
+        'provider': '${provider === 'all' ? 'cloudinary' : provider}'
+    }
+    res = requests.post(f'{BASE_URL}/storage/upload', json=payload, headers=headers)
+    data = res.json()
+    if res.status_code == 201 and data.get('success'):
+        print('✅ Direct CDN URL:', data['file']['url'])
+        return data['file']['url']
+    else:
+        print('❌ Upload Error:', data)
 
-# Group per provider
-from collections import defaultdict
-by_provider = defaultdict(list)
-for m in models:
-    by_provider[m['provider']].append(m['id'])
-
-for prov, ids in sorted(by_provider.items()):
-    print(f"🔹 {prov.upper()} ({len(ids)} model):")
-    for mid in ids:
-        print(f"   - {mid}")
+def list_cdn_files():
+    res = requests.get(f'{BASE_URL}/storage/list', headers={'Authorization': f'Bearer {GATEWAY_KEY}'})
+    print('Total Files:', res.json())
 `,
     openai_sdk:
-      `# ─── OpenAI Python SDK — List Model ──────────────────────────────────
-from openai import OpenAI
+      `# ─── Integrasi Storage Gateway dalam Python ────────────────────────
+import requests
 
-client = OpenAI(
-    base_url='${BASE_URL}/v1',
-    api_key='${displayKey}',
+GATEWAY_KEY = '${displayKey}'
+
+# Upload langsung ke Cloudinary / ImageKit via Gateway
+response = requests.post(
+    '${BASE_URL}/v1/storage/upload',
+    headers={'Authorization': f'Bearer {GATEWAY_KEY}'},
+    json={
+        'file': 'https://example.com/source-image.jpg',
+        'file_name': 'processed.jpg',
+        'auto_rotate': True
+    }
 )
-
-# List semua model (sama persis seperti memanggil OpenAI resmi)
-models = client.models.list()
-for m in models:
-    print(f"{m.id:40s}  owned_by={m.owned_by}")
-
-# ─── OpenAI JS SDK ────────────────────────────────────────────────────
-/*
-const models = await client.models.list();
-for (const m of models.data) {
-  console.log(m.id, '—', m.owned_by);
-}
-*/
+print('CDN URL:', response.json()['file']['url'])
 `,
     openclaw:
-      `# ─── Informasi Endpoint Model OpenClaw ──────────────────────────────
-# OpenClaw secara otomatis melakukan query ke endpoint /models untuk memuat list model.
-
-# Base URL API:
-${BASE_URL}/v1
-
-# Endpoint list model yang diakses:
-GET ${BASE_URL}/v1/models
-Authorization: Bearer ${displayKey}
+      `# ─── OpenClaw CDN Upload Configuration ──────────────────────────────
+uploadUrl: "${BASE_URL}/v1/storage/upload"
+apiKey: "${displayKey}"
+autoRotate: true
 `,
   };
 
-  const chatResponse = `{
-  "id": "chatcmpl-a1b2c3d4e5",
-  "object": "chat.completion",
-  "created": 1736472501,
-  "model": "gemini-2.0-flash",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Machine learning adalah cabang kecerdasan buatan yang memungkinkan sistem belajar dari data."
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 24,
-    "completion_tokens": 42,
-    "total_tokens": 66
-  }
-}`;
-
-  const modelsResponse = `{
-  "object": "list",
-  "data": [
-    {
-      "id": "gemini-2.5-flash",
-      "object": "model",
-      "created": 1736472501,
-      "owned_by": "Google Gemini",
-      "active": true,
-      "context_window": 1048576,
-      "supports_vision": true,
-      "display_name": "Gemini 2.5 Flash",
-      "provider": "gemini"
-    },
-    {
-      "id": "gemini-2.0-flash",
-      "object": "model",
-      "created": 1736472501,
-      "owned_by": "Google Gemini",
-      "active": true,
-      "context_window": 1048576,
-      "supports_vision": false,
-      "display_name": "Gemini 2.0 Flash",
-      "provider": "gemini"
-    },
-    {
-      "id": "llama-3.3-70b-versatile",
-      "object": "model",
-      "created": 1736472501,
-      "owned_by": "Groq",
-      "active": true,
-      "context_window": 131072,
-      "supports_vision": false,
-      "display_name": "Llama 3.3 70B Versatile",
-      "provider": "groq"
-    }
-  ]
-}`;
-
   const endpointRef = [
     { method: 'POST', path: '/v1/chat/completions', desc: 'Chat completion (OpenAI-compatible)', auth: 'Bearer / X-API-Key' },
-    { method: 'POST', path: '/gateway/:provider/chat', desc: 'Chat via provider tertentu', auth: 'X-API-Key' },
-    { method: 'GET', path: '/v1/models', desc: 'List semua model (61+ model)', auth: 'Tidak wajib' },
-    { method: 'GET', path: '/gateway/models', desc: 'List semua model (alias)', auth: 'Tidak wajib' },
-    { method: 'GET', path: '/gateway/:provider/models', desc: 'List model per provider', auth: 'Tidak wajib' },
+    { method: 'POST', path: '/v1/storage/upload', desc: 'Upload file ke CDN (Cloudinary/ImageKit/Uploadcare) + Auto Rotate', auth: 'Bearer / X-API-Key' },
+    { method: 'GET', path: '/v1/storage/list', desc: 'List berkas CDN milik API Key ini', auth: 'Bearer / X-API-Key' },
+    { method: 'DELETE', path: '/v1/storage/files/:id', desc: 'Hapus file CDN dari database', auth: 'Bearer / X-API-Key' },
+    { method: 'GET', path: '/v1/models', desc: 'List semua model AI (61+ model)', auth: 'Tidak wajib' },
   ];
 
   return (
@@ -655,8 +585,8 @@ Authorization: Bearer ${displayKey}
             <BookOpen className="w-4.5 h-4.5 text-primary" />
           </div>
           <div className="text-left">
-            <p className="font-semibold text-sm">Dokumentasi API Gateway</p>
-            <p className="text-xs text-muted-foreground">cURL · JavaScript · Python · OpenAI SDK · 61+ Model</p>
+            <p className="font-semibold text-sm">Dokumentasi API Gateway & Storage CDN</p>
+            <p className="text-xs text-muted-foreground">cURL · JavaScript · Python · AI Models · Cloudinary / ImageKit Storage</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -679,28 +609,46 @@ Authorization: Bearer ${displayKey}
           >
             <div className="border-t border-border/30">
 
-              {/* ── Key Banner ───────────────────────────────────────── */}
-              <div className="mx-5 mt-5 flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-blue-500/5 border border-primary/20">
-                <Shield className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-semibold text-foreground">Gateway Key Anda</p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">Rotasi Otomatis</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 font-medium">61+ Model</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">Multi-Provider</span>
+              {/* ── Key Selector & Key Banner ─────────────────────────────────── */}
+              <div className="mx-5 mt-5 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-blue-500/5 border border-primary/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary shrink-0" />
+                    <p className="text-xs font-bold text-foreground">Gateway API Key Dokumentasi</p>
                   </div>
-                  <div className="mt-2 font-mono text-[11px] bg-background/60 border border-border/30 rounded-lg px-3 py-2 break-all text-muted-foreground select-all">
-                    {displayKey}
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    Gunakan key ini sebagai pengganti API Key langsung. Satu key untuk semua provider — gateway rotasi otomatis jika satu key gagal.
-                  </p>
+
+                  {/* Dynamic Key Selector Dropdown */}
+                  {userKeys.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground font-medium">Pilih Key:</span>
+                      <select
+                        value={selectedKeyId}
+                        onChange={(e) => handleKeySelect(e.target.value)}
+                        className="bg-secondary/80 border border-border/50 text-xs rounded-lg px-2.5 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="custom">Preview / Custom Key</option>
+                        {userKeys.map(k => (
+                          <option key={k.id} value={k.id}>
+                            🔑 {k.name || 'Unnamed Key'} ({k.provider ? k.provider.toUpperCase() : 'UNIVERSAL'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
+
+                <div className="font-mono text-[11px] bg-background/80 border border-border/40 rounded-lg px-3 py-2 break-all text-primary font-semibold select-all">
+                  {displayKey}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Semua contoh kode di bawah secara otomatis memperbarui API Key dan format request sesuai dengan provider key yang Anda pilih di atas.
+                </p>
               </div>
 
               {/* ── Section Tabs ─────────────────────────────────────── */}
               <div className="flex border-b border-border/30 mt-4 px-5 gap-1 overflow-x-auto scrollbar-none">
-                <SectionTab active={section === 'chat'} onClick={() => setSection('chat')} icon={MessageSquare} label="Chat Completions" />
+                <SectionTab active={section === 'chat'} onClick={() => setSection('chat')} icon={MessageSquare} label="AI Chat Completions" />
+                <SectionTab active={section === 'storage'} onClick={() => setSection('storage')} icon={ImageIcon} label="Storage CDN (Cloudinary/ImageKit)" badge="Failover" />
                 <SectionTab active={section === 'models'} onClick={() => setSection('models')} icon={List} label="Models" badge="61+" />
                 <SectionTab active={section === 'reference'} onClick={() => setSection('reference')} icon={Hash} label="API Reference" />
                 <SectionTab active={section === 'ai_prompt'} onClick={() => setSection('ai_prompt')} icon={Code2} label="Prompt Untuk AI" />
@@ -726,14 +674,14 @@ Authorization: Bearer ${displayKey}
                         <span className="text-xs text-muted-foreground">· OpenAI-compatible</span>
                       </div>
 
-                      {/* Provider selector */}
+                      {/* Provider Selector Pills */}
                       <div>
-                        <p className="text-xs text-muted-foreground mb-2 font-medium">Provider di contoh kode:</p>
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">Filter Provider di contoh kode:</p>
                         <div className="flex gap-1.5 flex-wrap">
                           {Object.keys(PROVIDER_META).map(p => (
                             <button
                               key={p}
-                              onClick={() => setProvider(p)}
+                              onClick={() => handleProviderChange(p)}
                               className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all capitalize ${provider === p
                                   ? PROVIDER_META[p].color
                                   : 'border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground'
@@ -759,23 +707,67 @@ Authorization: Bearer ${displayKey}
                         id={`chat-${langTab}`}
                         lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab === 'openclaw' ? 'yaml' : langTab}
                       />
+                    </motion.div>
+                  )}
 
-                      {/* Response example */}
-                      <div className="space-y-2">
-                        <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                          Contoh Respons Berhasil (200 OK)
-                        </p>
-                        <CodeBlock code={chatResponse} id="chat-response" lang="json" />
+                  {/* ══════════════ STORAGE CDN SECTION ═══════════════════ */}
+                  {section === 'storage' && (
+                    <motion.div
+                      key="storage"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-5"
+                    >
+                      {/* Endpoint pill */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <MethodBadge method="POST" />
+                        <code className="text-xs font-mono bg-secondary/60 px-2 py-1 rounded text-foreground/80">{BASE_URL}/v1/storage/upload</code>
+                        <span className="text-xs text-muted-foreground">· Auto Failover & EXIF Rotation</span>
                       </div>
 
-                      {/* Error note */}
-                      <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
-                        <div className="text-muted-foreground">
-                          Jika satu API key gagal (429/503), gateway <strong className="text-foreground">otomatis rotasi</strong> ke key berikutnya tanpa perlu ubah kode Anda.
+                      {/* Storage Banner Info */}
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-teal-500/10 border border-blue-500/20 space-y-2 text-xs text-blue-300">
+                        <div className="font-bold text-sm flex items-center gap-2 text-blue-400">
+                          <ImageIcon className="w-4 h-4" /> Multi-CDN Storage Gateway Service ({provider.toUpperCase()})
+                        </div>
+                        <p>
+                          Endpoint ini digunakan untuk mengunggah gambar/media dari website Anda. Sistem otomatis melakukan **EXIF Auto-Rotation** (agar posisi foto tidak miring) dan **Auto-Failover** antar provider storage (ImageKit ➔ Cloudinary ➔ Uploadcare).
+                        </p>
+                      </div>
+
+                      {/* Provider Selector Pills */}
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">Pilih Target Storage CDN di Contoh Kode:</p>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {['cloudinary', 'imagekit', 'uploadcare', 'removebg'].map(p => (
+                            <button
+                              key={p}
+                              onClick={() => handleProviderChange(p)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${provider === p
+                                  ? PROVIDER_META[p].color
+                                  : 'border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground'
+                                }`}
+                            >
+                              {PROVIDER_META[p].emoji} {p}
+                            </button>
+                          ))}
                         </div>
                       </div>
+
+                      {/* Lang tabs */}
+                      <div className="flex gap-1.5 flex-wrap">
+                        <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
+                        <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
+                        <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
+                      </div>
+
+                      <CodeBlock
+                        code={storageExamples[langTab]}
+                        id={`storage-${langTab}`}
+                        lang={langTab === 'curl' ? 'bash' : langTab}
+                      />
                     </motion.div>
                   )}
 
@@ -789,7 +781,6 @@ Authorization: Bearer ${displayKey}
                       transition={{ duration: 0.15 }}
                       className="space-y-5"
                     >
-                      {/* Endpoint pills */}
                       <div className="flex flex-wrap gap-2">
                         {[
                           { m: 'GET', p: '/v1/models' },
@@ -802,31 +793,6 @@ Authorization: Bearer ${displayKey}
                         ))}
                       </div>
 
-                      {/* Lang tabs */}
-                      <div className="flex gap-1.5 flex-wrap">
-                        <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
-                        <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
-                        <LangTab active={langTab === 'python'} onClick={() => setLangTab('python')} label="🐍 Python" />
-                        <LangTab active={langTab === 'openai_sdk'} onClick={() => setLangTab('openai_sdk')} label="🤖 OpenAI SDK" />
-                        <LangTab active={langTab === 'openclaw'} onClick={() => setLangTab('openclaw')} label="🦞 OpenClaw" />
-                      </div>
-
-                      <CodeBlock
-                        code={modelsExamples[langTab]}
-                        id={`models-${langTab}`}
-                        lang={langTab === 'curl' ? 'bash' : langTab === 'openai_sdk' ? 'python' : langTab === 'openclaw' ? 'yaml' : langTab}
-                      />
-
-                      {/* Response */}
-                      <div className="space-y-2">
-                        <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                          <span className="w-2 h-2 rounded-full bg-green-400" />
-                          Contoh Respons (GET /v1/models)
-                        </p>
-                        <CodeBlock code={modelsResponse} id="models-response" lang="json" />
-                      </div>
-
-                      {/* ── Live Model Browser ────────────────────────────── */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold flex items-center gap-2">
@@ -844,105 +810,6 @@ Authorization: Bearer ${displayKey}
                             {modelsLoading ? 'Memuat...' : 'Refresh'}
                           </button>
                         </div>
-
-                        {/* Filters */}
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                              type="text"
-                              placeholder="Cari model..."
-                              value={modelsFilter}
-                              onChange={e => setModelsFilter(e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-secondary/60 border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/40"
-                            />
-                          </div>
-                          <select
-                            value={providerFilter}
-                            onChange={e => setProviderFilter(e.target.value)}
-                            className="px-3 py-2 text-xs rounded-lg bg-secondary/60 border border-border/40 focus:outline-none focus:ring-1 focus:ring-primary/40 text-foreground"
-                          >
-                            <option value="all">Semua Provider</option>
-                            {allProviders.map(p => (
-                              <option key={p} value={p} className="capitalize">{p}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {modelsLoading ? (
-                          <div className="py-10 text-center">
-                            <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">Memuat daftar model dari server...</p>
-                          </div>
-                        ) : models.length === 0 ? (
-                          <div className="py-10 text-center border-2 border-dashed border-border/30 rounded-xl">
-                            <Server className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm font-medium">Model belum dimuat</p>
-                            <p className="text-xs text-muted-foreground mt-1">Klik "Refresh" untuk memuat 61+ model</p>
-                            <button
-                              onClick={fetchAllModels}
-                              className="mt-3 px-4 py-2 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                            >
-                              Muat Sekarang
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="rounded-xl border border-border/30 overflow-hidden">
-                              <div className="overflow-y-auto" style={{ maxHeight: '380px' }}>
-                                <table className="w-full text-xs">
-                                  <thead className="sticky top-0 z-10">
-                                    <tr className="bg-card border-b border-border/40">
-                                      <th className="px-3 py-3 text-left font-semibold text-muted-foreground">Model ID</th>
-                                      <th className="px-3 py-3 text-left font-semibold text-muted-foreground hidden sm:table-cell">Provider</th>
-                                      <th className="px-3 py-3 text-left font-semibold text-muted-foreground hidden md:table-cell">Context</th>
-                                      <th className="px-3 py-3 text-left font-semibold text-muted-foreground hidden lg:table-cell">Vision</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {filteredModels.map((m, i) => {
-                                      const meta = PROVIDER_META[m.provider];
-                                      return (
-                                        <tr
-                                          key={m.id}
-                                          className={`border-b border-border/20 hover:bg-secondary/30 transition-colors cursor-pointer group ${i % 2 === 0 ? '' : 'bg-secondary/5'}`}
-                                        >
-                                          <td className="px-3 py-2.5">
-                                            <div className="flex items-center gap-2">
-                                              <div>
-                                                <div className="font-mono font-medium text-foreground group-hover:text-primary transition-colors">{m.id}</div>
-                                                <div className="text-muted-foreground text-[10px] mt-0.5">{m.display_name}</div>
-                                              </div>
-                                            </div>
-                                          </td>
-                                          <td className="px-3 py-2.5 hidden sm:table-cell">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border font-medium ${meta?.color || 'bg-secondary/80 border-border/30 text-muted-foreground'}`}>
-                                              {meta?.emoji} {m.provider}
-                                            </span>
-                                          </td>
-                                          <td className="px-3 py-2.5 hidden md:table-cell text-muted-foreground font-mono">
-                                            {m.context_window >= 1_000_000
-                                              ? <span className="text-emerald-400">{(m.context_window / 1_000_000).toFixed(1)}M</span>
-                                              : `${Math.round(m.context_window / 1000)}K`}
-                                          </td>
-                                          <td className="px-3 py-2.5 hidden lg:table-cell">
-                                            {m.supports_vision
-                                              ? <span className="flex items-center gap-1 text-emerald-400 text-[10px]"><Eye className="w-3 h-3" /> Ya</span>
-                                              : <span className="text-muted-foreground text-[10px]">—</span>
-                                            }
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground text-right">
-                              Menampilkan <strong className="text-foreground">{filteredModels.length}</strong> dari {models.length} model
-                            </p>
-                          </>
-                        )}
                       </div>
                     </motion.div>
                   )}
@@ -957,11 +824,10 @@ Authorization: Bearer ${displayKey}
                       transition={{ duration: 0.15 }}
                       className="space-y-5"
                     >
-                      {/* Endpoint table */}
                       <div>
                         <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                           <Server className="w-4 h-4 text-primary" />
-                          Semua Endpoint
+                          Semua Endpoint Gateway & Storage
                         </p>
                         <div className="rounded-xl border border-border/30 overflow-hidden">
                           <table className="w-full text-xs">
@@ -988,90 +854,6 @@ Authorization: Bearer ${displayKey}
                           </table>
                         </div>
                       </div>
-
-                      {/* Authentication */}
-                      <div>
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-primary" />
-                          Autentikasi
-                        </p>
-                        <div className="space-y-2">
-                          {[
-                            { header: 'Authorization: Bearer <GATEWAY_KEY>', desc: 'Header standar OpenAI — digunakan di /v1/chat/completions & /v1/models' },
-                            { header: 'X-API-Key: <GATEWAY_KEY>', desc: 'Header alternatif — digunakan di /gateway/:provider/chat' },
-                          ].map(a => (
-                            <div key={a.header} className="p-3 rounded-xl bg-secondary/30 border border-border/30 space-y-1">
-                              <code className="text-[11px] font-mono text-primary">{a.header}</code>
-                              <p className="text-[11px] text-muted-foreground">{a.desc}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Base URLs */}
-                      <div>
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <Globe className="w-4 h-4 text-primary" />
-                          Base URL
-                        </p>
-                        <CodeBlock
-                          code={`# Lokal (Development)
-${BASE_URL}
-
-# Production (ganti sesuai domain server Anda)
-https://airotation.my.id
-
-# OpenAI SDK base_url
-${BASE_URL}/v1`}
-                          id="base-urls"
-                          lang="bash"
-                        />
-                      </div>
-
-                      {/* Quick start */}
-                      <div>
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-primary" />
-                          Quick Start — Test dalam 30 Detik
-                        </p>
-                        <CodeBlock
-                          code={`# 1. Test koneksi ke gateway
-curl ${BASE_URL}/
-
-# 2. Lihat semua model tersedia
-curl ${BASE_URL}/v1/models | python -m json.tool
-
-# 3. Kirim chat pertama Anda
-curl ${BASE_URL}/v1/chat/completions \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${displayKey}" \\
-  -d '{"model":"gemini-2.0-flash","messages":[{"role":"user","content":"Halo!"}]}'`}
-                          id="quickstart"
-                          lang="bash"
-                        />
-                      </div>
-
-                      {/* Error codes */}
-                      <div>
-                        <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-amber-400" />
-                          Kode Error
-                        </p>
-                        <div className="space-y-1.5">
-                          {[
-                            { code: '401', color: 'text-red-400', desc: 'Gateway Key tidak valid atau tidak ditemukan' },
-                            { code: '403', color: 'text-red-400', desc: 'Key tidak aktif atau semua API key provider gagal' },
-                            { code: '429', color: 'text-amber-400', desc: 'Rate limit — gateway akan auto-retry ke key berikutnya' },
-                            { code: '503', color: 'text-orange-400', desc: 'Semua API key sedang cooldown — coba beberapa saat lagi' },
-                            { code: '200', color: 'text-green-400', desc: 'Sukses — respons berhasil dikembalikan' },
-                          ].map(e => (
-                            <div key={e.code} className="flex items-center gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border/20">
-                              <span className={`text-xs font-bold font-mono w-8 ${e.color}`}>{e.code}</span>
-                              <span className="text-xs text-muted-foreground">{e.desc}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
                     </motion.div>
                   )}
 
@@ -1088,7 +870,7 @@ curl ${BASE_URL}/v1/chat/completions \\
                       <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary">
                         <Zap className="w-4 h-4 mt-0.5 shrink-0 animate-pulse" />
                         <div>
-                          <strong>Tips Cepat:</strong> Salin prompt di bawah ini dan tempelkan ke ChatGPT, Claude, Cursor, v0, atau AI lainnya agar AI tersebut langsung paham cara memanggil API rotasi ini di kode Anda.
+                          <strong>Tips Cepat:</strong> Salin prompt di bawah ini dan tempelkan ke ChatGPT, Claude, Cursor, v0, atau AI lainnya agar AI tersebut langsung paham cara memanggil API rotasi & Storage CDN ini di kode Anda.
                         </div>
                       </div>
 
