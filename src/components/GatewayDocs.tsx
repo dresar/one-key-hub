@@ -60,7 +60,6 @@ const PROVIDER_META: Record<string, { color: string; badge: string; emoji: strin
   removebg: { color: 'bg-pink-500/10 text-pink-400 border-pink-500/30', badge: 'bg-pink-500/20 text-pink-300', emoji: '✂️', category: 'storage' },
 };
 
-// ── Copy hook ─────────────────────────────────────────────────────────────────
 function useCopy() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copy = useCallback(async (text: string, id: string) => {
@@ -72,7 +71,6 @@ function useCopy() {
   return { copy, copiedId };
 }
 
-// ── Syntax-highlighted code block ─────────────────────────────────────────────
 function CodeBlock({ code, id, lang = 'bash' }: { code: string; id: string; lang?: string }) {
   const { copy, copiedId } = useCopy();
   const langLabels: Record<string, string> = {
@@ -107,7 +105,6 @@ function CodeBlock({ code, id, lang = 'bash' }: { code: string; id: string; lang
   );
 }
 
-// ── Method badge ──────────────────────────────────────────────────────────────
 function MethodBadge({ method }: { method: string }) {
   const colors: Record<string, string> = {
     GET: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -121,7 +118,6 @@ function MethodBadge({ method }: { method: string }) {
   );
 }
 
-// ── Section Tab ────────────────────────────────────────────────────────────────
 function SectionTab({ active, onClick, icon: Icon, label, badge }: {
   active: boolean; onClick: () => void; icon: React.ElementType; label: string; badge?: string;
 }) {
@@ -142,7 +138,6 @@ function SectionTab({ active, onClick, icon: Icon, label, badge }: {
   );
 }
 
-// ── Language Tab ───────────────────────────────────────────────────────────────
 function LangTab({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
@@ -157,7 +152,6 @@ function LangTab({ active, onClick, label }: { active: boolean; onClick: () => v
   );
 }
 
-// ── Provider → default model map ───────────────────────────────────────────────
 const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
   gemini: 'gemini-2.5-flash',
   groq: 'llama-3.3-70b-versatile',
@@ -169,14 +163,12 @@ const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
   together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
 };
 
-// ── Main Component ─────────────────────────────────────────────────────────────
 export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultProvider = 'gemini', collapsed = false }: Props) {
   const [isOpen, setIsOpen] = useState(!collapsed);
   const [section, setSection] = useState<Section>('chat');
   const [langTab, setLangTab] = useState<LangTab>('curl');
   const [provider, setProvider] = useState(defaultProvider);
 
-  // User Gateway Key Selector State
   const [userKeys, setUserKeys] = useState<UserGatewayKey[]>([]);
   const [selectedKeyId, setSelectedKeyId] = useState<string>('custom');
   const [activeKeyString, setActiveKeyString] = useState<string>(gatewayKey);
@@ -185,7 +177,6 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsFilter, setModelsFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('all');
-  const [allProviders, setAllProviders] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUserKeys();
@@ -197,7 +188,6 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
       const items: UserGatewayKey[] = data?.items || data || [];
       if (items.length > 0) {
         setUserKeys(items);
-        // Pre-select first key or matching prop
         const match = items.find(k => k.key_preview === gatewayKey || k.id === gatewayKey) || items[0];
         setSelectedKeyId(match.id);
         setActiveKeyString(match.key_preview);
@@ -207,7 +197,7 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
         }
       }
     } catch {
-      // User might be guest/unauthenticated
+      // Guest mode
     }
   };
 
@@ -231,9 +221,9 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
     setProvider(prov);
     const meta = PROVIDER_META[prov.toLowerCase()];
     if (meta?.category === 'storage') {
-      setSection('storage'); // Auto-switch to Storage CDN Docs!
+      setSection('storage');
     } else if (meta?.category === 'ai') {
-      setSection('chat'); // Auto-switch to AI Chat Docs!
+      setSection('chat');
     }
   };
 
@@ -241,96 +231,234 @@ export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultPr
   const defaultModel = PROVIDER_DEFAULT_MODEL[provider] || 'gemini-2.5-flash';
   const currentProviderMeta = PROVIDER_META[provider.toLowerCase()];
 
-  const aiSystemPrompt = `# 🤖 MASTER AI CODING PROMPT & SYSTEM SPECIFICATION FOR ONE KEY HUB
+  const isStorageCategory = currentProviderMeta?.category === 'storage';
+  const isAiCategory = currentProviderMeta?.category === 'ai';
 
-## 📌 ATURAN WAJIB SEBELUM MENULIS KODE KE PROJECT UTAMA
-Anda adalah AI Developer Assistant. **SEBELUM** meletakkan atau mengubah kode di project utama, Anda **WAJIB MEMBUAT FILE UJI COBA TERPISAH** (misalnya \`test-one-key-hub.js\` atau \`test_gateway.py\`) untuk menguji konektivitas Gateway API Key, endpoint AI Chat (\`/v1/chat/completions\`), dan endpoint Storage CDN (\`/v1/storage/upload\`).
-Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`200 OK\` / \`201 Created\`), barulah Anda mengimplementasikan kode ke dalam komponen project utama.
+  let aiSystemPrompt = '';
 
----
-
-## 🔑 Setelan Kredensial & Server Gateway
-- **Base URL API**: \`${BASE_URL}/v1\`
-- **Gateway API Key**: \`${displayKey}\`
-- **Target Provider Utama**: \`${provider === 'all' ? 'Semua Provider (Full Access)' : provider.toUpperCase()}\`
-- **Default Model**: \`${defaultModel}\`
-
----
-
-## 🛰️ 1. ENDPOINT AI CHAT & COMPLETIONS (OpenAI Standard Format)
-- **URL**: \`${BASE_URL}/v1/chat/completions\`
-- **Header**:
-  - \`Authorization: Bearer ${displayKey}\`
-  - \`Content-Type: application/json\`
-- **Body JSON**:
-  \`\`\`json
-  {
-    "model": "${defaultModel}",
-    "messages": [
-      { "role": "system", "content": "Kamu adalah asisten AI yang cerdas." },
-      { "role": "user", "content": "Halo!" }
-    ],
-    "temperature": 0.7
+  if (isStorageCategory) {
+    aiSystemPrompt = [
+      `# 📸 STORAGE CDN GATEWAY SPECIFICATION (${provider.toUpperCase()})`,
+      ``,
+      `## 📌 ATURAN WAJIB SEBELUM MENULIS KODE KE PROJECT UTAMA`,
+      `Anda adalah AI Developer Assistant. **SEBELUM** meletakkan atau mengubah kode di project utama, Anda **WAJIB MEMBUAT FILE UJI COBA TERPISAH** (\`test-storage-cdn.js\`) untuk menguji konektivitas Gateway API Key dan endpoint Storage CDN Gateway (\`/v1/storage/upload\`).`,
+      `Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`201 Created\`), barulah Anda mengimplementasikan kode ke dalam komponen project utama.`,
+      ``,
+      `---`,
+      ``,
+      `## 🔑 Setelan Kredensial & Server Gateway`,
+      `- **Base URL API**: \`${BASE_URL}/v1\``,
+      `- **Gateway API Key**: \`${displayKey}\``,
+      `- **Target Provider Storage**: \`${provider.toUpperCase()}\``,
+      `- **Fitur Otomatis**: Multi-CDN Failover (ImageKit ➔ Cloudinary ➔ Uploadcare) & Auto EXIF Orientation Fix`,
+      ``,
+      `---`,
+      ``,
+      `## 📸 ENDPOINT STORAGE GATEWAY SERVICE`,
+      ``,
+      `### 1. Upload File (Base64 / Remote URL)`,
+      `- **URL**: \`${BASE_URL}/v1/storage/upload\``,
+      `- **Method**: \`POST\``,
+      `- **Header**:`,
+      `  - \`Content-Type: application/json\``,
+      `  - \`Authorization: Bearer ${displayKey}\``,
+      `- **Body JSON**:`,
+      `  \`\`\`json`,
+      `  {`,
+      `    "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",`,
+      `    "file_name": "foto_produk.png",`,
+      `    "auto_rotate": true,`,
+      `    "provider": "${provider}"`,
+      `  }`,
+      `  \`\`\``,
+      `- **Response Success (\`201 Created\`)**:`,
+      `  \`\`\`json`,
+      `  {`,
+      `    "success": true,`,
+      `    "file": {`,
+      `      "id": "e4b2d5a1-7c89-4d10-a299-123456789abc",`,
+      `      "provider": "${provider}",`,
+      `      "url": "https://res.cloudinary.com/cloud/image/upload/v123/foto_produk.png",`,
+      `      "file_id": "foto_produk",`,
+      `      "file_name": "foto_produk.png",`,
+      `      "file_size": 15420,`,
+      `      "created_at": "2026-07-21T13:40:00.000Z"`,
+      `    }`,
+      `  }`,
+      `  \`\`\``,
+      ``,
+      `### 2. List Berkas CDN Terunggah Milik API Key Ini`,
+      `- **URL**: \`${BASE_URL}/v1/storage/list?page=1&limit=20\``,
+      `- **Method**: \`GET\``,
+      `- **Header**: \`Authorization: Bearer ${displayKey}\``,
+      ``,
+      `### 3. Hapus Berkas CDN dari Database`,
+      `- **URL**: \`${BASE_URL}/v1/storage/files/:id\``,
+      `- **Method**: \`DELETE\``,
+      `- **Header**: \`Authorization: Bearer ${displayKey}\``,
+      ``,
+      `---`,
+      ``,
+      `## 🧪 SKRIP TEST UJI COBA WAJIB (\`test-storage-cdn.js\`)`,
+      `AI wajib membuat dan menjalankan file ini terlebih dahulu sebelum mengubah project utama:`,
+      ``,
+      `\`\`\`javascript`,
+      `const GATEWAY_KEY = '${displayKey}';`,
+      `const BASE_URL = '${BASE_URL}/v1';`,
+      ``,
+      `async function testStorageUpload() {`,
+      `  console.log('🚀 Testing Storage CDN Upload (${provider.toUpperCase()})...');`,
+      `  const dummyBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';`,
+      ``,
+      `  const uploadRes = await fetch(\`\${BASE_URL}/storage/upload\`, {`,
+      `    method: 'POST',`,
+      `    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },`,
+      `    body: JSON.stringify({ file: dummyBase64, file_name: 'test_cdn.png', auto_rotate: true, provider: '${provider}' })`,
+      `  });`,
+      ``,
+      `  const data = await uploadRes.json();`,
+      `  if (uploadRes.ok && data.success) {`,
+      `    console.log('✅ Storage CDN Upload Berhasil!');`,
+      `    console.log('   Provider Terpakai:', data.file.provider);`,
+      `    console.log('   Direct CDN URL   :', data.file.url);`,
+      `  } else {`,
+      `    console.error('❌ Upload Gagal:', data);`,
+      `  }`,
+      `}`,
+      ``,
+      `testStorageUpload();`,
+      `\`\`\``
+    ].join('\n');
+  } else if (isAiCategory) {
+    aiSystemPrompt = [
+      `# 🤖 AI CHAT & COMPLETIONS SPECIFICATION (${provider.toUpperCase()})`,
+      ``,
+      `## 📌 ATURAN WAJIB SEBELUM MENULIS KODE KE PROJECT UTAMA`,
+      `Anda adalah AI Developer Assistant. **SEBELUM** meletakkan atau mengubah kode di project utama, Anda **WAJIB MEMBUAT FILE UJI COBA TERPISAH** (\`test-ai-chat.js\`) untuk menguji konektivitas Gateway API Key dan endpoint AI Chat (\`/v1/chat/completions\`).`,
+      `Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`200 OK\`), barulah Anda mengimplementasikan kode ke dalam komponen project utama.`,
+      ``,
+      `---`,
+      ``,
+      `## 🔑 Setelan Kredensial & Server Gateway`,
+      `- **Base URL API**: \`${BASE_URL}/v1\``,
+      `- **Gateway API Key**: \`${displayKey}\``,
+      `- **Target Provider AI**: \`${provider.toUpperCase()}\``,
+      `- **Default Model**: \`${defaultModel}\``,
+      ``,
+      `---`,
+      ``,
+      `## 🛰️ ENDPOINT AI CHAT COMPLETIONS (OpenAI Standard Format)`,
+      `- **URL**: \`${BASE_URL}/v1/chat/completions\``,
+      `- **Method**: \`POST\``,
+      `- **Header**:`,
+      `  - \`Content-Type: application/json\``,
+      `  - \`Authorization: Bearer ${displayKey}\``,
+      `- **Body JSON**:`,
+      `  \`\`\`json`,
+      `  {`,
+      `    "model": "${defaultModel}",`,
+      `    "messages": [`,
+      `      { "role": "system", "content": "Kamu adalah asisten AI yang cerdas." },`,
+      `      { "role": "user", "content": "Halo!" }`,
+      `    ],`,
+      `    "temperature": 0.7`,
+      `  }`,
+      `  \`\`\``,
+      ``,
+      `---`,
+      ``,
+      `## 🧪 SKRIP TEST UJI COBA WAJIB (\`test-ai-chat.js\`)`,
+      `AI wajib membuat dan menjalankan file ini terlebih dahulu sebelum mengubah project utama:`,
+      ``,
+      `\`\`\`javascript`,
+      `const GATEWAY_KEY = '${displayKey}';`,
+      `const BASE_URL = '${BASE_URL}/v1';`,
+      ``,
+      `async function testAiChat() {`,
+      `  console.log('🚀 Testing AI Chat Completion (${provider.toUpperCase()})...');`,
+      ``,
+      `  const chatRes = await fetch(\`\${BASE_URL}/chat/completions\`, {`,
+      `    method: 'POST',`,
+      `    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },`,
+      `    body: JSON.stringify({ model: '${defaultModel}', messages: [{ role: 'user', content: 'Tes koneksi' }] })`,
+      `  });`,
+      ``,
+      `  const data = await chatRes.json();`,
+      `  if (chatRes.ok) {`,
+      `    console.log('✅ AI Chat Berhasil!');`,
+      `    console.log('   Balasan AI:', data.choices?.[0]?.message?.content?.trim());`,
+      `  } else {`,
+      `    console.error('❌ AI Chat Gagal:', data);`,
+      `  }`,
+      `}`,
+      ``,
+      `testAiChat();`,
+      `\`\`\``
+    ].join('\n');
+  } else {
+    aiSystemPrompt = [
+      `# 🤖 MASTER UNIVERSAL GATEWAY SPECIFICATION (AI + STORAGE CDN)`,
+      ``,
+      `## 📌 ATURAN WAJIB SEBELUM MENULIS KODE KE PROJECT UTAMA`,
+      `Anda adalah AI Developer Assistant. **SEBELUM** meletakkan atau mengubah kode di project utama, Anda **WAJIB MEMBUAT FILE UJI COBA TERPISAH** (\`test-one-key-hub.js\`) untuk menguji konektivitas Gateway API Key, endpoint AI Chat (\`/v1/chat/completions\`), dan endpoint Storage CDN (\`/v1/storage/upload\`).`,
+      `Jalankan skrip uji coba tersebut via terminal. Setelah dipastikan berhasil (\`200 OK\` / \`201 Created\`), barulah Anda mengimplementasikan kode ke dalam komponen project utama.`,
+      ``,
+      `---`,
+      ``,
+      `## 🔑 Setelan Kredensial & Server Gateway`,
+      `- **Base URL API**: \`${BASE_URL}/v1\``,
+      `- **Gateway API Key**: \`${displayKey}\``,
+      `- **Target Provider Utama**: \`Semua Provider (Universal Key - AI & Storage CDN)\``,
+      ``,
+      `---`,
+      ``,
+      `## 🛰️ 1. ENDPOINT AI CHAT COMPLETIONS (OpenAI Standard Format)`,
+      `- **URL**: \`${BASE_URL}/v1/chat/completions\``,
+      `- **Header**: \`Authorization: Bearer ${displayKey}\`, \`Content-Type: application/json\``,
+      `- **Body JSON**:`,
+      `  \`\`\`json`,
+      `  {`,
+      `    "model": "gemini-2.5-flash",`,
+      `    "messages": [{ "role": "user", "content": "Halo!" }]`,
+      `  }`,
+      `  \`\`\``,
+      ``,
+      `---`,
+      ``,
+      `## 📸 2. ENDPOINT STORAGE GATEWAY (Cloudinary/ImageKit Upload)`,
+      `- **URL**: \`${BASE_URL}/v1/storage/upload\``,
+      `- **Header**: \`Authorization: Bearer ${displayKey}\`, \`Content-Type: application/json\``,
+      `- **Body JSON**:`,
+      `  \`\`\`json`,
+      `  {`,
+      `    "file": "data:image/png;base64,iVBORw0KGgo...",`,
+      `    "file_name": "photo.png",`,
+      `    "auto_rotate": true`,
+      `  }`,
+      `  \`\`\``,
+      ``,
+      `---`,
+      ``,
+      `## 🧪 3. SKRIP TEST UJI COBA WAJIB (\`test-one-key-hub.js\`)`,
+      `\`\`\`javascript`,
+      `const GATEWAY_KEY = '${displayKey}';`,
+      `const BASE_URL = '${BASE_URL}/v1';`,
+      ``,
+      `async function runTest() {`,
+      `  console.log('🚀 Testing Universal Gateway...');`,
+      `  const chatRes = await fetch(\`\${BASE_URL}/chat/completions\`, {`,
+      `    method: 'POST',`,
+      `    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },`,
+      `    body: JSON.stringify({ model: 'gemini-2.5-flash', messages: [{ role: 'user', content: 'Tes' }] })`,
+      `  });`,
+      `  console.log('1. AI Chat Status:', chatRes.status, await chatRes.json());`,
+      `}`,
+      ``,
+      `runTest();`,
+      `\`\`\``
+    ].join('\n');
   }
-  \`\`\`
 
----
-
-## 📸 2. ENDPOINT STORAGE GATEWAY (Multi-CDN Failover & Auto-Rotate)
-Sistem otomatis melakukan rotasi orientasi EXIF dan auto-failover (ImageKit -> Cloudinary -> Uploadcare).
-
-- **Upload File (Base64 / URL)**:
-  - **URL**: \`${BASE_URL}/v1/storage/upload\`
-  - **Header**: \`Authorization: Bearer ${displayKey}\`, \`Content-Type: application/json\`
-  - **Body JSON**:
-    \`\`\`json
-    {
-      "file": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "file_name": "foto_profile.png",
-      "auto_rotate": true,
-      "provider": "${provider}"
-    }
-    \`\`\`
-- **List File Terunggah Milik API Key Ini**:
-  - **URL**: \`${BASE_URL}/v1/storage/list?page=1&limit=20\`
-  - **Header**: \`Authorization: Bearer ${displayKey}\`
-- **Hapus File CDN**:
-  - **URL**: \`${BASE_URL}/v1/storage/files/:id\`
-  - **Header**: \`Authorization: Bearer ${displayKey}\`
-
----
-
-## 🧪 3. SKRIP TEST UJI COBA WAJIB (\`test-one-key-hub.js\`)
-AI wajib membuat dan menjalankan file ini terlebih dahulu sebelum mengubah project utama:
-
-\`\`\`javascript
-const GATEWAY_KEY = '${displayKey}';
-const BASE_URL = '${BASE_URL}/v1';
-
-async function runTest() {
-  console.log('🚀 Testing One Key Hub Gateway...');
-
-  // 1. Test AI Chat
-  const chatRes = await fetch(\`\${BASE_URL}/chat/completions\`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },
-    body: JSON.stringify({ model: '${defaultModel}', messages: [{ role: 'user', content: 'Tes koneksi' }] })
-  });
-  console.log('1. AI Chat Status:', chatRes.status, await chatRes.json());
-
-  // 2. Test Storage Upload
-  const uploadRes = await fetch(\`\${BASE_URL}/storage/upload\`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': \`Bearer \${GATEWAY_KEY}\` },
-    body: JSON.stringify({ file: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', auto_rotate: true })
-  });
-  console.log('2. Storage Upload Status:', uploadRes.status, await uploadRes.json());
-}
-
-runTest();
-\`\`\``;
-
-  // Load models when section switches to models
   useEffect(() => {
     if (section === 'models' && isOpen) {
       fetchAllModels();
@@ -349,24 +477,13 @@ runTest();
       const json = await res.json();
       const data: Model[] = json?.data || [];
       setModels(data);
-      const provs = [...new Set(data.map(m => m.provider))].sort();
-      setAllProviders(provs);
     } catch {
       toast.error('Gagal memuat daftar model dari server');
-    } fontally: {
+    } finally {
       setModelsLoading(false);
     }
   };
 
-  const filteredModels = models.filter(m => {
-    const matchFilter = !modelsFilter ||
-      m.id.toLowerCase().includes(modelsFilter.toLowerCase()) ||
-      m.display_name.toLowerCase().includes(modelsFilter.toLowerCase());
-    const matchProvider = providerFilter === 'all' || m.provider === providerFilter;
-    return matchFilter && matchProvider;
-  });
-
-  // ── Code examples per language / section ──────────────────────────────────
   const chatExamples: Record<LangTab, string> = {
     curl:
       `# ─── Chat Completion (OpenAI-compatible) ────────────────────────────
@@ -449,7 +566,6 @@ model: "${defaultModel}"
 `,
   };
 
-  // Storage CDN Examples
   const storageExamples: Record<LangTab, string> = {
     curl:
       `# ─── Upload File ke Storage CDN (Cloudinary / ImageKit / Uploadcare) ──
@@ -545,7 +661,6 @@ import requests
 
 GATEWAY_KEY = '${displayKey}'
 
-# Upload langsung ke Cloudinary / ImageKit via Gateway
 response = requests.post(
     '${BASE_URL}/v1/storage/upload',
     headers={'Authorization': f'Bearer {GATEWAY_KEY}'},
@@ -617,7 +732,6 @@ autoRotate: true
                     <p className="text-xs font-bold text-foreground">Gateway API Key Dokumentasi</p>
                   </div>
 
-                  {/* Dynamic Key Selector Dropdown */}
                   {userKeys.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground font-medium">Pilih Key:</span>
@@ -667,14 +781,12 @@ autoRotate: true
                       transition={{ duration: 0.15 }}
                       className="space-y-5"
                     >
-                      {/* Endpoint pill */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <MethodBadge method="POST" />
                         <code className="text-xs font-mono bg-secondary/60 px-2 py-1 rounded text-foreground/80">{BASE_URL}/v1/chat/completions</code>
                         <span className="text-xs text-muted-foreground">· OpenAI-compatible</span>
                       </div>
 
-                      {/* Provider Selector Pills */}
                       <div>
                         <p className="text-xs text-muted-foreground mb-2 font-medium">Filter Provider di contoh kode:</p>
                         <div className="flex gap-1.5 flex-wrap">
@@ -693,7 +805,6 @@ autoRotate: true
                         </div>
                       </div>
 
-                      {/* Lang tabs */}
                       <div className="flex gap-1.5 flex-wrap">
                         <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
                         <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
@@ -720,14 +831,12 @@ autoRotate: true
                       transition={{ duration: 0.15 }}
                       className="space-y-5"
                     >
-                      {/* Endpoint pill */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <MethodBadge method="POST" />
                         <code className="text-xs font-mono bg-secondary/60 px-2 py-1 rounded text-foreground/80">{BASE_URL}/v1/storage/upload</code>
                         <span className="text-xs text-muted-foreground">· Auto Failover & EXIF Rotation</span>
                       </div>
 
-                      {/* Storage Banner Info */}
                       <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-teal-500/10 border border-blue-500/20 space-y-2 text-xs text-blue-300">
                         <div className="font-bold text-sm flex items-center gap-2 text-blue-400">
                           <ImageIcon className="w-4 h-4" /> Multi-CDN Storage Gateway Service ({provider.toUpperCase()})
@@ -737,7 +846,6 @@ autoRotate: true
                         </p>
                       </div>
 
-                      {/* Provider Selector Pills */}
                       <div>
                         <p className="text-xs text-muted-foreground mb-2 font-medium">Pilih Target Storage CDN di Contoh Kode:</p>
                         <div className="flex gap-1.5 flex-wrap">
@@ -756,7 +864,6 @@ autoRotate: true
                         </div>
                       </div>
 
-                      {/* Lang tabs */}
                       <div className="flex gap-1.5 flex-wrap">
                         <LangTab active={langTab === 'curl'} onClick={() => setLangTab('curl')} label="🖥 cURL" />
                         <LangTab active={langTab === 'javascript'} onClick={() => setLangTab('javascript')} label="⚡ JavaScript" />
