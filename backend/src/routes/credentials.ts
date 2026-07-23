@@ -212,6 +212,155 @@ router.get('/:id/reveal', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ─── POST /api/credentials/reveal-batch ─────────────────────────────────────────
+router.post('/reveal-batch', async (req: AuthRequest, res: Response) => {
+  try {
+    const { ids, provider_name } = req.body;
+    let queryConditions = [isNull(providerCredentials.deletedAt)];
+
+    if (Array.isArray(ids) && ids.length > 0) {
+      const numericIds = ids.map(Number).filter(id => !isNaN(id));
+      if (numericIds.length > 0) {
+        queryConditions.push(inArray(providerCredentials.id, numericIds));
+      }
+    } else if (provider_name && provider_name !== 'all') {
+      queryConditions.push(eq(providerCredentials.providerName, provider_name.toLowerCase()));
+    }
+
+    const rows = await db
+      .select()
+      .from(providerCredentials)
+      .where(and(...queryConditions))
+      .orderBy(providerCredentials.id);
+
+    const items = rows.map((cred) => {
+      let decrypted: Record<string, string> = {};
+      try {
+        const decryptedBase64 = decrypt(cred.credentialsCiphertext);
+        const rawJson = Buffer.from(decryptedBase64, 'base64').toString('utf8');
+        const parsed = JSON.parse(rawJson);
+        decrypted = parsed.raw || parsed || {};
+      } catch {
+        decrypted = { api_key: '[Decryption Error]' };
+      }
+      return {
+        id: cred.id,
+        provider_name: cred.providerName,
+        label: cred.label,
+        model_id: cred.modelId,
+        status: cred.status,
+        credentials: decrypted,
+        created_at: cred.createdAt,
+      };
+    });
+
+    res.json({ items, total: items.length });
+  } catch (err) {
+    console.error('[Credentials] Reveal Batch error:', err);
+    res.status(500).json({ error: 'Gagal mendekripsi daftar credential' });
+  }
+});
+
+// ─── POST /api/credentials/import-batch ─────────────────────────────────────────
+router.post('/import-batch', async (req: AuthRequest, res: Response) => {
+  try {
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: 'Daftar item untuk import wajib diisi' });
+      return;
+    }
+
+    let importedCount = 0;
+    let failedCount = 0;
+    const errors: Array<{ index: number; label: string; error: string }> = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const provider_name = (item.provider_name || 'gemini').toLowerCase();
+      const label = item.label || `${provider_name.toUpperCase()} Key`;
+      const credentials = item.credentials;
+      const model_id = item.model_id || '';
+
+      if (!provider_name || !credentials || typeof credentials !== 'object') {
+        failedCount++;
+        errors.push({ index: i, label, error: 'Provider name atau credentials tidak valid' });
+        continue;
+      }
+
+      const mainKeyStr = (credentials.api_key || credentials.secret_key || credentials.private_key || '').trim();
+      if (!mainKeyStr && Object.keys(credentials).length === 0) {
+        failedCount++;
+        errors.push({ index: i, label, error: 'API key kosong' });
+        continue;
+      }
+
+      try {
+        const targetId = await getLowestAvailableId();
+        const kHashFull = hashValue(JSON.stringify(credentials));
+        const kHashKeyOnly = mainKeyStr ? hashValue(mainKeyStr) : null;
+
+        // Check for duplicates
+        const existing = await db
+          .select({ id: providerCredentials.id, label: providerCredentials.label })
+          .from(providerCredentials)
+          .where(
+            and(
+              isNull(providerCredentials.deletedAt),
+              kHashKeyOnly
+                ? sql`${providerCredentials.keyHash} IN (${kHashFull}, ${kHashKeyOnly})`
+                : eq(providerCredentials.keyHash, kHashFull)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          failedCount++;
+          errors.push({ index: i, label, error: `Key ini sudah terdaftar sebagai "${existing[0].label}"` });
+          continue;
+        }
+
+        const kHash = kHashKeyOnly || kHashFull;
+        const credentialsCiphertext = encrypt(
+          Buffer.from(JSON.stringify({ raw: credentials })).toString('base64'),
+        );
+
+        await db.delete(providerCredentials).where(eq(providerCredentials.id, targetId));
+
+        await db.insert(providerCredentials).values({
+          id: targetId,
+          providerName: provider_name,
+          label: `${label} #${targetId}`,
+          modelId: model_id,
+          credentialsCiphertext,
+          keyHash: kHash,
+          status: 'active',
+        });
+
+        importedCount++;
+      } catch (err: any) {
+        failedCount++;
+        errors.push({ index: i, label, error: err.message || 'Gagal menyimpan key' });
+      }
+    }
+
+    await syncProviderCredentialsSequence();
+    credentialCache.clear();
+    statsCache.clear();
+    await syncDbCache();
+
+    res.json({
+      success: true,
+      imported_count: importedCount,
+      failed_count: failedCount,
+      errors,
+    });
+  } catch (err) {
+    console.error('[Credentials] Import Batch error:', err);
+    res.status(500).json({ error: 'Gagal memproses batch import credentials' });
+  }
+});
+
 // ─── POST /api/credentials/sync ───────────────────────────────────────────────
 router.post('/sync', async (req: AuthRequest, res: Response) => {
   try {
@@ -222,6 +371,7 @@ router.post('/sync', async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Gagal menyinkronkan database dengan local cache' });
   }
 });
+
 
 // ─── POST /api/credentials ────────────────────────────────────────────────────
 router.post('/', async (req: AuthRequest, res: Response) => {

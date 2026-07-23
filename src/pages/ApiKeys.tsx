@@ -3,12 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   KeyRound, Plus, Edit2, Trash2, Loader2, Copy, Check,
-  Activity, RotateCcw, Zap, Clock
+  Activity, RotateCcw, Zap, Clock, Download, Upload
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import GatewayDocs from '@/components/GatewayDocs';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -41,6 +49,117 @@ export default function ApiKeys() {
   const [selectedKey, setSelectedKey] = useState<GatewayKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // ── EXPORT & IMPORT MODAL STATES ──
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
+  const [isExportCopied, setIsExportCopied] = useState(false);
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importRawInput, setImportRawInput] = useState('');
+  const [importParsedItems, setImportParsedItems] = useState<any[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const openExportModal = () => {
+    setIsExportModalOpen(true);
+  };
+
+  const generateExportContent = () => {
+    if (exportFormat === 'json') {
+      return JSON.stringify(keys, null, 2);
+    }
+    const headers = ['ID', 'Name', 'Tenant_ID', 'Status', 'Quota_Per_Minute', 'Allowed_Providers', 'Created_At'];
+    const rows = keys.map(k => [
+      `"${k.id}"`,
+      `"${(k.name || '').replace(/"/g, '""')}"`,
+      `"${k.tenant_id}"`,
+      `"${k.status}"`,
+      k.quota_per_minute || 0,
+      `"${(k.allowed_providers || []).join(';')}"`,
+      `"${k.created_at}"`
+    ].join(','));
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  const handleDownloadExport = () => {
+    const content = generateExportContent();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `onekeyhub_gateway_keys_${Date.now()}.${exportFormat}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Gateway API Keys berhasil diunduh!');
+  };
+
+  const handleCopyExport = async () => {
+    const content = generateExportContent();
+    await navigator.clipboard.writeText(content).catch(() => {});
+    setIsExportCopied(true);
+    toast.success('Hasil export disalin ke clipboard!');
+    setTimeout(() => setIsExportCopied(false), 2000);
+  };
+
+  const openImportModal = () => {
+    setImportRawInput('');
+    setImportParsedItems([]);
+    setIsImportModalOpen(true);
+  };
+
+  const parseImportText = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setImportParsedItems([]);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      const list = Array.isArray(parsed) ? parsed : [parsed];
+      setImportParsedItems(list);
+    } catch {
+      const lines = trimmed.split(/\r?\n/).filter(Boolean);
+      const items = lines.map((line, idx) => ({
+        name: `Imported Key #${idx + 1}`,
+        tenant_id: line.trim(),
+        quota_per_minute: 60,
+      }));
+      setImportParsedItems(items);
+    }
+  };
+
+  const handleExecuteImport = async () => {
+    if (importParsedItems.length === 0) {
+      toast.error('Tidak ada Gateway Key valid untuk di-import');
+      return;
+    }
+    setIsImporting(true);
+    let successCount = 0;
+    try {
+      for (const item of importParsedItems) {
+        try {
+          await api.post('/api/keys', {
+            name: item.name || 'Imported Gateway Key',
+            tenant_id: item.tenant_id || 'default',
+            quota_per_minute: item.quota_per_minute || 60,
+            allowed_providers: item.allowed_providers || [],
+          });
+          successCount++;
+        } catch (e) {
+          console.warn('Single key import failed:', e);
+        }
+      }
+      toast.success(`Berhasil mengimpor ${successCount} Gateway Key!`);
+      setIsImportModalOpen(false);
+      fetchKeys();
+    } catch {
+      toast.error('Gagal mengimpor Gateway Key');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   useEffect(() => {
     fetchKeys();
@@ -119,14 +238,34 @@ export default function ApiKeys() {
       />
 
       <div className="p-4 md:p-6 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <p className="text-muted-foreground text-sm">
             Menampilkan <span className="text-foreground font-medium">{keys.length}</span> gateway key
           </p>
-          <Button onClick={openCreatePage} className="bg-primary hover:bg-primary/90 text-sm gap-2">
-            <Plus className="w-4 h-4" />
-            Generate Key Baru
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              onClick={openExportModal}
+              variant="outline"
+              size="sm"
+              className="bg-secondary/40 border-primary/40 text-primary hover:bg-primary/10 text-xs gap-1.5 flex-1 sm:flex-none"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Keys</span>
+            </Button>
+            <Button
+              onClick={openImportModal}
+              variant="outline"
+              size="sm"
+              className="bg-secondary/40 border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 text-xs gap-1.5 flex-1 sm:flex-none"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Import Keys</span>
+            </Button>
+            <Button onClick={openCreatePage} className="bg-primary hover:bg-primary/90 text-sm gap-2 flex-1 sm:flex-none">
+              <Plus className="w-4 h-4" />
+              Generate Key Baru
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -260,6 +399,103 @@ export default function ApiKeys() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── EXPORT GATEWAY KEYS MODAL ── */}
+      <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+        <DialogContent className="bg-card border-border max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-primary" />
+              Export Gateway API Keys
+            </DialogTitle>
+            <DialogDescription>
+              Export daftar Gateway API Keys ke berkas JSON atau CSV.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div>
+              <Label className="text-xs mb-1.5 block">Format Export</Label>
+              <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
+                <SelectTrigger className="h-9 text-xs bg-secondary/50 border-border/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="json">JSON (.json)</SelectItem>
+                  <SelectItem value="csv">CSV (.csv)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1.5 block">Pratinjau Export ({keys.length} Key)</Label>
+              <textarea
+                readOnly
+                value={generateExportContent()}
+                rows={6}
+                className="w-full font-mono text-xs p-2.5 rounded-lg bg-black/40 border border-border/50 text-emerald-400 resize-none focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsExportModalOpen(false)}>Tutup</Button>
+            <Button variant="outline" onClick={handleCopyExport} className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10">
+              {isExportCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              Salin Clipboard
+            </Button>
+            <Button onClick={handleDownloadExport} className="bg-primary hover:bg-primary/90 text-white gap-1.5">
+              <Download className="w-4 h-4" />
+              Download Berkas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── IMPORT GATEWAY KEYS MODAL ── */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="bg-card border-border max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-emerald-500" />
+              Import Gateway API Keys
+            </DialogTitle>
+            <DialogDescription>
+              Tempel daftar Gateway API Key (format JSON array atau list Tenant ID 1 per baris).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <textarea
+              value={importRawInput}
+              onChange={(e) => {
+                setImportRawInput(e.target.value);
+                parseImportText(e.target.value);
+              }}
+              placeholder={`Tempel data di sini (JSON Array):\n[\n  { "name": "App 1", "tenant_id": "tenant_1", "quota_per_minute": 60 }\n]`}
+              rows={6}
+              className="w-full font-mono text-xs p-2.5 rounded-lg bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary"
+            />
+
+            <div className="text-xs text-muted-foreground flex justify-between items-center p-2 rounded bg-secondary/20 border border-border/30">
+              <span>Terdeteksi: <strong className="text-foreground">{importParsedItems.length} Key</strong></span>
+              {importParsedItems.length > 0 && <span className="text-emerald-400 font-medium">Format Valid</span>}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsImportModalOpen(false)}>Batal</Button>
+            <Button
+              onClick={handleExecuteImport}
+              disabled={isImporting || importParsedItems.length === 0}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5"
+            >
+              {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {isImporting ? 'Mengimpor...' : `Proses Import (${importParsedItems.length} Key)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

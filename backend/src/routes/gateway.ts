@@ -991,9 +991,9 @@ router.post('/:provider/images/generations', async (req: Request, res: Response)
   }
 });
 
-// ─── ALL /gateway/:provider/proxy ─────────────────────────────────────────────
+// ─── ALL /gateway/:provider/proxy* ────────────────────────────────────────────
 // Dynamic universal proxy supporting non-AI/utility APIs (Cloudinary, ImageKit, Apify, NewsAPI, etc.)
-router.all('/:provider/proxy', async (req: Request, res: Response) => {
+router.all('/:provider/proxy*', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const providerName = req.params.provider.toLowerCase();
   const rawApiKey = req.headers['x-api-key'] as string | undefined;
@@ -1052,7 +1052,15 @@ router.all('/:provider/proxy', async (req: Request, res: Response) => {
 
   // Extract proxy request options
   const method = (req.body?.method || req.method || 'GET').toUpperCase();
-  const pathTarget = req.body?.path || req.query?.path || '';
+  
+  // Extract pathTarget from URL if direct subpath proxying is used (e.g. /gateway/huggingface/proxy/models/...)
+  const proxyIndex = req.originalUrl.indexOf('/proxy');
+  let pathTargetFromUrl = '';
+  if (proxyIndex !== -1) {
+    pathTargetFromUrl = req.originalUrl.substring(proxyIndex + 6).split('?')[0];
+  }
+  
+  const pathTarget = req.body?.path || req.query?.path || pathTargetFromUrl || '';
   const bodyPayload = req.body?.body || (method !== 'GET' && method !== 'HEAD' ? req.body : undefined);
   const customHeaders = req.body?.headers || {};
   const queryParams = { ...req.query, ...req.body?.queryParams };

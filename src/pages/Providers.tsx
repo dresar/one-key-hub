@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Server, Plus, Edit2, Trash2, Loader2,
   RefreshCw, Shield, CheckCircle, XCircle, Clock, PlayCircle, Key, Activity,
-  Eye, EyeOff, Copy, Check, MoreVertical
+  Eye, EyeOff, Copy, Check, MoreVertical, Download, Upload, FileJson, FileSpreadsheet, FileText
 } from 'lucide-react';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,6 +102,284 @@ export default function Providers() {
   const [isLoadingModal, setIsLoadingModal] = useState(false);
   const [copiedCredId, setCopiedCredId] = useState<string | null>(null);
   const [formCustomId, setFormCustomId] = useState<string>('');
+
+  // ── EXPORT MODAL STATES ──
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportProvider, setExportProvider] = useState<string>('all');
+  const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'txt'>('json');
+  const [exportIncludeDecrypted, setExportIncludeDecrypted] = useState(true);
+  const [exportSelectedIds, setExportSelectedIds] = useState<number[]>([]);
+  const [exportItems, setExportItems] = useState<any[]>([]);
+  const [isExportLoading, setIsExportLoading] = useState(false);
+  const [isExportCopied, setIsExportCopied] = useState(false);
+
+  // ── IMPORT MODAL STATES ──
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importTargetProvider, setImportTargetProvider] = useState<string>('auto');
+  const [importLabelPrefix, setImportLabelPrefix] = useState<string>('Imported Key');
+  const [importRawInput, setImportRawInput] = useState<string>('');
+  const [importParsedItems, setImportParsedItems] = useState<Array<{ provider_name: string; label: string; credentials: Record<string, string>; raw_key: string }>>([]);
+  const [isImporting, setIsImporting] = useState(false);
+
+  // ── EXPORT HANDLERS ──
+  const openExportModal = async (initialProvider = filterProvider) => {
+    setExportProvider(initialProvider);
+    setIsExportModalOpen(true);
+    setIsExportLoading(true);
+    try {
+      const { data } = await api.post('/api/credentials/reveal-batch', {
+        provider_name: initialProvider !== 'all' ? initialProvider : undefined,
+      });
+      const items = data?.items || [];
+      setExportItems(items);
+      setExportSelectedIds(items.map((i: any) => i.id));
+    } catch {
+      toast.error('Gagal mengambil data untuk export');
+    } finally {
+      setIsExportLoading(false);
+    }
+  };
+
+  const handleExportProviderChange = async (prov: string) => {
+    setExportProvider(prov);
+    setIsExportLoading(true);
+    try {
+      const { data } = await api.post('/api/credentials/reveal-batch', {
+        provider_name: prov !== 'all' ? prov : undefined,
+      });
+      const items = data?.items || [];
+      setExportItems(items);
+      setExportSelectedIds(items.map((i: any) => i.id));
+    } catch {
+      toast.error('Gagal memuat item export');
+    } finally {
+      setIsExportLoading(false);
+    }
+  };
+
+  const toggleSelectExportId = (id: number) => {
+    setExportSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllExport = () => {
+    if (exportSelectedIds.length === exportItems.length) {
+      setExportSelectedIds([]);
+    } else {
+      setExportSelectedIds(exportItems.map(i => i.id));
+    }
+  };
+
+  const generateExportContent = () => {
+    const selectedList = exportItems.filter(i => exportSelectedIds.includes(i.id));
+
+    if (exportFormat === 'json') {
+      const jsonPayload = selectedList.map(item => ({
+        id: item.id,
+        provider_name: item.provider_name,
+        label: item.label,
+        status: item.status,
+        model_id: item.model_id || undefined,
+        credentials: exportIncludeDecrypted ? item.credentials : { api_key: '[MASKED]' },
+        created_at: item.created_at,
+      }));
+      return JSON.stringify(jsonPayload, null, 2);
+    }
+
+    if (exportFormat === 'csv') {
+      const headers = ['ID', 'Provider', 'Label', 'Status', 'API_Key', 'Created_At'];
+      const rows = selectedList.map(item => {
+        const apiKeyStr = exportIncludeDecrypted
+          ? (item.credentials?.api_key || item.credentials?.secret_key || JSON.stringify(item.credentials || {}))
+          : '[MASKED]';
+        return [
+          item.id,
+          `"${item.provider_name}"`,
+          `"${(item.label || '').replace(/"/g, '""')}"`,
+          `"${item.status}"`,
+          `"${apiKeyStr.replace(/"/g, '""')}"`,
+          `"${item.created_at}"`,
+        ].join(',');
+      });
+      return [headers.join(','), ...rows].join('\n');
+    }
+
+    return selectedList.map(item => {
+      const apiKeyStr = exportIncludeDecrypted
+        ? (item.credentials?.api_key || item.credentials?.secret_key || JSON.stringify(item.credentials || {}))
+        : '[MASKED]';
+      return `${apiKeyStr} # ${item.label} (${item.provider_name})`;
+    }).join('\n');
+  };
+
+  const handleDownloadExport = () => {
+    const content = generateExportContent();
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `onekeyhub_export_${exportProvider}_${Date.now()}.${exportFormat}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Berkas export berhasil diunduh!');
+  };
+
+  const handleCopyExport = async () => {
+    const content = generateExportContent();
+    await navigator.clipboard.writeText(content).catch(() => {});
+    setIsExportCopied(true);
+    toast.success('Hasil export disalin ke clipboard!');
+    setTimeout(() => setIsExportCopied(false), 2000);
+  };
+
+  // ── IMPORT HANDLERS ──
+  const openImportModal = () => {
+    setImportTargetProvider(filterProvider !== 'all' ? filterProvider : 'auto');
+    setImportLabelPrefix('Imported Key');
+    setImportRawInput('');
+    setImportParsedItems([]);
+    setIsImportModalOpen(true);
+  };
+
+  const autoDetectProviderFromKey = (key: string, fallback: string): string => {
+    const k = key.trim();
+    if (k.startsWith('AIzaSy')) return 'gemini';
+    if (k.startsWith('gsk_')) return 'groq';
+    if (k.startsWith('sk-proj') || k.startsWith('sk-')) {
+      if (fallback === 'deepseek') return 'deepseek';
+      return 'openai';
+    }
+    if (k.startsWith('hf_')) return 'huggingface';
+    if (k.startsWith('csk_')) return 'cerebras';
+    if (k.startsWith('tvly-')) return 'tavily';
+    if (k.startsWith('pk.')) return 'mapbox';
+    return fallback === 'auto' ? 'gemini' : fallback;
+  };
+
+  const parseImportText = (text: string, targetProvider: string, labelPrefix: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setImportParsedItems([]);
+      return;
+    }
+
+    const items: Array<{ provider_name: string; label: string; credentials: Record<string, string>; raw_key: string }> = [];
+
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const rawParsed = JSON.parse(trimmed);
+        const list = Array.isArray(rawParsed) ? rawParsed : [rawParsed];
+        list.forEach((entry: any, index: number) => {
+          let prov = (entry.provider_name || entry.provider || targetProvider).toLowerCase();
+          if (prov === 'auto') prov = 'gemini';
+          const lbl = entry.label || `${labelPrefix} #${index + 1}`;
+          let creds: Record<string, string> = {};
+
+          if (entry.credentials && typeof entry.credentials === 'object') {
+            creds = entry.credentials;
+          } else if (entry.api_key) {
+            creds = { api_key: entry.api_key };
+          } else if (typeof entry === 'string') {
+            const detected = autoDetectProviderFromKey(entry, prov);
+            creds = { api_key: entry };
+            prov = detected;
+          }
+
+          const rawKeyStr = creds.api_key || creds.secret_key || JSON.stringify(creds);
+          if (rawKeyStr && rawKeyStr !== '[MASKED]') {
+            items.push({ provider_name: prov, label: lbl, credentials: creds, raw_key: rawKeyStr });
+          }
+        });
+        setImportParsedItems(items);
+        return;
+      } catch {
+        // Fallback to line by line parsing
+      }
+    }
+
+    const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    lines.forEach((line, index) => {
+      if (line.startsWith('#') || line.startsWith('//')) return;
+
+      const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+      let prov = targetProvider;
+      let lbl = `${labelPrefix} #${index + 1}`;
+      let keyVal = line;
+
+      if (parts.length >= 3 && parts[0].length < 20) {
+        prov = parts[0].toLowerCase();
+        lbl = parts[1] || lbl;
+        keyVal = parts[2];
+      } else {
+        const keyAndComment = line.split('#');
+        keyVal = keyAndComment[0].trim();
+        if (keyAndComment[1]) {
+          lbl = keyAndComment[1].trim();
+        }
+        if (prov === 'auto') {
+          prov = autoDetectProviderFromKey(keyVal, 'gemini');
+        }
+      }
+
+      if (keyVal && keyVal !== '[MASKED]') {
+        items.push({
+          provider_name: prov.toLowerCase(),
+          label: lbl,
+          credentials: { api_key: keyVal },
+          raw_key: keyVal,
+        });
+      }
+    });
+
+    setImportParsedItems(items);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        setImportRawInput(content);
+        parseImportText(content, importTargetProvider, importLabelPrefix);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExecuteImport = async () => {
+    if (importParsedItems.length === 0) {
+      toast.error('Tidak ada API Key yang valid untuk di-import');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const { data } = await api.post('/api/credentials/import-batch', {
+        items: importParsedItems,
+      });
+
+      if (data.success) {
+        toast.success(`Berhasil mengimpor ${data.imported_count} API Key!`, { duration: 5000 });
+        if (data.failed_count > 0) {
+          toast.warning(`${data.failed_count} key dilewati/gagal (duplikat atau format tidak valid)`);
+        }
+        setIsImportModalOpen(false);
+        fetchCredentials();
+      } else {
+        toast.error(data.error || 'Gagal mengimpor API key');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal menjalankan import batch');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     provider_name: 'gemini',
@@ -645,6 +924,28 @@ export default function Providers() {
               </Button>
 
               <Button
+                onClick={() => openExportModal(filterProvider)}
+                variant="outline"
+                size="sm"
+                className="bg-secondary/40 border-primary/40 text-primary hover:bg-primary/10 text-xs gap-1.5 flex-1 sm:flex-none"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Export Keys</span>
+                <span className="sm:hidden">Export</span>
+              </Button>
+
+              <Button
+                onClick={openImportModal}
+                variant="outline"
+                size="sm"
+                className="bg-secondary/40 border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10 text-xs gap-1.5 flex-1 sm:flex-none"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Import Keys</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+
+              <Button
                 onClick={openCreateModal}
                 size="sm"
                 className="bg-primary hover:bg-primary/90 text-sm flex-1 sm:flex-none"
@@ -1153,6 +1454,284 @@ export default function Providers() {
             </DialogFooter>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* ── EXPORT API KEYS MODAL ── */}
+      <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Download className="w-5 h-5 text-primary" />
+              Export Provider API Keys
+            </DialogTitle>
+            <DialogDescription>
+              Pilih provider dan kunci API yang ingin di-export ke format JSON, CSV, atau TXT.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs mb-1.5 block">Pilih Provider</Label>
+                <Select value={exportProvider} onValueChange={handleExportProviderChange}>
+                  <SelectTrigger className="h-9 text-xs bg-secondary/50 border-border/40">
+                    <SelectValue placeholder="Pilih Provider" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="all">Semua Provider ({credentials.length})</SelectItem>
+                    {providerOptions.map(p => {
+                      const count = credentials.filter(c => c.provider_name === p.value).length;
+                      return (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs mb-1.5 block">Format Export</Label>
+                <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
+                  <SelectTrigger className="h-9 text-xs bg-secondary/50 border-border/40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="json">JSON (.json)</SelectItem>
+                    <SelectItem value="csv">CSV (.csv)</SelectItem>
+                    <SelectItem value="txt">TXT Key-Per-Line (.txt)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col justify-end">
+                <label className="flex items-center gap-2 cursor-pointer text-xs p-2 rounded bg-secondary/30 border border-border/40 hover:bg-secondary/60 transition-colors">
+                  <Checkbox
+                    checked={exportIncludeDecrypted}
+                    onCheckedChange={(c) => setExportIncludeDecrypted(!!c)}
+                  />
+                  <span>Sertakan API Key Asli</span>
+                </label>
+              </div>
+            </div>
+
+            {/* List Selection */}
+            <div className="border border-border/40 rounded-xl p-3 bg-secondary/20 space-y-2">
+              <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Pilih Key ({exportSelectedIds.length}/{exportItems.length} Terpilih)
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSelectAllExport}
+                  className="h-6 text-xs text-primary hover:text-primary/80 px-2"
+                >
+                  {exportSelectedIds.length === exportItems.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
+                </Button>
+              </div>
+
+              {isExportLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : exportItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">Tidak ada API Key pada provider ini.</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                  {exportItems.map(item => (
+                    <label
+                      key={item.id}
+                      className={`flex items-center justify-between text-xs p-2 rounded border transition-colors cursor-pointer ${
+                        exportSelectedIds.includes(item.id)
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-card/50 border-border/30 opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Checkbox
+                          checked={exportSelectedIds.includes(item.id)}
+                          onCheckedChange={() => toggleSelectExportId(item.id)}
+                        />
+                        <span className="font-semibold text-foreground truncate">#{item.id} {item.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary uppercase font-mono">{item.provider_name}</span>
+                      </div>
+                      <span className="font-mono text-[11px] text-muted-foreground truncate max-w-[150px]">
+                        {exportIncludeDecrypted
+                          ? (item.credentials?.api_key || item.credentials?.secret_key || '***')
+                          : '[MASKED]'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Formatted Preview Box */}
+            <div>
+              <Label className="text-xs mb-1.5 block">Pratinjau Hasil Export</Label>
+              <textarea
+                readOnly
+                value={generateExportContent()}
+                rows={5}
+                className="w-full font-mono text-xs p-2.5 rounded-lg bg-black/40 border border-border/50 text-emerald-400 resize-none focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsExportModalOpen(false)}>Tutup</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCopyExport}
+              disabled={exportSelectedIds.length === 0}
+              className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              {isExportCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+              Salin Clipboard
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDownloadExport}
+              disabled={exportSelectedIds.length === 0}
+              className="bg-primary hover:bg-primary/90 text-white gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              Download Berkas ({exportFormat.toUpperCase()})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── IMPORT API KEYS MODAL ── */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Upload className="w-5 h-5 text-emerald-500" />
+              Import Provider API Keys
+            </DialogTitle>
+            <DialogDescription>
+              Unggah berkas JSON/CSV/TXT atau tempel kunci API secara masal dengan deteksi provider otomatis.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs mb-1.5 block">Target Provider</Label>
+                <Select
+                  value={importTargetProvider}
+                  onValueChange={(v) => {
+                    setImportTargetProvider(v);
+                    parseImportText(importRawInput, v, importLabelPrefix);
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-secondary/50 border-border/40">
+                    <SelectValue placeholder="Target Provider" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="auto">⚡ Deteksi Otomatis (Auto-Detect)</SelectItem>
+                    {providerOptions.map(p => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs mb-1.5 block">Prefix Label Key</Label>
+                <Input
+                  value={importLabelPrefix}
+                  onChange={(e) => {
+                    setImportLabelPrefix(e.target.value);
+                    parseImportText(importRawInput, importTargetProvider, e.target.value);
+                  }}
+                  placeholder="Contoh: Imported Key"
+                  className="h-9 text-xs bg-secondary/50"
+                />
+              </div>
+            </div>
+
+            {/* Input Options: File Upload or Raw Paste */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Unggah Berkas (.json, .csv, .txt) / Tempel Teks Key</Label>
+                <label className="cursor-pointer text-xs text-primary hover:underline flex items-center gap-1 font-semibold">
+                  <Upload className="w-3.5 h-3.5" /> Pilih Berkas
+                  <input
+                    type="file"
+                    accept=".json,.csv,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <textarea
+                value={importRawInput}
+                onChange={(e) => {
+                  setImportRawInput(e.target.value);
+                  parseImportText(e.target.value, importTargetProvider, importLabelPrefix);
+                }}
+                placeholder={`Tempel API Key di sini (1 per baris atau JSON array):\nAIzaSy...\ngsk_...\nsk-...`}
+                rows={5}
+                className="w-full font-mono text-xs p-2.5 rounded-lg bg-secondary/30 border border-border/50 focus:outline-none focus:border-primary"
+              />
+            </div>
+
+            {/* Parsed Items Preview Table */}
+            <div className="border border-border/40 rounded-xl p-3 bg-secondary/20 space-y-2">
+              <div className="flex items-center justify-between border-b border-border/30 pb-2">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Pratinjau Impor ({importParsedItems.length} Key Valid Terdeteksi)
+                </span>
+                {importParsedItems.length > 0 && (
+                  <span className="text-[10px] text-emerald-400 font-medium">Siap di-import</span>
+                )}
+              </div>
+
+              {importParsedItems.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  Belum ada key yang diinput. Tempel key di atas atau unggah file.
+                </p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                  {importParsedItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded bg-card/60 border border-border/30">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-muted-foreground text-[10px]">#{idx + 1}</span>
+                        <span className="font-semibold truncate">{item.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase font-mono">
+                          {item.provider_name}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] text-muted-foreground truncate max-w-[180px]">
+                        {item.raw_key.slice(0, 10)}...{item.raw_key.slice(-6)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsImportModalOpen(false)}>Batal</Button>
+            <Button
+              type="button"
+              onClick={handleExecuteImport}
+              disabled={isImporting || importParsedItems.length === 0}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5"
+            >
+              {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {isImporting ? 'Mengimpor...' : `Proses Import (${importParsedItems.length} Key)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

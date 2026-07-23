@@ -50,6 +50,7 @@ const PROVIDER_META: Record<string, { color: string; badge: string; emoji: strin
   cohere: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣', category: 'ai' },
   cerebras: { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡', category: 'ai' },
   together: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮', category: 'ai' },
+  huggingface: { color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🤗', category: 'ai' },
   
   // Storage & Media CDN Providers
   cloudinary: { color: 'bg-sky-500/10 text-sky-400 border-sky-500/30', badge: 'bg-sky-500/20 text-sky-300', emoji: '☁️', category: 'storage' },
@@ -159,6 +160,7 @@ const PROVIDER_DEFAULT_MODEL: Record<string, string> = {
   deepseek: 'deepseek-chat',
   cerebras: 'llama3.1-70b',
   together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  huggingface: 'mistralai/Mistral-7B-Instruct-v0.3',
 };
 
 export default function GatewayDocs({ gatewayKey = 'YOUR_GATEWAY_KEY', defaultProvider = 'gemini', collapsed = false }: Props) {
