@@ -1,20 +1,32 @@
 const readline = require('readline');
-const chalk = require('chalk');
+
+// ANSI escape code untuk warna hijau terang
+const GREEN = '\x1b[92m';
+const RESET = '\x1b[0m';
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-const prompt = chalk.blue.bold('CLI > ');
+async function askQuestion() {
+  rl.question('Anda > ', async (input) => {
+    if (input.toLowerCase() === 'exit') {
+      rl.close();
+      return;
+    }
 
-rl.setPrompt(prompt);
-rl.prompt();
+    // Logika pemanggilan AI (simulasi)
+    process.stdout.write(`${GREEN}AI >${RESET} Sedang memproses...\n`);
+    
+    // Di sini Anda bisa menambahkan integrasi API AI yang sesungguhnya
+    const response = `Anda mengatakan: ${input}`;
+    
+    console.log(`${GREEN}AI >${RESET} ${response}`);
+    
+    askQuestion();
+  });
+}
 
-rl.on('line', (line) => {
-  console.log(chalk.green('Anda mengetik: ') + chalk.yellow(line));
-  rl.prompt();
-}).on('close', () => {
-  console.log(chalk.magenta('Terima kasih, sampai jumpa!'));
-  process.exit(0);
-});
+console.log('CLI AI dimulai. Ketik "exit" untuk keluar.');
+askQuestion();
