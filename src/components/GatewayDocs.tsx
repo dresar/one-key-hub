@@ -44,12 +44,9 @@ const BASE_URL = (import.meta.env.VITE_API_URL as string || (import.meta.env.DEV
 const PROVIDER_META: Record<string, { color: string; badge: string; emoji: string; category: 'ai' | 'storage' | 'other' }> = {
   gemini: { color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', badge: 'bg-blue-500/20 text-blue-300', emoji: '🔵', category: 'ai' },
   groq: { color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', badge: 'bg-orange-500/20 text-orange-300', emoji: '🟠', category: 'ai' },
-  openai: { color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300', emoji: '🟢', category: 'ai' },
-  deepseek: { color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', badge: 'bg-cyan-500/20 text-cyan-300', emoji: '🔷', category: 'ai' },
+  openrouter: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🌐', category: 'ai' },
   mistral: { color: 'bg-rose-500/10 text-rose-400 border-rose-500/30', badge: 'bg-rose-500/20 text-rose-300', emoji: '🌸', category: 'ai' },
   cohere: { color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', badge: 'bg-purple-500/20 text-purple-300', emoji: '🟣', category: 'ai' },
-  cerebras: { color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🟡', category: 'ai' },
-  together: { color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300', emoji: '🔮', category: 'ai' },
   huggingface: { color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-300', emoji: '🤗', category: 'ai' },
   
   // Storage & Media CDN Providers

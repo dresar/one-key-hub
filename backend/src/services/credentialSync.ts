@@ -182,6 +182,33 @@ export function getBestCachedCredential(
     );
   }
 
+  // 3. Smart Cooldown Fallback: If all active keys are exhausted/in cooldown, auto-recover expired cooldown keys or use the oldest cooled-down key
+  if (candidates.length === 0) {
+    const now = new Date();
+    const cooldownKeys = providerList.filter(
+      c => c.status === 'cooldown' && !excludedStr.includes(String(c.id))
+    );
+
+    for (const c of cooldownKeys) {
+      if (!c.cooldown_until || new Date(c.cooldown_until) <= now) {
+        c.status = 'active';
+        c.cooldown_until = null;
+        c.failed_requests = 0;
+        candidates.push(c);
+      }
+    }
+
+    // If still empty, use the cooldown key whose cooldown expires earliest
+    if (candidates.length === 0 && cooldownKeys.length > 0) {
+      cooldownKeys.sort((a, b) => {
+        const timeA = a.cooldown_until ? new Date(a.cooldown_until).getTime() : 0;
+        const timeB = b.cooldown_until ? new Date(b.cooldown_until).getTime() : 0;
+        return timeA - timeB;
+      });
+      candidates.push(cooldownKeys[0]);
+    }
+  }
+
   if (candidates.length === 0) return null;
 
   // Sort by total_requests ascending (least used first)

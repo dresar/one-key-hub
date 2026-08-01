@@ -46,59 +46,110 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const model = body.model_id || 'gemini-2.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${creds.api_key}`;
 
-      const parts: any[] = [];
-
-      // Support image_base64 (photo analysis)
-      if (body.image_base64) {
-        const raw = body.image_base64 as string;
-        const commaIdx = raw.indexOf(',');
-        const header = commaIdx > -1 ? raw.substring(0, commaIdx) : '';
-        const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-        parts.push({
-          inlineData: { mimeType, data: base64Data },
-        });
-      }
-
-      // Support video_base64 (video analysis — Gemini 2.0+ supports inline video)
-      if (body.video_base64) {
-        const raw = body.video_base64 as string;
-        const commaIdx = raw.indexOf(',');
-        const header = commaIdx > -1 ? raw.substring(0, commaIdx) : '';
-        const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'video/mp4';
-        parts.push({
-          inlineData: { mimeType, data: base64Data },
-        });
-      }
-
-      // Extract prompt text from body.prompt or body.messages
-      let promptText = body.prompt || '';
       let systemText = body.system_prompt || '';
+      const contents: any[] = [];
 
-      if (Array.isArray(body.messages)) {
-        const sysMsg = body.messages.find((m: any) => m.role === 'system');
-        if (sysMsg && !systemText) {
-          systemText = typeof sysMsg.content === 'string' ? sysMsg.content : JSON.stringify(sysMsg.content);
-        }
+      // Convert full OpenAI messages history to Gemini contents format
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        for (const msg of body.messages) {
+          if (msg.role === 'system') {
+            const sysContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+            systemText = systemText ? `${systemText}\n${sysContent}` : sysContent;
+          } else {
+            const role = (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user';
+            const parts: any[] = [];
 
-        const userMsgs = body.messages.filter((m: any) => m.role === 'user' || !m.role);
-        const lastUser = userMsgs[userMsgs.length - 1];
-        if (lastUser && !promptText) {
-          promptText = typeof lastUser.content === 'string' ? lastUser.content : JSON.stringify(lastUser.content);
+            if (typeof msg.content === 'string') {
+              if (msg.content) parts.push({ text: msg.content });
+            } else if (Array.isArray(msg.content)) {
+              for (const item of msg.content) {
+                if (item.type === 'text' && item.text) {
+                  parts.push({ text: item.text });
+                } else if (item.type === 'image_url') {
+                  const raw = item.image_url?.url || '';
+                  const commaIdx = raw.indexOf(',');
+                  const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+                  const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+                  parts.push({ inlineData: { mimeType, data: base64Data } });
+                }
+              }
+            }
+
+            // Handle previous assistant tool calls / function calls
+            if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+              for (const tc of msg.tool_calls) {
+                if (tc.function) {
+                  try {
+                    const args = typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments) : tc.function.arguments;
+                    parts.push({ functionCall: { name: tc.function.name, args } });
+                  } catch {
+                    parts.push({ text: `Function Call: ${tc.function.name}(${tc.function.arguments})` });
+                  }
+                }
+              }
+            }
+
+            // Fallback for media attachments in root body
+            if (role === 'user' && parts.length === 0) {
+              if (body.image_base64) {
+                const raw = body.image_base64 as string;
+                const commaIdx = raw.indexOf(',');
+                const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+                const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+                parts.push({ inlineData: { mimeType, data: base64Data } });
+              }
+              if (body.video_base64) {
+                const raw = body.video_base64 as string;
+                const commaIdx = raw.indexOf(',');
+                const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+                const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'video/mp4';
+                parts.push({ inlineData: { mimeType, data: base64Data } });
+              }
+            }
+
+            if (parts.length === 0) {
+              parts.push({ text: ' ' });
+            }
+
+            contents.push({ role, parts });
+          }
         }
+      } else if (body.prompt) {
+        const parts: any[] = [];
+        if (body.image_base64) {
+          const raw = body.image_base64 as string;
+          const commaIdx = raw.indexOf(',');
+          const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
+          const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+          parts.push({ inlineData: { mimeType, data: base64Data } });
+        }
+        parts.push({ text: body.prompt });
+        contents.push({ role: 'user', parts });
       }
 
-      if (promptText) {
-        parts.push({ text: promptText });
+      if (contents.length === 0) {
+        contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
       }
 
-      // System instruction support
-      const payload: any = {
-        contents: [{ role: 'user', parts }],
-      };
+      const payload: any = { contents };
+
       if (systemText) {
         payload.systemInstruction = { parts: [{ text: systemText }] };
+      }
+
+      // Convert OpenAI tools to Gemini functionDeclarations
+      if (Array.isArray(body.tools) && body.tools.length > 0) {
+        const functionDeclarations = body.tools
+          .filter((t: any) => t.type === 'function' && t.function)
+          .map((t: any) => ({
+            name: t.function.name,
+            description: t.function.description || '',
+            parameters: t.function.parameters || { type: 'OBJECT', properties: {} }
+          }));
+
+        if (functionDeclarations.length > 0) {
+          payload.tools = [{ functionDeclarations }];
+        }
       }
 
       return {
@@ -108,9 +159,39 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       };
     },
     parseChatResponse: (data) => {
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text
-        || data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('')
-        || JSON.stringify(data);
+      const candidate = data?.candidates?.[0];
+      if (!candidate) return typeof data === 'string' ? data : JSON.stringify(data);
+
+      const parts = candidate?.content?.parts || [];
+      const extractedTexts: string[] = [];
+
+      for (const p of parts) {
+        if (p.text && p.text.trim()) {
+          extractedTexts.push(p.text);
+        } else if (p.functionCall) {
+          extractedTexts.push(JSON.stringify({
+            name: p.functionCall.name,
+            arguments: p.functionCall.args || {}
+          }));
+        } else if (p.thought) {
+          extractedTexts.push(p.thought);
+        }
+      }
+
+      if (extractedTexts.length > 0) {
+        return extractedTexts.join('\n');
+      }
+
+      // Handle MALFORMED_FUNCTION_CALL & finishMessage fallback
+      if (candidate.finishMessage) {
+        return candidate.finishMessage;
+      }
+
+      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+        return `[Gemini Status: ${candidate.finishReason}]`;
+      }
+
+      return JSON.stringify(data);
     },
   },
 
@@ -328,25 +409,66 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   },
 
   huggingface: {
-    baseUrl: 'https://api-inference.huggingface.co',
+    baseUrl: 'https://router.huggingface.co',
     buildChatRequest: (creds, body) => {
-      const model = body.model_id || 'mistralai/Mistral-7B-Instruct-v0.3';
+      const model = body.model_id || 'Qwen/Qwen2.5-72B-Instruct';
+      const messages: any[] = [];
+      if (body.system_prompt) messages.push({ role: 'system', content: body.system_prompt });
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        for (const m of body.messages) {
+          if (m.role !== 'system') messages.push(m);
+        }
+      } else {
+        messages.push({ role: 'user', content: body.prompt || '' });
+      }
+
       return {
-        url: `https://api-inference.huggingface.co/models/${model}`,
+        url: 'https://router.huggingface.co/v1/chat/completions',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${creds.api_key}`,
         },
         payload: {
-          inputs: body.prompt || '',
-          parameters: { max_new_tokens: 512, return_full_text: false },
+          model,
+          messages,
+          max_tokens: 2048,
         },
       };
     },
-    parseChatResponse: (data) => {
-      if (Array.isArray(data)) return data[0]?.generated_text || JSON.stringify(data);
-      return data?.generated_text || JSON.stringify(data);
+    parseChatResponse: (data) =>
+      data?.choices?.[0]?.message?.content || (Array.isArray(data) ? data[0]?.generated_text : data?.generated_text) || JSON.stringify(data),
+  },
+
+  openrouter: {
+    baseUrl: 'https://openrouter.ai/api/v1',
+    buildChatRequest: (creds, body) => {
+      const messages: any[] = [];
+      if (body.system_prompt) messages.push({ role: 'system', content: body.system_prompt });
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        for (const m of body.messages) {
+          if (m.role !== 'system') messages.push(m);
+        }
+      } else {
+        messages.push({ role: 'user', content: body.prompt || '' });
+      }
+
+      return {
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.api_key}`,
+          'HTTP-Referer': 'https://one.apprentice.cyou',
+          'X-Title': 'One Key Hub',
+        },
+        payload: {
+          model: body.model_id || 'openrouter/free',
+          messages,
+          max_tokens: 2048,
+        },
+      };
     },
+    parseChatResponse: (data) =>
+      data?.choices?.[0]?.message?.content || JSON.stringify(data),
   },
 };
 
@@ -673,10 +795,29 @@ router.post('/chat/completions', async (req: Request, res: Response, next: any) 
   next();
 });
 
+// ─── Provider Fallback Chain Configuration (Full Non-Stop Failover - 100% Free Providers) ───
+const PROVIDER_FALLBACK_CHAIN: Record<string, string[]> = {
+  gemini: ['groq', 'openrouter', 'cohere', 'mistral', 'huggingface'],
+  groq: ['gemini', 'openrouter', 'cohere', 'mistral', 'huggingface'],
+  openrouter: ['gemini', 'groq', 'cohere', 'mistral', 'huggingface'],
+  cohere: ['gemini', 'groq', 'openrouter', 'mistral', 'huggingface'],
+  mistral: ['groq', 'gemini', 'openrouter', 'cohere', 'huggingface'],
+  huggingface: ['groq', 'gemini', 'openrouter', 'cohere', 'mistral'],
+};
+
+const DEFAULT_FALLBACK_MODELS: Record<string, string> = {
+  gemini: 'gemini-2.5-flash',
+  groq: 'llama-3.3-70b-versatile',
+  openrouter: 'openrouter/free',
+  cohere: 'command-r-plus-08-2024',
+  mistral: 'mistral-small-latest',
+  huggingface: 'Qwen/Qwen2.5-72B-Instruct',
+};
+
 // ─── POST /gateway/:provider/chat ─────────────────────────────────────────────
 router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: Response) => {
   const startTime = Date.now();
-  const providerName = (req.params.provider || 'gemini').toLowerCase();
+  const primaryProvider = (req.params.provider || 'gemini').toLowerCase();
   const rawApiKey = getGatewayApiKey(req);
 
   // 1. Validate gateway key
@@ -702,7 +843,7 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
   }
 
   // 2. Check provider restriction
-  if (gatewayKey.provider && gatewayKey.provider !== '' && gatewayKey.provider !== providerName) {
+  if (gatewayKey.provider && gatewayKey.provider !== '' && gatewayKey.provider !== primaryProvider) {
     res.status(403).json({
       error: {
         message: `Key ini khusus untuk provider ${gatewayKey.provider} saja.`,
@@ -713,10 +854,10 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
   }
 
   if (gatewayKey.allowedProviders && Array.isArray(gatewayKey.allowedProviders)) {
-    if (!(gatewayKey.allowedProviders as string[]).includes(providerName)) {
+    if (!(gatewayKey.allowedProviders as string[]).includes(primaryProvider)) {
       res.status(403).json({
         error: {
-          message: `Provider "${providerName}" not allowed for this key. Allowed: ${(gatewayKey.allowedProviders as string[]).join(', ')}`,
+          message: `Provider "${primaryProvider}" not allowed for this key. Allowed: ${(gatewayKey.allowedProviders as string[]).join(', ')}`,
           type: 'invalid_request_error'
         }
       });
@@ -728,24 +869,22 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
   let targetModelId = req.body.model_id || req.body.model;
   if (gatewayKey.modelId && gatewayKey.modelId !== '') {
     targetModelId = gatewayKey.modelId;
-  } else {
-    // Query database for this provider's default model
+  } else if (!targetModelId) {
+    // Query database for this provider's default model only if client didn't specify one
     const dbModels = await db
       .select({ modelId: aiModels.modelId, isDefault: aiModels.isDefault, supportsVision: aiModels.supportsVision })
       .from(aiModels)
-      .where(eq(aiModels.provider, providerName));
+      .where(eq(aiModels.provider, primaryProvider));
 
     if (dbModels.length > 0) {
       if (gatewayKey.modelType) {
         const isVision = gatewayKey.modelType === 'vision';
-        // Find a matching default model for vision or normal
         const match = isVision 
           ? dbModels.find(m => m.supportsVision && m.isDefault) || dbModels.find(m => m.supportsVision)
           : dbModels.find(m => !m.supportsVision && m.isDefault) || dbModels.find(m => m.isDefault);
         
         targetModelId = match?.modelId || dbModels[0]?.modelId;
       } else {
-        // Just find default or first
         const match = dbModels.find(m => m.isDefault) || dbModels[0];
         targetModelId = match?.modelId;
       }
@@ -753,174 +892,251 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
 
     // Fallbacks if no model found in DB
     if (!targetModelId) {
-      if (gatewayKey.modelType) {
-        const isVision = gatewayKey.modelType === 'vision';
-        if (providerName === 'gemini') {
-          targetModelId = 'gemini-2.5-flash';
-        } else if (providerName === 'groq') {
-          targetModelId = isVision ? 'llama-3.2-11b-vision-preview' : 'llama-3.3-70b-versatile';
-        } else if (providerName === 'deepseek') {
-          targetModelId = 'deepseek-chat';
-        } else {
-          targetModelId = 'gemini-2.5-flash';
-        }
-      } else {
-        if (providerName === 'gemini') targetModelId = 'gemini-2.5-flash';
-        else if (providerName === 'groq') targetModelId = 'llama-3.3-70b-versatile';
-        else if (providerName === 'deepseek') targetModelId = 'deepseek-chat';
-        else targetModelId = 'gemini-2.5-flash';
-      }
+      targetModelId = DEFAULT_FALLBACK_MODELS[primaryProvider] || 'gemini-2.5-flash';
     }
   }
 
-  // Validate model support
-  if (targetModelId) {
-    const existingModel = await db
-      .select({ modelId: aiModels.modelId })
-      .from(aiModels)
-      .where(eq(aiModels.modelId, targetModelId))
-      .limit(1);
+  // 4. Multi-Provider Fallback Chain Loop
+  const fallbackProviders = PROVIDER_FALLBACK_CHAIN[primaryProvider] || ['groq', 'deepseek', 'openai'];
+  const providersToTry = [primaryProvider, ...fallbackProviders];
 
-    if (existingModel.length === 0) {
-      const standardModels = [
-        'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro',
-        'llama-3.3-70b-versatile', 'llama3.1-70b', 'deepseek-chat', 'gpt-4o-mini',
-        'gpt-4o', 'gpt-3.5-turbo', 'claude-3-5-sonnet', 'claude-3-opus'
-      ];
-      if (!standardModels.includes(targetModelId)) {
-        res.status(400).json({
-          error: {
-            message: "Model not supported",
-            type: "invalid_request_error",
-            code: "model_not_supported"
-          }
-        });
-        return;
-      }
-    }
-  }
-
-  // Enforce selected model_id on body
-  if (targetModelId) {
-    req.body.model_id = targetModelId;
-  }
-
-  // 4. Get provider config
-  const config = PROVIDER_CONFIGS[providerName];
-  if (!config) {
-    res.status(400).json({ error: `Unsupported provider: ${providerName}` });
-    return;
-  }
-
-  // 5. Automatic Rotation Loop: Fast 3-second timeout per key, up to 30 rotation attempts
-  const maxRetries = 30;
-  const excludeIds: (string | number)[] = [];
   let lastErrorMsg = '';
   let lastStatusCode = 503;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const cred = await getProviderCredential(providerName, targetModelId, undefined, excludeIds);
-    if (!cred) {
-      break;
+  for (const currProvider of providersToTry) {
+    const config = PROVIDER_CONFIGS[currProvider];
+    if (!config) continue;
+
+    const isFallback = currProvider !== primaryProvider;
+    const currModelId = isFallback
+      ? (DEFAULT_FALLBACK_MODELS[currProvider] || 'gemini-2.5-flash')
+      : (targetModelId || DEFAULT_FALLBACK_MODELS[currProvider] || 'gemini-2.5-flash');
+
+    if (isFallback) {
+      console.log(`[Gateway Failover] 🔄 Primary provider "${primaryProvider}" exhausted. Attempting fallback provider "${currProvider}" (${currModelId})...`);
     }
 
-    try {
-      const { url, headers: reqHeaders, payload } = config.buildChatRequest(cred.credentials, req.body);
+    const activeReqBody = {
+      ...req.body,
+      model_id: currModelId,
+      model: currModelId
+    };
 
-      const upstreamRes = await fetch(url, {
-        method: 'POST',
-        headers: reqHeaders,
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(1_500),
-      });
+    const maxRetries = 15;
+    const excludeIds: (string | number)[] = [];
 
-      const responseData: any = await upstreamRes.json();
-      const responseTimeMs = Date.now() - startTime;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const cred = await getProviderCredential(currProvider, currModelId, undefined, excludeIds);
+      if (!cred) {
+        break;
+      }
 
-      if (!upstreamRes.ok) {
-        const errorMsg = responseData?.error?.message || responseData?.message || `HTTP ${upstreamRes.status}`;
-        lastErrorMsg = errorMsg;
-        lastStatusCode = upstreamRes.status;
+      try {
+        const { url, headers: reqHeaders, payload } = config.buildChatRequest(cred.credentials, activeReqBody);
 
-        console.warn(`[Gateway Rotation] Credential #${cred.id} failed (${upstreamRes.status}): ${errorMsg}. Rotating to next key...`);
+        const upstreamRes = await fetch(url, {
+          method: 'POST',
+          headers: reqHeaders,
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(30_000),
+        });
 
-        // Report error to rotation engine (sets cooldown) & exclude from current request loop
-        await reportCredentialFailure(cred.id, errorMsg);
-        excludeIds.push(cred.id);
+        const responseData: any = await upstreamRes.json();
+        const responseTimeMs = Date.now() - startTime;
+
+        if (!upstreamRes.ok) {
+          const errorMsg = responseData?.error?.message || responseData?.message || `HTTP ${upstreamRes.status}`;
+          lastErrorMsg = errorMsg;
+          lastStatusCode = upstreamRes.status;
+
+          console.warn(`[Gateway Rotation] Credential #${cred.id} (${currProvider}) failed (${upstreamRes.status}): ${errorMsg}. Rotating to next key...`);
+
+          await reportCredentialFailure(cred.id, errorMsg);
+          excludeIds.push(cred.id);
+
+          await writeLog({
+            gatewayKeyId: gatewayKey.id,
+            credentialId: cred.id,
+            providerName: currProvider,
+            modelName: currModelId,
+            requestPath: `/gateway/${currProvider}/chat`,
+            status: 'error',
+            statusCode: upstreamRes.status,
+            errorMessage: errorMsg,
+            responseTimeMs,
+          });
+
+          continue;
+        }
+
+        // Parse success response & extract any tool calls
+        const text = config.parseChatResponse(responseData);
+        const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
+
+        let toolCalls: any[] | undefined = undefined;
+        let finalContent: string | null = text;
+
+        // 1. Native Gemini functionCall check
+        const candidateParts = responseData?.candidates?.[0]?.content?.parts || [];
+        for (const p of candidateParts) {
+          if (p.functionCall) {
+            if (!toolCalls) toolCalls = [];
+            toolCalls.push({
+              id: `call_${uuidv4().replace(/-/g, '').substring(0, 12)}`,
+              type: 'function',
+              function: {
+                name: p.functionCall.name,
+                arguments: typeof p.functionCall.args === 'string' ? p.functionCall.args : JSON.stringify(p.functionCall.args || {})
+              }
+            });
+          }
+        }
+
+        // 2. Stringified JSON tool call check (e.g. {"name": "terminal", "arguments": {...}})
+        if (!toolCalls && typeof text === 'string') {
+          const trimmed = text.trim();
+          if (trimmed.startsWith('{') && trimmed.endsWith('}') && (trimmed.includes('"name"') || trimmed.includes('"arguments"'))) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (parsed.name) {
+                toolCalls = [
+                  {
+                    id: `call_${uuidv4().replace(/-/g, '').substring(0, 12)}`,
+                    type: 'function',
+                    function: {
+                      name: parsed.name,
+                      arguments: typeof parsed.arguments === 'string' ? parsed.arguments : JSON.stringify(parsed.arguments || {})
+                    }
+                  }
+                ];
+              }
+            } catch {
+              // Keep as regular text
+            }
+          }
+        }
+
+        if (toolCalls && toolCalls.length > 0) {
+          finalContent = null;
+        }
 
         await writeLog({
           gatewayKeyId: gatewayKey.id,
           credentialId: cred.id,
-          providerName,
-          modelName: req.body.model_id,
-          requestPath: `/gateway/${providerName}/chat`,
-          status: 'error',
-          statusCode: upstreamRes.status,
-          errorMessage: errorMsg,
+          providerName: currProvider,
+          modelName: currModelId,
+          requestPath: `/gateway/${currProvider}/chat`,
+          status: 'success',
+          statusCode: 200,
           responseTimeMs,
+          tokensUsed,
         });
 
-        // Continue to next iteration / next rotated credential!
-        continue;
-      }
+        // Update usage counter locally
+        const cachedItems = getCachedCredentials(currProvider);
+        const targetItem = cachedItems.find(c => String(c.id) === String(cred.id));
+        if (targetItem) {
+          const newTotal = (targetItem.total_requests || 0) + 1;
+          updateLocalCredentialStats(cred.id, currProvider, { total_requests: newTotal });
+        }
 
-      // Parse success response
-      const text = config.parseChatResponse(responseData);
-      const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
+        if (isFallback) {
+          console.log(`[Gateway Failover] ✅ Fallback request succeeded using Credential #${cred.id} (${currProvider} - ${currModelId})`);
+        } else {
+          console.log(`[Gateway Rotation] ✅ Request succeeded using Credential #${cred.id} (${currProvider})`);
+        }
 
-      await writeLog({
-        gatewayKeyId: gatewayKey.id,
-        credentialId: cred.id,
-        providerName,
-        modelName: req.body.model_id,
-        requestPath: `/gateway/${providerName}/chat`,
-        status: 'success',
-        statusCode: 200,
-        responseTimeMs,
-        tokensUsed,
-      });
+        if (req.body.stream) {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
 
-      // Update usage counter locally
-      const cachedItems = getCachedCredentials(providerName);
-      const targetItem = cachedItems.find(c => String(c.id) === String(cred.id));
-      if (targetItem) {
-        const newTotal = (targetItem.total_requests || 0) + 1;
-        updateLocalCredentialStats(cred.id, providerName, { total_requests: newTotal });
-      }
+          const chunkId = `chatcmpl-${uuidv4()}`;
+          const created = Math.floor(Date.now() / 1000);
 
-      console.log(`[Gateway Rotation] ✅ Request succeeded using Credential #${cred.id} (${providerName})`);
+          const deltaObj: any = { role: 'assistant' };
+          if (toolCalls && toolCalls.length > 0) {
+            deltaObj.tool_calls = toolCalls;
+            deltaObj.content = null;
+          } else {
+            deltaObj.content = finalContent;
+          }
 
-      res.json({
-        id: `chatcmpl-${uuidv4()}`,
-        object: 'chat.completion',
-        created: Math.floor(Date.now() / 1000),
-        model: targetModelId,
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: text },
-            finish_reason: 'stop',
+          const chunkData = {
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created,
+            model: currModelId,
+            choices: [
+              {
+                index: 0,
+                delta: deltaObj,
+                finish_reason: null,
+              },
+            ],
+          };
+          res.write(`data: ${JSON.stringify(chunkData)}\n\n`);
+
+          const finalChunkData = {
+            id: chunkId,
+            object: 'chat.completion.chunk',
+            created,
+            model: currModelId,
+            choices: [
+              {
+                index: 0,
+                delta: {},
+                finish_reason: toolCalls ? 'tool_calls' : 'stop',
+              },
+            ],
+          };
+          res.write(`data: ${JSON.stringify(finalChunkData)}\n\n`);
+          res.write(`data: [DONE]\n\n`);
+          res.end();
+          return;
+        }
+
+        const messageObj: any = {
+          role: 'assistant',
+          content: finalContent,
+        };
+        if (toolCalls && toolCalls.length > 0) {
+          messageObj.tool_calls = toolCalls;
+        }
+
+        res.json({
+          id: `chatcmpl-${uuidv4()}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: currModelId,
+          choices: [
+            {
+              index: 0,
+              message: messageObj,
+              finish_reason: toolCalls ? 'tool_calls' : 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: tokensUsed || 0,
           },
-        ],
-        usage: {
-          prompt_tokens: 0,
-          completion_tokens: 0,
-          total_tokens: tokensUsed || 0,
-        },
-        text,
-        rotated_credential_id: cred.id,
-      });
-      return;
-    } catch (err: any) {
-      console.warn(`[Gateway Rotation] Exception on credential #${cred.id}:`, err.message);
-      await reportCredentialFailure(cred.id, err.message);
-      excludeIds.push(cred.id);
+          text: finalContent || '',
+          rotated_credential_id: cred.id,
+          failover_provider: isFallback ? currProvider : undefined,
+        });
+        return;
+      } catch (err: any) {
+        console.warn(`[Gateway Rotation] Exception on credential #${cred.id} (${currProvider}):`, err.message);
+        await reportCredentialFailure(cred.id, err.message);
+        excludeIds.push(cred.id);
+      }
     }
   }
 
   res.status(lastStatusCode).json({
     error: {
-      message: `Gateway Rotation Exhausted: All available credentials failed. Last error: ${lastErrorMsg || 'No active credentials available'}`,
+      message: `Gateway Rotation Exhausted: All available credentials across providers failed. Last error: ${lastErrorMsg || 'No active credentials available'}`,
       type: 'api_error'
     }
   });

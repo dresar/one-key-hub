@@ -8,7 +8,7 @@ import { syncProviderCredentialsSequence } from '../routes/credentials';
 
 // ─── Credential Rotation Engine ──────────────────────────────────────────────
 
-const COOLDOWN_DURATION_MS = 5 * 60 * 1000; // 5 minutes default cooldown
+const COOLDOWN_DURATION_MS = 60 * 1000; // 1 minute default cooldown (fast rate-limit recovery)
 const MAX_FAILED_REQUESTS = 1; // Auto-cooldown after 1 failure (instant rotation)
 
 /**

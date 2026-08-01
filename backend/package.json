@@ -7,7 +7,8 @@
     "dev": "ts-node src/index.ts",
     "build": "node build.js",
     "seed": "ts-node src/db/seed.ts",
-    "start": "node app.js"
+    "start": "node app.js",
+    "cli": "node cli.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

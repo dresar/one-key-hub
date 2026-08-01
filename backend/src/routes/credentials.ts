@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/client';
 import { providerCredentials, aiModels } from '../db/schema';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -920,27 +920,51 @@ router.post('/:id/test', async (req: AuthRequest, res: Response) => {
         }
       } else if (provider === 'huggingface') {
         const apiKey = decryptedCreds.api_key;
-        const hfModel = defaultModelId || 'mistralai/Mistral-7B-Instruct-v0.3';
-        const response = await fetch(
-          `https://api-inference.huggingface.co/models/${hfModel}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({ inputs: prompt }),
-            signal: controller.signal,
-          }
-        );
+        const hfModel = defaultModelId || 'Qwen/Qwen2.5-72B-Instruct';
+        const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: hfModel,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 100,
+          }),
+          signal: controller.signal,
+        });
         const data: any = await response.json();
         if (response.ok) {
           testSuccess = true;
-          answerText = Array.isArray(data)
-            ? data[0]?.generated_text || JSON.stringify(data)
-            : data?.generated_text || JSON.stringify(data);
+          answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
         } else {
-          errorDetail = data?.error || `HTTP ${response.status}`;
+          errorDetail = data?.error?.message || data?.error || `HTTP ${response.status}`;
+        }
+      } else if (provider === 'openrouter') {
+        const apiKey = decryptedCreds.api_key;
+        const openrouterModel = defaultModelId || 'openrouter/free';
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://one.apprentice.cyou',
+            'X-Title': 'One Key Hub',
+          },
+          body: JSON.stringify({
+            model: openrouterModel,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 100,
+          }),
+          signal: controller.signal,
+        });
+        const data: any = await response.json();
+        if (response.ok) {
+          testSuccess = true;
+          answerText = data?.choices?.[0]?.message?.content || JSON.stringify(data);
+        } else {
+          errorDetail = data?.error?.message || data?.error || `HTTP ${response.status}`;
         }
       } else if (provider === 'openweather') {
         const apiKey = decryptedCreds.api_key;

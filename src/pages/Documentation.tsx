@@ -78,14 +78,12 @@ function Section({ id, icon: Icon, iconBg, title, children }: {
 
 // ─── Provider support matrix ─────────────────────────────────────────────────
 const VISION_MATRIX = [
-  { provider: 'Gemini', image: true, video: true, text: true, notes: 'Image + Video (inline base64). Terbaik untuk video.' },
-  { provider: 'OpenAI (GPT-4o)', image: true, video: false, text: true, notes: 'Image via content array. GPT-4o & 4o-mini.' },
-  { provider: 'Anthropic (Claude)', image: true, video: false, text: true, notes: 'Image via native Anthropic vision format.' },
-  { provider: 'Groq', image: true, video: false, text: true, notes: 'Vision model: llama-3.2-11b-vision-preview.' },
-  { provider: 'Mistral', image: false, video: false, text: true, notes: 'Text only.' },
-  { provider: 'Cohere', image: false, video: false, text: true, notes: 'Text only.' },
-  { provider: 'Together AI', image: false, video: false, text: true, notes: 'Text only.' },
-  { provider: 'Perplexity', image: false, video: false, text: true, notes: 'Text only.' },
+  { provider: 'Google Gemini', image: true, video: true, text: true, notes: '100% Free Tier! Image + Video analysis (gemini-2.5-flash).' },
+  { provider: 'GroqCloud', image: true, video: false, text: true, notes: '100% Free Tier! Ultra-fast Llama 3.3 70B & Llama 3.2 Vision.' },
+  { provider: 'OpenRouter Free', image: true, video: false, text: true, notes: '100% Free Rate Limit! Auto-router (openrouter/free), Gemma 4, GPT-OSS.' },
+  { provider: 'Cohere AI', image: false, video: false, text: true, notes: '100% Free Trial! Command R+ (08-2024), Command R, R7B.' },
+  { provider: 'Mistral AI', image: false, video: false, text: true, notes: '100% Free Tier! Mistral Small & Mistral 7B.' },
+  { provider: 'Hugging Face Router', image: false, video: false, text: true, notes: '100% Free Access Tokens! Qwen 2.5 72B, DeepSeek R1, Llama 3.1 8B.' },
 ];
 
 export default function Documentation() {

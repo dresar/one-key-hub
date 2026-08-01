@@ -51,15 +51,11 @@ interface ProviderModel {
 
 const PROVIDER_META: Record<string, { label: string; color: string; icon: string }> = {
   gemini:      { label: 'Google Gemini',       color: 'from-blue-500 to-cyan-500',   icon: '✦' },
-  groq:        { label: 'Groq',                color: 'from-orange-500 to-red-500',  icon: '⚡' },
-  openai:      { label: 'OpenAI',              color: 'from-emerald-500 to-teal-500',icon: '◈' },
-  anthropic:   { label: 'Anthropic (Claude)',  color: 'from-amber-500 to-orange-500',icon: '◎' },
-  mistral:     { label: 'Mistral AI',          color: 'from-violet-500 to-purple-500',icon: '◉' },
-  cohere:      { label: 'Cohere',              color: 'from-pink-500 to-rose-500',   icon: '◑' },
-  together:    { label: 'Together AI',         color: 'from-sky-500 to-indigo-500',  icon: '◐' },
-  perplexity:  { label: 'Perplexity',          color: 'from-teal-500 to-green-500',  icon: '◒' },
-  huggingface: { label: 'HuggingFace',         color: 'from-yellow-500 to-amber-500',icon: '◓' },
-  deepseek:    { label: 'DeepSeek',            color: 'from-indigo-500 to-blue-500', icon: '◈' },
+  groq:        { label: 'GroqCloud',           color: 'from-orange-500 to-red-500',  icon: '⚡' },
+  openrouter:  { label: 'OpenRouter Free',     color: 'from-indigo-500 to-violet-500',icon: '🌐' },
+  cohere:      { label: 'Cohere AI',           color: 'from-pink-500 to-rose-500',   icon: '◑' },
+  mistral:     { label: 'Mistral AI',          color: 'from-purple-500 to-violet-500',icon: '◉' },
+  huggingface: { label: 'Hugging Face',        color: 'from-yellow-500 to-amber-500',icon: '🤗' },
 };
 
 function ProviderBadge({ provider }: { provider: string }) {
