@@ -114,7 +114,8 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
             contents.push({ role, parts });
           }
         }
-      } else if (body.prompt) {
+      } else if (body.prompt || (typeof body.messages === 'string' && body.messages.trim().length > 0)) {
+        const rawPrompt = body.prompt || body.messages;
         const parts: any[] = [];
         if (body.image_base64) {
           const raw = body.image_base64 as string;
@@ -123,7 +124,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
           const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
           parts.push({ inlineData: { mimeType, data: base64Data } });
         }
-        parts.push({ text: body.prompt });
+        parts.push({ text: rawPrompt });
         contents.push({ role: 'user', parts });
       }
 
