@@ -126,7 +126,7 @@ async function start(): Promise<void> {
   console.log('');
   console.log('╔══════════════════════════════════════╗');
   console.log('║       One Key Hub — Backend           ║');
-  console.log('║  Unified AI Gateway — airotation.my.id║');
+  console.log('║ Unified AI Gateway — one.apprentice.cyou║');
   console.log('╚══════════════════════════════════════╝');
   console.log('');
 

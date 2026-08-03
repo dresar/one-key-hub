@@ -20,7 +20,7 @@ Metode terbaik jika Anda menggunakan node **AI Agent**, **OpenAI Model**, atau *
 2. Di bagian **Credential to connect with**, pilih **Create New Credential** → Pilih **OpenAI API**.
 3. Isi parameter credential berikut:
    - **API Key**: `sk-okh-YOUR_GATEWAY_KEY` *(Ganti dengan Gateway Key dari dashboard One Key Hub)*
-   - **URL / Base URL**: `https://airotation.my.id/v1` *(atau `http://localhost:3000/v1` jika self-hosted local)*
+   - **URL / Base URL**: `https://one.apprentice.cyou/v1` *(atau `http://localhost:3000/v1` jika self-hosted local)*
 4. Pada parameter **Model**, isi model yang Anda inginkan (contoh: `gemini-2.5-flash`, `llama-3.3-70b-versatile`, `openrouter/free`, dll).
 
 ---
@@ -31,7 +31,7 @@ Gunakan metode ini jika Anda ingin menggunakan node **HTTP Request** standar n8n
 
 ### Konfigurasi Node:
 - **Method**: `POST`
-- **URL**: `https://airotation.my.id/v1/chat/completions`
+- **URL**: `https://one.apprentice.cyou/v1/chat/completions`
 - **Authentication**: `Header Auth` atau `Predefined Credential`
   - **Header**: `Authorization`
   - **Value**: `Bearer sk-okh-YOUR_GATEWAY_KEY`
@@ -70,8 +70,8 @@ Gunakan metode ini untuk memanggil provider spesifik secara langsung melalui gat
 
 ### Konfigurasi Node:
 - **Method**: `POST`
-- **URL**: `https://airotation.my.id/gateway/:provider/chat`
-  *(Contoh: `https://airotation.my.id/gateway/gemini/chat` atau `/gateway/groq/chat`)*
+- **URL**: `https://one.apprentice.cyou/gateway/:provider/chat`
+  *(Contoh: `https://one.apprentice.cyou/gateway/gemini/chat` atau `/gateway/groq/chat`)*
 - **Header**:
   - `X-API-Key`: `sk-okh-YOUR_GATEWAY_KEY`
   - `Content-Type`: `application/json`
@@ -111,7 +111,7 @@ One Key Hub mendukung analisis gambar dan video melalui Gemini & Groq Vision.
    });
    ```
 3. **HTTP Request Node**:
-   - **URL**: `https://airotation.my.id/gateway/gemini/chat`
+   - **URL**: `https://one.apprentice.cyou/gateway/gemini/chat`
    - **Method**: `POST`
    - **Headers**: `X-API-Key: sk-okh-YOUR_GATEWAY_KEY`
    - **Body**:
@@ -129,7 +129,7 @@ One Key Hub mendukung analisis gambar dan video melalui Gemini & Groq Vision.
 
 Untuk membuat gambar menggunakan AI di n8n:
 - **Method**: `POST`
-- **URL**: `https://airotation.my.id/gateway/huggingface/images/generations`
+- **URL**: `https://one.apprentice.cyou/gateway/huggingface/images/generations`
 - **Headers**: `X-API-Key: sk-okh-YOUR_GATEWAY_KEY`
 - **Body**:
   ```json
