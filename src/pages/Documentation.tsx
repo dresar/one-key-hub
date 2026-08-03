@@ -134,9 +134,38 @@ curl -X POST ${API_URL}/gateway/gemini/chat \\
     \\"video_base64\\": \\"data:video/mp4;base64,\${VIDEO_B64}\\"
   }"`;
 
+  const n8nNativeGuideCode = `// Konfigurasi Native OpenAI Node / AI Agent di n8n Canvas:
+// 1. Tambahkan node "OpenAI Chat Model" atau "OpenAI" di n8n.
+// 2. Klik "Create New Credential" -> pilih "OpenAI API".
+// 3. Masukkan konfigurasi berikut:
+//    • Credential Type : OpenAI API
+//    • API Key         : sk-okh-YOUR_GATEWAY_KEY
+//    • Base URL        : ${API_URL}/v1
+// 4. Pilih/isi Model   : gemini-2.5-flash (atau llama-3.3-70b-versatile, openrouter/free, dll)`;
+
+  const n8nOpenAiStandardJson = JSON.stringify([{
+    "id": "okh-openai-v1",
+    "name": "One Key Hub — OpenAI /v1 Format",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.1,
+    "position": [460, 340],
+    "parameters": {
+      "method": "POST",
+      "url": `${API_URL}/v1/chat/completions`,
+      "sendHeaders": true,
+      "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer sk-okh-YOUR_GATEWAY_KEY" }] },
+      "sendBody": true,
+      "contentType": "json",
+      "bodyParameters": { "parameters": [
+        { "name": "model", "value": "gemini-2.5-flash" },
+        { "name": "messages", "value": "=[{\"role\": \"user\", \"content\": $json.message}]" }
+      ]}
+    }
+  }], null, 2);
+
   const n8nChatJson = JSON.stringify([{
     "id": "okh-chat",
-    "name": "One Key Hub — Chat",
+    "name": "One Key Hub — Custom Gateway Chat",
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.1,
     "position": [460, 340],
@@ -149,8 +178,8 @@ curl -X POST ${API_URL}/gateway/gemini/chat \\
       "contentType": "json",
       "bodyParameters": { "parameters": [
         { "name": "prompt", "value": "={{ $json.message }}" },
-        { "name": "model_id", "value": "gemini-2.5-flash" },
-      ]},
+        { "name": "model_id", "value": "gemini-2.5-flash" }
+      ]}
     }
   }], null, 2);
 
@@ -164,16 +193,16 @@ curl -X POST ${API_URL}/gateway/gemini/chat \\
     },
     {
       "id": "to-base64",
-      "name": "Convert to Base64",
+      "name": "Convert to Base64 Data URI",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "parameters": {
-        "functionCode": "const b64 = $input.first().binary.data.data.toString('base64');\nreturn [{ json: { image_base64: 'data:image/jpeg;base64,' + b64 } }];"
+        "functionCode": "const item = $input.first();\nconst b64 = item.binary.data.data.toString('base64');\nconst mime = item.binary.data.mimeType || 'image/jpeg';\nreturn [{ json: { image_base64: 'data:' + mime + ';base64,' + b64 } }];"
       }
     },
     {
       "id": "send-to-ai",
-      "name": "One Key Hub — Vision",
+      "name": "One Key Hub — Vision AI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "parameters": {
@@ -184,10 +213,10 @@ curl -X POST ${API_URL}/gateway/gemini/chat \\
         "sendBody": true,
         "contentType": "json",
         "bodyParameters": { "parameters": [
-          { "name": "prompt", "value": "Apa yang ada di gambar ini? Jelaskan secara detail." },
+          { "name": "prompt", "value": "Apa isi dari gambar ini? Berikan ringkasan detail." },
           { "name": "model_id", "value": "gemini-2.5-flash" },
           { "name": "image_base64", "value": "={{ $json.image_base64 }}" }
-        ]},
+        ]}
       }
     }
   ], null, 2);
@@ -514,29 +543,70 @@ curl -X POST ${API_URL}/gateway/removebg/proxy \\
           <Section id="n8n" icon={Workflow} iconBg="bg-pink-500/20 text-pink-500" title="Integrasi n8n & Automation">
             <div className="space-y-6 text-muted-foreground">
               <p>
-                Gunakan One Key Hub langsung di workflow n8n. Copy-paste node JSON siap pakai ke bawah, atau konfigurasi manual.
+                Gunakan One Key Hub langsung di workflow n8n Anda. Nikmati rotasi key otomatis, failover tanpa henti, dan dukungan universal untuk Gemini, Groq, OpenRouter, Mistral, Cohere, & Hugging Face.
               </p>
 
-              <Tabs defaultValue="chat">
-                <TabsList className="grid grid-cols-3 w-full max-w-md mb-4">
-                  <TabsTrigger value="chat" className="text-xs">Chat Biasa</TabsTrigger>
+              <Tabs defaultValue="native">
+                <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full mb-4">
+                  <TabsTrigger value="native" className="text-xs">Native OpenAI Node</TabsTrigger>
+                  <TabsTrigger value="openai-http" className="text-xs">HTTP /v1 Node</TabsTrigger>
+                  <TabsTrigger value="gateway-http" className="text-xs">HTTP /gateway Node</TabsTrigger>
                   <TabsTrigger value="vision" className="text-xs gap-1"><Eye className="w-3 h-3" /> Vision</TabsTrigger>
-                  <TabsTrigger value="errors" className="text-xs">Error Handling</TabsTrigger>
+                  <TabsTrigger value="errors" className="text-xs">Errors & Retries</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="chat" className="space-y-4">
-                  <p className="text-sm">Node JSON siap pakai — paste langsung ke canvas n8n (Ctrl+V):</p>
+                {/* 1. Native OpenAI Node */}
+                <TabsContent value="native" className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
+                    <strong className="font-bold flex items-center gap-1.5 text-emerald-400">
+                      <Zap className="w-4 h-4" /> Cara Paling Mudah (Recommended for n8n AI Agent / LangChain)
+                    </strong>
+                    <p className="text-emerald-200/90">
+                      Gunakan node <strong>OpenAI</strong> bawaan n8n tanpa perlu menyusun request HTTP manual. One Key Hub kompatibel 100% dengan OpenAI SDK & n8n OpenAI Credential!
+                    </p>
+                  </div>
+                  <CodeBlock code={n8nNativeGuideCode} lang="javascript" id="n8n-native" copiedId={copiedId} onCopy={copyToClipboard} />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border">
+                      <span className="font-semibold text-foreground block mb-1">Credential Type</span>
+                      <code className="text-primary font-mono">OpenAI API</code>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border">
+                      <span className="font-semibold text-foreground block mb-1">Base URL</span>
+                      <code className="text-primary font-mono">{API_URL}/v1</code>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border">
+                      <span className="font-semibold text-foreground block mb-1">API Key</span>
+                      <code className="text-primary font-mono">sk-okh-YOUR_KEY</code>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* 2. Standard OpenAI /v1 JSON */}
+                <TabsContent value="openai-http" className="space-y-4">
+                  <p className="text-sm">Node JSON format OpenAI standard — paste langsung ke canvas n8n (Ctrl+V):</p>
+                  <CodeBlock code={n8nOpenAiStandardJson} lang="json" id="n8n-openai-v1" copiedId={copiedId} onCopy={copyToClipboard} />
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1 font-mono">
+                    <div className="text-amber-400 font-semibold mb-1">💡 Tips Ekspresi Respon n8n:</div>
+                    <div>Teks Balasan: <span className="text-slate-200">{'{{ $json.choices[0].message.content }}'}</span> atau <span className="text-slate-200">{'{{ $json.text }}'}</span></div>
+                    <div>Total Token : <span className="text-slate-200">{'{{ $json.usage.total_tokens }}'}</span></div>
+                  </div>
+                </TabsContent>
+
+                {/* 3. Custom Gateway JSON */}
+                <TabsContent value="gateway-http" className="space-y-4">
+                  <p className="text-sm">Node JSON format direct Gateway — paste langsung ke canvas n8n (Ctrl+V):</p>
                   <CodeBlock code={n8nChatJson} lang="json" id="n8n-chat" copiedId={copiedId} onCopy={copyToClipboard} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     <div className="p-3.5 sm:p-4 rounded-xl bg-secondary/30 space-y-2 text-sm overflow-hidden">
                       <h4 className="font-semibold text-foreground flex items-center gap-2 text-xs sm:text-sm">
-                        <Zap className="w-4 h-4 text-yellow-500 shrink-0" /> Konfigurasi Dasar
+                        <Zap className="w-4 h-4 text-yellow-500 shrink-0" /> Konfigurasi Header
                       </h4>
                       <div className="space-y-2">
                         {[
                           ['Method', 'POST'],
                           ['URL', `${API_URL}/gateway/:provider/chat`],
-                          ['Auth Header', 'X-API-Key'],
+                          ['Header Name', 'X-API-Key'],
                           ['Key Format', 'sk-okh-...'],
                         ].map(([k, v]) => (
                           <div key={k} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
@@ -550,49 +620,64 @@ curl -X POST ${API_URL}/gateway/removebg/proxy \\
                       <h4 className="font-semibold text-foreground flex items-center gap-2 text-xs sm:text-sm">
                         <ArrowRight className="w-4 h-4 text-primary shrink-0" /> Dynamic Expression
                       </h4>
-                      <p className="text-xs text-muted-foreground">Ambil teks dari node sebelumnya:</p>
+                      <p className="text-xs text-muted-foreground">Ambil data dinamis dari node sebelumnya:</p>
                       <code className="block bg-slate-900 text-slate-100 p-2 rounded text-[11px] font-mono break-all max-w-full">{'{{ $json.message }}'}</code>
                       <code className="block bg-slate-900 text-slate-100 p-2 rounded text-[11px] font-mono break-all max-w-full">{'{{ $node["Webhook"].json.body.text }}'}</code>
                     </div>
                   </div>
                 </TabsContent>
 
+                {/* 4. Vision Workflow */}
                 <TabsContent value="vision" className="space-y-4">
-                  <p className="text-sm">Workflow 3 node untuk kirim gambar ke AI (Read File → Convert Base64 → Send to AI):</p>
+                  <p className="text-sm">Workflow 3 node untuk analisis gambar (Read Binary File → Convert Base64 → Vision AI):</p>
                   <CodeBlock code={n8nVisionJson} lang="json" id="n8n-vision" copiedId={copiedId} onCopy={copyToClipboard} />
                   <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 text-xs">
-                    <strong className="text-violet-400">Cara pakai:</strong> Salin seluruh JSON → buka n8n → tekan Ctrl+V di canvas. Tiga node akan otomatis terbentuk. Ganti path file dan API Key Anda.
+                    <strong className="text-violet-400">Cara pakai:</strong> Salin seluruh JSON di atas → buka n8n → tekan <kbd className="px-1 py-0.5 bg-slate-800 rounded">Ctrl+V</kbd> di canvas. Tiga node akan otomatis terbuat. Ganti path file dan API Key Anda.
                   </div>
                 </TabsContent>
 
+                {/* 5. Error Handling */}
                 <TabsContent value="errors" className="space-y-4">
-                  <CodeBlock code={errorHandlingSnippet} lang="javascript" id="n8n-error" copiedId={copiedId} onCopy={copyToClipboard} />
-                  <div className="border rounded-xl overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-20">Kode</TableHead>
-                          <TableHead>Penyebab</TableHead>
-                          <TableHead>Solusi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[
-                          ['401', 'Unauthorized', 'Cek X-API-Key. Pastikan format dan nilai benar.'],
-                          ['403', 'Forbidden', 'Key tidak diizinkan untuk provider ini. Cek allowed_providers di API Keys.'],
-                          ['429', 'Rate Limit', 'Semua key habis kuota. Tambah credential baru di Providers.'],
-                          ['503', 'No Credential', 'Tidak ada credential aktif. Cek halaman Providers.'],
-                          ['500', 'Server Error', 'Error internal One Key Hub. Cek Logs server.'],
-                          ['502', 'Bad Gateway', 'Provider AI down atau timeout. Coba lagi atau ganti provider.'],
-                        ].map(([code, cause, sol]) => (
-                          <TableRow key={code}>
-                            <TableCell className="font-mono text-xs font-bold text-destructive">{code}</TableCell>
-                            <TableCell className="text-xs">{cause}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{sol}</TableCell>
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold text-foreground">Status Code Error & Solusi</h4>
+                    <div className="border rounded-xl overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-20">Kode</TableHead>
+                            <TableHead>Penyebab</TableHead>
+                            <TableHead>Solusi</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {[
+                            ['401', 'Unauthorized', 'Header X-API-Key atau Authorization Bearer missing/invalid. Cek Gateway Key sk-okh-...'],
+                            ['403', 'Forbidden', 'Gateway Key dibatasi untuk provider lain (cek allowed_providers di API Keys).'],
+                            ['429', 'Rate Limit', 'Semua key habis kuota rate limit. Rotasi One Key Hub akan mencoba key lain.'],
+                            ['503', 'No Credential', 'Tidak ada credential aktif untuk provider ini. Tambah API Key di menu Providers.'],
+                            ['500', 'Server Error', 'Error internal One Key Hub. Periksa log server.'],
+                            ['502', 'Bad Gateway', 'Provider AI sedang down / mengalami kecemasan jaringan. Coba lagi atau ganti provider.'],
+                          ].map(([code, cause, sol]) => (
+                            <TableRow key={code}>
+                              <TableCell className="font-mono text-xs font-bold text-destructive">{code}</TableCell>
+                              <TableCell className="text-xs">{cause}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{sol}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-secondary/30 space-y-2 text-xs">
+                    <h4 className="font-semibold text-foreground flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-green-400" /> Best Practice Setting Retry di n8n Node:
+                    </h4>
+                    <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                      <li>Buka <strong>Settings</strong> pada HTTP Request Node di n8n.</li>
+                      <li>Aktifkan <strong>Always Output Data</strong> = <code className="text-primary font-mono">true</code></li>
+                      <li>Aktifkan <strong>Retry On Fail</strong> = <code className="text-primary font-mono">true</code> (Max Tries: 3, Wait Between Tries: 2000 ms).</li>
+                    </ul>
                   </div>
                 </TabsContent>
               </Tabs>

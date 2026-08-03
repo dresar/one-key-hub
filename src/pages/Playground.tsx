@@ -359,22 +359,21 @@ export default function Playground() {
   }'`;
 
   const n8nNodeJson = JSON.stringify([{
-    "id": "playground-chat",
-    "name": "One Key Hub Playground Chat",
+    "id": "okh-chat",
+    "name": `One Key Hub — ${selectedProvider ? selectedProvider.toUpperCase() : 'Gemini'} Chat`,
     "type": "n8n-nodes-base.httpRequest",
     "typeVersion": 4.1,
     "position": [460, 340],
     "parameters": {
       "method": "POST",
-      "url": `${API_URL}/api/playground/chat`,
+      "url": `${API_URL}/gateway/${selectedProvider || 'gemini'}/chat`,
       "sendHeaders": true,
-      "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer <JWT_TOKEN>" }] },
+      "headerParameters": { "parameters": [{ "name": "X-API-Key", "value": "sk-okh-YOUR_GATEWAY_KEY" }] },
       "sendBody": true,
       "contentType": "json",
       "bodyParameters": { "parameters": [
-        { "name": "provider", "value": selectedProvider || "gemini" },
-        { "name": "model_id", "value": chatModel || "gemini-2.5-flash" },
-        { "name": "prompt", "value": "={{ $json.message }}" }
+        { "name": "prompt", "value": "={{ $json.message }}" },
+        { "name": "model_id", "value": chatModel || "gemini-2.5-flash" }
       ]},
     }
   }], null, 2);
