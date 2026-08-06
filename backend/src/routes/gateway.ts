@@ -80,185 +80,44 @@ function sanitizeGeminiSchema(schema: any): any {
 
 const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   gemini: {
-    baseUrl: 'https://generativelanguage.googleapis.com',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     buildChatRequest: (creds, body) => {
       const model = body.model_id || 'gemini-2.5-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${creds.api_key}`;
+      const messages: any[] = [];
 
-      // Default: respond in Indonesian if no system prompt is set
-      let hasExplicitSystemMsg = false;
-      let systemText = body.system_prompt || '';
-      const contents: any[] = [];
+      if (body.system_prompt) {
+        messages.push({ role: 'system', content: body.system_prompt });
+      }
 
-      // Convert full OpenAI messages history to Gemini contents format
       if (Array.isArray(body.messages) && body.messages.length > 0) {
-        for (const msg of body.messages) {
-          if (msg.role === 'system') {
-            hasExplicitSystemMsg = true;
-            const sysContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-            systemText = systemText ? `${systemText}\n${sysContent}` : sysContent;
-          } else {
-            const role = (msg.role === 'assistant' || msg.role === 'model') ? 'model' : 'user';
-            const parts: any[] = [];
-
-            if (typeof msg.content === 'string') {
-              if (msg.content) parts.push({ text: msg.content });
-            } else if (Array.isArray(msg.content)) {
-              for (const item of msg.content) {
-                if (item.type === 'text' && item.text) {
-                  parts.push({ text: item.text });
-                } else if (item.type === 'image_url') {
-                  const raw = item.image_url?.url || '';
-                  const commaIdx = raw.indexOf(',');
-                  const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-                  const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-                  parts.push({ inlineData: { mimeType, data: base64Data } });
-                }
-              }
-            }
-
-            // Handle previous assistant tool calls / function calls
-            if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
-              for (const tc of msg.tool_calls) {
-                if (tc.function) {
-                  try {
-                    const args = typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments) : tc.function.arguments;
-                    parts.push({ functionCall: { name: tc.function.name, args } });
-                  } catch {
-                    parts.push({ text: `Function Call: ${tc.function.name}(${tc.function.arguments})` });
-                  }
-                }
-              }
-            }
-
-            // Fallback for media attachments in root body
-            if (role === 'user' && parts.length === 0) {
-              if (body.image_base64) {
-                const raw = body.image_base64 as string;
-                const commaIdx = raw.indexOf(',');
-                const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-                const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-                parts.push({ inlineData: { mimeType, data: base64Data } });
-              }
-              if (body.video_base64) {
-                const raw = body.video_base64 as string;
-                const commaIdx = raw.indexOf(',');
-                const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-                const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'video/mp4';
-                parts.push({ inlineData: { mimeType, data: base64Data } });
-              }
-            }
-
-            if (parts.length > 0) {
-              // MERGE CONSECUTIVE ROLES (Crucial for Gemini API compliance)
-              if (contents.length > 0 && contents[contents.length - 1].role === role) {
-                contents[contents.length - 1].parts.push(...parts);
-              } else {
-                contents.push({ role, parts });
-              }
-            }
-          }
+        for (const m of body.messages) {
+          messages.push(m);
         }
-      } else if (body.prompt || (typeof body.messages === 'string' && body.messages.trim().length > 0)) {
-        const rawPrompt = body.prompt || body.messages;
-        const parts: any[] = [];
-        if (body.image_base64) {
-          const raw = body.image_base64 as string;
-          const commaIdx = raw.indexOf(',');
-          const base64Data = commaIdx > -1 ? raw.substring(commaIdx + 1) : raw;
-          const mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
-          parts.push({ inlineData: { mimeType, data: base64Data } });
-        }
-        parts.push({ text: rawPrompt });
-        contents.push({ role: 'user', parts });
+      } else {
+        messages.push({ role: 'user', content: body.prompt || '' });
       }
 
-      if (contents.length === 0) {
-        contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
-      }
+      const payload: any = {
+        model,
+        messages,
+      };
 
-      const payload: any = { contents };
-
-      // Convert OpenAI tools to Gemini functionDeclarations (with sanitized uppercase schema types)
-      if (Array.isArray(body.tools) && body.tools.length > 0) {
-        const functionDeclarations = body.tools
-          .filter((t: any) => t.type === 'function' && t.function)
-          .map((t: any) => ({
-            name: t.function.name,
-            description: t.function.description || '',
-            parameters: sanitizeGeminiSchema(t.function.parameters || { type: 'OBJECT', properties: {} })
-          }));
-
-        if (functionDeclarations.length > 0) {
-          payload.tools = [{ functionDeclarations }];
-          const toolDirective = '\n[SYSTEM DIRECTIVE]: You have active executable tools. Whenever the user requests to run, install, build, test, configure, or execute commands or software, you MUST execute the appropriate tool function call immediately instead of explaining instructions in text.';
-          systemText = systemText ? `${systemText}\n${toolDirective}` : toolDirective;
-        }
-      }
-
-      if (systemText) {
-        payload.systemInstruction = { parts: [{ text: systemText }] };
-      }
-
-      if (body.tool_choice) {
-        if (body.tool_choice === 'auto') {
-          payload.toolConfig = { functionCallingConfig: { mode: 'AUTO' } };
-        } else if (body.tool_choice === 'required') {
-          payload.toolConfig = { functionCallingConfig: { mode: 'ANY' } };
-        } else if (typeof body.tool_choice === 'object' && body.tool_choice?.function?.name) {
-          payload.toolConfig = {
-            functionCallingConfig: {
-              mode: 'ANY',
-              allowedFunctionNames: [body.tool_choice.function.name]
-            }
-          };
-        }
-      }
+      if (body.temperature !== undefined) payload.temperature = body.temperature;
+      if (body.max_tokens !== undefined) payload.max_tokens = body.max_tokens;
+      if (Array.isArray(body.tools) && body.tools.length > 0) payload.tools = body.tools;
+      if (body.tool_choice) payload.tool_choice = body.tool_choice;
 
       return {
-        url,
-        headers: { 'Content-Type': 'application/json' },
+        url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${creds.api_key}`,
+        },
         payload,
       };
     },
-    parseChatResponse: (data) => {
-      const candidate = data?.candidates?.[0];
-      if (!candidate) return typeof data === 'string' ? data : JSON.stringify(data);
-
-      const parts = candidate?.content?.parts || [];
-      const extractedTexts: string[] = [];
-
-      for (const p of parts) {
-        if (p.text && p.text.trim()) {
-          const cleanText = p.text.replace(/^User Safety:\s*safe\s*Response Safety:\s*safe\s*/gi, '').trim();
-          if (cleanText) {
-            extractedTexts.push(cleanText);
-          }
-        } else if (p.functionCall) {
-          extractedTexts.push(JSON.stringify({
-            name: p.functionCall.name,
-            arguments: p.functionCall.args || {}
-          }));
-        } else if (p.thought) {
-          extractedTexts.push(p.thought);
-        }
-      }
-
-      if (extractedTexts.length > 0) {
-        return extractedTexts.join('\n');
-      }
-
-      // Handle MALFORMED_FUNCTION_CALL & finishMessage fallback
-      if (candidate.finishMessage) {
-        return candidate.finishMessage;
-      }
-
-      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-        return `[Gemini Status: ${candidate.finishReason}]`;
-      }
-
-      return JSON.stringify(data);
-    },
+    parseChatResponse: (data) =>
+      data?.choices?.[0]?.message?.content || JSON.stringify(data),
   },
 
   groq: {
@@ -1072,8 +931,10 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
         const text = config.parseChatResponse(responseData);
         const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
 
-        let toolCalls: any[] | undefined = undefined;
-        let finalContent: string | null = text;
+        // 0. Native OpenAI format tool_calls check (Google OpenAI endpoint, OpenAI, Groq, etc.)
+        if (responseData?.choices?.[0]?.message?.tool_calls) {
+          toolCalls = responseData.choices[0].message.tool_calls;
+        }
 
         // 1. Native Gemini functionCall check
         const candidateParts = responseData?.candidates?.[0]?.content?.parts || [];
