@@ -40,14 +40,25 @@ interface ProviderConfig {
 }
 
 function sanitizeGeminiSchema(schema: any): any {
-  if (!schema || typeof schema !== 'object') return schema;
+  if (!schema || typeof schema !== 'object') {
+    return { type: 'STRING' };
+  }
   if (Array.isArray(schema)) {
     return schema.map(sanitizeGeminiSchema);
   }
   const copy: any = { ...schema };
+
   if (typeof copy.type === 'string') {
-    copy.type = copy.type.toUpperCase();
+    const upper = copy.type.toUpperCase();
+    if (['STRING', 'NUMBER', 'INTEGER', 'BOOLEAN', 'ARRAY', 'OBJECT'].includes(upper)) {
+      copy.type = upper;
+    } else {
+      copy.type = 'STRING';
+    }
+  } else if (!copy.type) {
+    copy.type = copy.properties ? 'OBJECT' : 'STRING';
   }
+
   if (copy.properties && typeof copy.properties === 'object') {
     const newProps: any = {};
     for (const [k, v] of Object.entries(copy.properties)) {
@@ -55,11 +66,15 @@ function sanitizeGeminiSchema(schema: any): any {
     }
     copy.properties = newProps;
   }
+
   if (copy.items) {
     copy.items = sanitizeGeminiSchema(copy.items);
   }
+
   delete copy.$schema;
   delete copy.additionalProperties;
+  delete copy.default;
+  delete copy.title;
   return copy;
 }
 
@@ -1035,6 +1050,7 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
           lastErrorMsg = errorMsg;
           lastStatusCode = upstreamRes.status;
 
+          console.error(`[Gateway Upstream Fail] Provider: ${currProvider}, Model: ${currModelId}, Status: ${upstreamRes.status}, Error: ${errorMsg}`, JSON.stringify(responseData));
           console.warn(`[Gateway Rotation] Credential #${cred.id} (${currProvider}) failed (${upstreamRes.status}): ${errorMsg}. Rotating to next key...`);
 
           await reportCredentialFailure(cred.id, errorMsg);
