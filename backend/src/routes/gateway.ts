@@ -218,7 +218,10 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
       for (const p of parts) {
         if (p.text && p.text.trim()) {
-          extractedTexts.push(p.text);
+          const cleanText = p.text.replace(/^User Safety:\s*safe\s*Response Safety:\s*safe\s*/gi, '').trim();
+          if (cleanText) {
+            extractedTexts.push(cleanText);
+          }
         } else if (p.functionCall) {
           extractedTexts.push(JSON.stringify({
             name: p.functionCall.name,
