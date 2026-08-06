@@ -179,15 +179,6 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
       const payload: any = { contents };
 
-      // Use default Indonesian prompt only if no explicit system prompt was supplied
-      if (!systemText && !hasExplicitSystemMsg) {
-        systemText = 'Kamu adalah asisten AI yang cerdas dan membantu. Selalu jawab dalam Bahasa Indonesia yang baik dan jelas, kecuali pengguna secara eksplisit meminta bahasa lain.';
-      }
-
-      if (systemText) {
-        payload.systemInstruction = { parts: [{ text: systemText }] };
-      }
-
       // Convert OpenAI tools to Gemini functionDeclarations (with sanitized uppercase schema types)
       if (Array.isArray(body.tools) && body.tools.length > 0) {
         const functionDeclarations = body.tools
@@ -200,7 +191,13 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
         if (functionDeclarations.length > 0) {
           payload.tools = [{ functionDeclarations }];
+          const toolDirective = '\n[SYSTEM DIRECTIVE]: You have active executable tools. Whenever the user requests to run, install, build, test, configure, or execute commands or software, you MUST execute the appropriate tool function call immediately instead of explaining instructions in text.';
+          systemText = systemText ? `${systemText}\n${toolDirective}` : toolDirective;
         }
+      }
+
+      if (systemText) {
+        payload.systemInstruction = { parts: [{ text: systemText }] };
       }
 
       if (body.tool_choice) {
