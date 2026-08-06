@@ -39,6 +39,30 @@ interface ProviderConfig {
   parseImageResponse?: (data: any) => string;
 }
 
+function sanitizeGeminiSchema(schema: any): any {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) {
+    return schema.map(sanitizeGeminiSchema);
+  }
+  const copy: any = { ...schema };
+  if (typeof copy.type === 'string') {
+    copy.type = copy.type.toUpperCase();
+  }
+  if (copy.properties && typeof copy.properties === 'object') {
+    const newProps: any = {};
+    for (const [k, v] of Object.entries(copy.properties)) {
+      newProps[k] = sanitizeGeminiSchema(v);
+    }
+    copy.properties = newProps;
+  }
+  if (copy.items) {
+    copy.items = sanitizeGeminiSchema(copy.items);
+  }
+  delete copy.$schema;
+  delete copy.additionalProperties;
+  return copy;
+}
+
 const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   gemini: {
     baseUrl: 'https://generativelanguage.googleapis.com',
@@ -149,18 +173,33 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         payload.systemInstruction = { parts: [{ text: systemText }] };
       }
 
-      // Convert OpenAI tools to Gemini functionDeclarations
+      // Convert OpenAI tools to Gemini functionDeclarations (with sanitized uppercase schema types)
       if (Array.isArray(body.tools) && body.tools.length > 0) {
         const functionDeclarations = body.tools
           .filter((t: any) => t.type === 'function' && t.function)
           .map((t: any) => ({
             name: t.function.name,
             description: t.function.description || '',
-            parameters: t.function.parameters || { type: 'OBJECT', properties: {} }
+            parameters: sanitizeGeminiSchema(t.function.parameters || { type: 'OBJECT', properties: {} })
           }));
 
         if (functionDeclarations.length > 0) {
           payload.tools = [{ functionDeclarations }];
+        }
+      }
+
+      if (body.tool_choice) {
+        if (body.tool_choice === 'auto') {
+          payload.toolConfig = { functionCallingConfig: { mode: 'AUTO' } };
+        } else if (body.tool_choice === 'required') {
+          payload.toolConfig = { functionCallingConfig: { mode: 'ANY' } };
+        } else if (typeof body.tool_choice === 'object' && body.tool_choice?.function?.name) {
+          payload.toolConfig = {
+            functionCallingConfig: {
+              mode: 'ANY',
+              allowedFunctionNames: [body.tool_choice.function.name]
+            }
+          };
         }
       }
 
@@ -233,18 +272,27 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         messages.push({ role: 'user', content: userContent });
       }
 
+      const payload: any = {
+        model: body.model_id || 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+      };
+
+      if (Array.isArray(body.tools) && body.tools.length > 0) {
+        payload.tools = body.tools;
+      }
+      if (body.tool_choice) {
+        payload.tool_choice = body.tool_choice;
+      }
+
       return {
         url: 'https://api.groq.com/openai/v1/chat/completions',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${creds.api_key}`,
         },
-        payload: {
-          model: body.model_id || 'llama-3.3-70b-versatile',
-          messages,
-          temperature: 0.7,
-          max_tokens: 2048,
-        },
+        payload,
       };
     },
     parseChatResponse: (data) =>
@@ -270,17 +318,26 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       }
       messages.push({ role: 'user', content: userContent });
 
+      const payload: any = {
+        model: body.model_id || 'gpt-4o-mini',
+        messages: Array.isArray(body.messages) && body.messages.length > 0 ? body.messages : messages,
+        max_tokens: 2048,
+      };
+
+      if (Array.isArray(body.tools) && body.tools.length > 0) {
+        payload.tools = body.tools;
+      }
+      if (body.tool_choice) {
+        payload.tool_choice = body.tool_choice;
+      }
+
       return {
         url: 'https://api.openai.com/v1/chat/completions',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${creds.api_key}`,
         },
-        payload: {
-          model: body.model_id || 'gpt-4o-mini',
-          messages,
-          max_tokens: 2048,
-        },
+        payload,
       };
     },
     buildImageRequest: (creds, body) => ({
