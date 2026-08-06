@@ -927,9 +927,10 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
           continue;
         }
 
-        // Parse success response & extract any tool calls
         const text = config.parseChatResponse(responseData);
         const tokensUsed = responseData?.usage?.total_tokens || responseData?.usageMetadata?.totalTokenCount || null;
+        let toolCalls: any[] | undefined = undefined;
+        let finalContent: string | null = text;
 
         // 0. Native OpenAI format tool_calls check (Google OpenAI endpoint, OpenAI, Groq, etc.)
         if (responseData?.choices?.[0]?.message?.tool_calls) {
