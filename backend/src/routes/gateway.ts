@@ -91,10 +91,14 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
       if (Array.isArray(body.messages) && body.messages.length > 0) {
         for (const m of body.messages) {
-          messages.push(m);
+          const cleanMsg = { ...m };
+          if ((cleanMsg.content === null || cleanMsg.content === undefined || cleanMsg.content === '') && !cleanMsg.tool_calls) {
+            cleanMsg.content = ' ';
+          }
+          messages.push(cleanMsg);
         }
       } else {
-        messages.push({ role: 'user', content: body.prompt || '' });
+        messages.push({ role: 'user', content: body.prompt || 'Hello' });
       }
 
       const payload: any = {
