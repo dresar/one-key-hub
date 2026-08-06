@@ -777,6 +777,7 @@ const DEFAULT_FALLBACK_MODELS: Record<string, string> = {
 
 // ─── POST /gateway/:provider/chat ─────────────────────────────────────────────
 router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: Response) => {
+  req.setTimeout(300_000);
   const startTime = Date.now();
   const primaryProvider = (req.params.provider || 'gemini').toLowerCase();
   const rawApiKey = getGatewayApiKey(req);
@@ -899,7 +900,7 @@ router.post(['/:provider/chat', '/chat/completions'], async (req: Request, res: 
           method: 'POST',
           headers: reqHeaders,
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(30_000),
+          signal: AbortSignal.timeout(300_000),
         });
 
         const responseData: any = await upstreamRes.json();

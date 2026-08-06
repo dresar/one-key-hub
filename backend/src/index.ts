@@ -150,18 +150,21 @@ async function start(): Promise<void> {
   startScheduler();
 
   // 4. Start HTTP server
-  app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, () => {
     console.log('');
     console.log(`[Server] ✅ Running on port ${env.PORT}`);
     console.log(`[Server] Environment: ${env.NODE_ENV}`);
     console.log(`[Server] CORS: ${env.FRONTEND_URL}`);
-    console.log(`[Server] Gateway ready: POST /gateway/:provider/chat`);
+    console.log(`[Server] Gateway ready: POST /gateway/:provider/chat (10m timeout)`);
     console.log('');
     console.log('Dev Login:');
     console.log(`  Email   : ${env.ADMIN_EMAIL}`);
     console.log(`  Password: ${env.ADMIN_PASSWORD}`);
     console.log('');
   });
+  server.timeout = 600_000;
+  server.keepAliveTimeout = 600_000;
+  server.headersTimeout = 605_000;
 }
 
 start().catch((err) => {
