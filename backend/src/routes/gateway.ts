@@ -46,6 +46,8 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const model = body.model_id || 'gemini-2.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${creds.api_key}`;
 
+      // Default: respond in Indonesian if no system prompt is set
+      let hasExplicitSystemMsg = false;
       let systemText = body.system_prompt || '';
       const contents: any[] = [];
 
@@ -53,6 +55,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       if (Array.isArray(body.messages) && body.messages.length > 0) {
         for (const msg of body.messages) {
           if (msg.role === 'system') {
+            hasExplicitSystemMsg = true;
             const sysContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
             systemText = systemText ? `${systemText}\n${sysContent}` : sysContent;
           } else {
@@ -107,11 +110,14 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
               }
             }
 
-            if (parts.length === 0) {
-              parts.push({ text: ' ' });
+            if (parts.length > 0) {
+              // MERGE CONSECUTIVE ROLES (Crucial for Gemini API compliance)
+              if (contents.length > 0 && contents[contents.length - 1].role === role) {
+                contents[contents.length - 1].parts.push(...parts);
+              } else {
+                contents.push({ role, parts });
+              }
             }
-
-            contents.push({ role, parts });
           }
         }
       } else if (body.prompt || (typeof body.messages === 'string' && body.messages.trim().length > 0)) {
@@ -133,6 +139,11 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       }
 
       const payload: any = { contents };
+
+      // Use default Indonesian prompt only if no explicit system prompt was supplied
+      if (!systemText && !hasExplicitSystemMsg) {
+        systemText = 'Kamu adalah asisten AI yang cerdas dan membantu. Selalu jawab dalam Bahasa Indonesia yang baik dan jelas, kecuali pengguna secara eksplisit meminta bahasa lain.';
+      }
 
       if (systemText) {
         payload.systemInstruction = { parts: [{ text: systemText }] };
@@ -211,10 +222,16 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       }
 
       const messages: any[] = [];
-      if (body.system_prompt) {
-        messages.push({ role: 'system', content: body.system_prompt });
+      const groqSystemPrompt = body.system_prompt || 'Kamu adalah asisten AI yang cerdas dan membantu. Selalu jawab dalam Bahasa Indonesia yang baik dan jelas, kecuali pengguna secara eksplisit meminta bahasa lain.';
+      messages.push({ role: 'system', content: groqSystemPrompt });
+      // Pass through full messages array if provided
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        for (const m of body.messages) {
+          if (m.role !== 'system') messages.push(m);
+        }
+      } else {
+        messages.push({ role: 'user', content: userContent });
       }
-      messages.push({ role: 'user', content: userContent });
 
       return {
         url: 'https://api.groq.com/openai/v1/chat/completions',
@@ -336,8 +353,15 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     baseUrl: 'https://api.mistral.ai',
     buildChatRequest: (creds, body) => {
       const messages: any[] = [];
-      if (body.system_prompt) messages.push({ role: 'system', content: body.system_prompt });
-      messages.push({ role: 'user', content: body.prompt || '' });
+      const mistralSys = body.system_prompt || 'Kamu adalah asisten AI yang cerdas dan membantu. Selalu jawab dalam Bahasa Indonesia yang baik dan jelas, kecuali pengguna secara eksplisit meminta bahasa lain.';
+      messages.push({ role: 'system', content: mistralSys });
+      if (Array.isArray(body.messages) && body.messages.length > 0) {
+        for (const m of body.messages) {
+          if (m.role !== 'system') messages.push(m);
+        }
+      } else {
+        messages.push({ role: 'user', content: body.prompt || '' });
+      }
       return {
         url: 'https://api.mistral.ai/v1/chat/completions',
         headers: {
@@ -444,7 +468,8 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     baseUrl: 'https://openrouter.ai/api/v1',
     buildChatRequest: (creds, body) => {
       const messages: any[] = [];
-      if (body.system_prompt) messages.push({ role: 'system', content: body.system_prompt });
+      const orSys = body.system_prompt || 'Kamu adalah asisten AI yang cerdas dan membantu. Selalu jawab dalam Bahasa Indonesia yang baik dan jelas, kecuali pengguna secara eksplisit meminta bahasa lain.';
+      messages.push({ role: 'system', content: orSys });
       if (Array.isArray(body.messages) && body.messages.length > 0) {
         for (const m of body.messages) {
           if (m.role !== 'system') messages.push(m);
