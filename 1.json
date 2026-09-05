@@ -1,0 +1,2619 @@
+{
+  "name": "Instagram Reels Automation - Multi Akun 2026",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🟢 TRIGGER\nMode Otomatis (Scheduler) & Mode Manual (Telegram)",
+        "height": 260,
+        "width": 460,
+        "color": 4
+      },
+      "id": "sticky-0",
+      "name": "Sticky-0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -1300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 💬 TELEGRAM DASHBOARD\nMenu utama, router, dan seluruh menu administrasi",
+        "height": 900,
+        "width": 900,
+        "color": 5
+      },
+      "id": "sticky-1",
+      "name": "Sticky-1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -1300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🎬 PENGAMBILAN VIDEO\nAmbil akun aktif, cek antrean, ambil & unduh video",
+        "height": 260,
+        "width": 1200,
+        "color": 3
+      },
+      "id": "sticky-2",
+      "name": "Sticky-2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        620,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ☁️ CLOUD STORAGE\nUpload video ke Cloudinary (CDN)",
+        "height": 260,
+        "width": 260,
+        "color": 6
+      },
+      "id": "sticky-3",
+      "name": "Sticky-3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 ARTIFICIAL INTELLIGENCE\nGenerate caption otomatis (OpenAI Compatible)",
+        "height": 260,
+        "width": 500,
+        "color": 7
+      },
+      "id": "sticky-4",
+      "name": "Sticky-4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2360,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🗄️ DATABASE\nSimpan data upload ke Airtable",
+        "height": 260,
+        "width": 260,
+        "color": 3
+      },
+      "id": "sticky-5",
+      "name": "Sticky-5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2820,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📸 INSTAGRAM\nBuat container, polling status, publish",
+        "height": 500,
+        "width": 700,
+        "color": 2
+      },
+      "id": "sticky-6",
+      "name": "Sticky-6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🧹 CLEANUP\nPindahkan file ke arsip & hapus dari Cloudinary",
+        "height": 260,
+        "width": 460,
+        "color": 6
+      },
+      "id": "sticky-7",
+      "name": "Sticky-7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4140,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 📊 MONITORING & LAPORAN\nLaporan sukses ke Telegram",
+        "height": 260,
+        "width": 260,
+        "color": 5
+      },
+      "id": "sticky-8",
+      "name": "Sticky-8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4580,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⚠️ ERROR HANDLING\nMenangani seluruh kegagalan workflow",
+        "height": 260,
+        "width": 700,
+        "color": 1
+      },
+      "id": "sticky-9",
+      "name": "Sticky-9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        620,
+        1550
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "jadwal-otomatis",
+      "name": "Jadwal Otomatis",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        -1240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "mode",
+              "value": "otomatis",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mode-otomatis",
+      "name": "Mode Otomatis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        -1240
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "telegram-masuk",
+      "name": "Telegram Masuk",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -220,
+        -1020
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.message ? $json.message.text : '' }}",
+              "rightValue": "/menu",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "2",
+              "leftValue": "={{ $json.message ? $json.message.text : '' }}",
+              "rightValue": "/start",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "cek-perintah-menu",
+      "name": "Cek Perintah Menu",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        -1020
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "🤖 <b>DASHBOARD INSTAGRAM REELS AUTOMATION</b>\n\nPilih menu di bawah ini:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🚀 Upload Sekarang",
+                    "additionalFields": {
+                      "callback_data": "upload_now"
+                    }
+                  },
+                  {
+                    "text": "⏰ Scheduler",
+                    "additionalFields": {
+                      "callback_data": "scheduler"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📋 Queue Upload",
+                    "additionalFields": {
+                      "callback_data": "queue"
+                    }
+                  },
+                  {
+                    "text": "📒 Daftar Akun",
+                    "additionalFields": {
+                      "callback_data": "list_accounts"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "➕ Tambah Akun",
+                    "additionalFields": {
+                      "callback_data": "add_account"
+                    }
+                  },
+                  {
+                    "text": "🔀 Ganti Akun Aktif",
+                    "additionalFields": {
+                      "callback_data": "switch_account"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📊 Statistik",
+                    "additionalFields": {
+                      "callback_data": "stats"
+                    }
+                  },
+                  {
+                    "text": "🕓 Riwayat Upload",
+                    "additionalFields": {
+                      "callback_data": "history"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⚙️ Pengaturan",
+                    "additionalFields": {
+                      "callback_data": "settings"
+                    }
+                  },
+                  {
+                    "text": "🖥️ Status Server",
+                    "additionalFields": {
+                      "callback_data": "server_status"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "ℹ️ Tentang Workflow",
+                    "additionalFields": {
+                      "callback_data": "about"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "menu-utama",
+      "name": "Menu Utama",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        -1120
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.callback_query ? $json.callback_query.data : '' }}",
+              "rightValue": "activate_",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cek-aktivasi-akun",
+      "name": "Cek Aktivasi Akun",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        -820
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "upload_now",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Upload Sekarang"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "2",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "scheduler",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Scheduler"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "3",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "queue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Queue"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "4",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "list_accounts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Daftar Akun"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "5",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "add_account",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Tambah Akun"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "6",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "switch_account",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ganti Akun"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "7",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "stats",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Statistik"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "8",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "history",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Riwayat"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "9",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "settings",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Pengaturan"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "10",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "server_status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Status Server"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "11",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "about",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Tentang"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "router-menu",
+      "name": "Router Menu",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        260,
+        -820
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "mode",
+              "value": "manual",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mode-manual",
+      "name": "Mode Manual",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -1120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAkunMultiAccount01",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $json.callback_query.data.replace('activate_', '') }}",
+            "Status": "Aktif"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "aktifkan-akun",
+      "name": "Aktifkan Akun",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -800
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "✅ Akun aktif berhasil diganti.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "konfirmasi-aktivasi",
+      "name": "Konfirmasi Aktivasi",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -800
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAkunMultiAccount01",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ambil-semua-akun",
+      "name": "Ambil Semua Akun",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -640
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "ringkasan",
+              "value": "={{ '• ' + $json.fields.NamaAkun + ' (@' + $json.fields.Username + ') - ' + $json.fields.Status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-daftar-akun",
+      "name": "Format Daftar Akun",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=📒 <b>DAFTAR AKUN INSTAGRAM</b>\n\n{{ $items().map(i => i.json.ringkasan).join('\\n') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-daftar-akun",
+      "name": "Kirim Daftar Akun",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        -640
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAkunMultiAccount01",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ambil-akun-untuk-ganti",
+      "name": "Ambil Akun Untuk Ganti",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -480
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "🔀 Pilih akun yang ingin diaktifkan:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.fields.NamaAkun }}",
+                    "additionalFields": {
+                      "callback_data": "={{ 'activate_' + $json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "kirim-pilihan-akun",
+      "name": "Kirim Pilihan Akun",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -480
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "filterByFormula": "=OR({Status}='Waiting',{Status}='Downloading',{Status}='Uploading',{Status}='Generating Caption',{Status}='Publishing')",
+        "options": {}
+      },
+      "id": "ambil-antrian",
+      "name": "Ambil Antrian",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -320
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=📋 <b>QUEUE UPLOAD</b>\n\nJumlah antrean: {{ $items().length }}\n\n{{ $items().map(i => '• ' + i.json.fields.Name + ' - ' + i.json.fields.Status).join('\\n') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-antrian",
+      "name": "Kirim Antrian",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ambil-statistik",
+      "name": "Ambil Statistik",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        -160
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "count",
+              "field": "fields.Status"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "fields.Status",
+        "options": {}
+      },
+      "id": "hitung-statistik",
+      "name": "Hitung Statistik",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=📊 <b>STATISTIK UPLOAD</b>\n\n{{ $items().map(i => '• ' + i.json['fields.Status'] + ': ' + i.json.count).join('\\n') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-statistik",
+      "name": "Kirim Statistik",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        -160
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "sort": {
+          "property": [
+            {
+              "field": "PostedAt",
+              "direction": "desc"
+            }
+          ]
+        },
+        "limit": 10,
+        "options": {}
+      },
+      "id": "ambil-riwayat",
+      "name": "Ambil Riwayat",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=🕓 <b>RIWAYAT UPLOAD TERAKHIR</b>\n\n{{ $items().map(i => '• ' + i.json.fields.Name + ' - ' + i.json.fields.Status).join('\\n') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-riwayat",
+      "name": "Kirim Riwayat",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "⏰ <b>SCHEDULER</b>\n\nMode otomatis berjalan setiap 3 jam sekali.\nUbah interval pada node \"Jadwal Otomatis\".",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-info-scheduler",
+      "name": "Kirim Info Scheduler",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        160
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=🖥️ <b>STATUS SERVER</b>\n\nWorkflow: {{ $workflow.name }}\nWaktu Server: {{ $now.format('dd MMM yyyy • HH:mm:ss') }}\nStatus: 🟢 Online",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-status-server",
+      "name": "Kirim Status Server",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "ℹ️ <b>TENTANG WORKFLOW</b>\n\nInstagram Reels Automation Multi-Akun\nDibangun dengan n8n Self-Hosted 2026.\nMendukung banyak akun Instagram melalui satu workflow.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-tentang",
+      "name": "Kirim Tentang",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        480
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "⚙️ <b>PENGATURAN</b>\n\nUntuk mengubah endpoint AI, prompt caption, atau folder Google Drive per akun, silakan ubah langsung di tabel Akun pada Airtable.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-pengaturan",
+      "name": "Kirim Pengaturan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        640
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Masuk').item.json.message ? $('Telegram Masuk').item.json.message.chat.id : $('Telegram Masuk').item.json.callback_query.message.chat.id }}",
+        "text": "=➕ <b>TAMBAH AKUN BARU</b>\n\nTambahkan baris baru pada tabel Akun di Airtable berikut:\nhttps://airtable.com/{{ 'appafQ1viq4sJXOve' }}\n\nIsi kolom: NamaAkun, Username, InstagramBusinessID, FacebookPageID, Status, Token, DriveFolderSumber, DriveFolderArsip, AIEndpoint, AIModel, AIPromptTemplate.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-instruksi-tambah-akun",
+      "name": "Kirim Instruksi Tambah Akun",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        800
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAkunMultiAccount01",
+          "mode": "id"
+        },
+        "filterByFormula": "={Status}='Aktif'",
+        "options": {
+          "pageSize": 1
+        }
+      },
+      "id": "ambil-akun-aktif",
+      "name": "Ambil Akun Aktif",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        1100
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "namaAkun",
+              "value": "={{ $json.fields.NamaAkun }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "businessId",
+              "value": "={{ $json.fields.InstagramBusinessID }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "pageId",
+              "value": "={{ $json.fields.FacebookPageID }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "folderSumber",
+              "value": "={{ $json.fields.DriveFolderSumber }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "folderArsip",
+              "value": "={{ $json.fields.DriveFolderArsip }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "aiEndpoint",
+              "value": "={{ $json.fields.AIEndpoint }}",
+              "type": "string"
+            },
+            {
+              "id": "7",
+              "name": "aiModel",
+              "value": "={{ $json.fields.AIModel }}",
+              "type": "string"
+            },
+            {
+              "id": "8",
+              "name": "promptTemplate",
+              "value": "={{ $json.fields.AIPromptTemplate }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-data-akun",
+      "name": "Set Data Akun",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "filterByFormula": "=AND({NamaAkun}='{{ $json.namaAkun }}',OR({Status}='Downloading',{Status}='Uploading',{Status}='Generating Caption',{Status}='Publishing'))",
+        "options": {}
+      },
+      "id": "cek-antrian-berjalan",
+      "name": "Cek Antrian Berjalan",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        1100
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $items().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-ada-proses-berjalan",
+      "name": "IF Ada Proses Berjalan",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7896674035",
+        "text": "⏳ Proses upload sebelumnya masih berjalan. Video baru dimasukkan ke antrean.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "kirim-info-sedang-proses",
+      "name": "Kirim Info Sedang Proses",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        1300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"'\" + $('Set Data Akun').item.json.folderSumber + \"' in parents and mimeType='video/mp4' and trashed = false\" }}"
+            },
+            {
+              "name": "fields",
+              "value": "files(id, name, mimeType, parents)"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            },
+            {
+              "name": "includeItemsFromAllDrives",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ambil-daftar-video",
+      "name": "Ambil Daftar Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        1100
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "0sZ3AhgRR0qUwBTb",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = items[0].json.files;\nif (!files || files.length === 0) { return []; }\nconst pick = files[Math.floor(Math.random() * files.length)];\nreturn [{ json: pick }];"
+      },
+      "id": "pilih-video-acak",
+      "name": "Pilih Video Acak",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {}
+      },
+      "id": "unduh-video",
+      "name": "Unduh Video",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1980,
+        1100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "sSjCMUXWgv6xebzu",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "uploadFile",
+        "resource_type_file": "video",
+        "additionalFieldsFile": {}
+      },
+      "id": "upload-cloudinary",
+      "name": "Upload Cloudinary",
+      "type": "n8n-nodes-cloudinary.cloudinary",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        1100
+      ],
+      "credentials": {
+        "cloudinaryApi": {
+          "id": "ENvXgfaMDbnlpfHW",
+          "name": "Cloudinary account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "prompt",
+              "value": "={{ $('Set Data Akun').item.json.promptTemplate || 'Buat satu caption singkat gaya hidup sehari-hari, maksimal 25 kata, tanpa menjelaskan isi video, tambahkan 3 hashtag relevan.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "siapkan-prompt-caption",
+      "name": "Siapkan Prompt Caption",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2420,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Data Akun').item.json.aiEndpoint }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "={{ $('Set Data Akun').item.json.aiModel }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{role:'user', content: $json.prompt}] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "buat-caption-ai",
+      "name": "Buat Caption AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2640,
+        1100
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "YzQRxob7VBKoYEoU",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $('Pilih Video Acak').item.json.name }}",
+            "FileID": "={{ $('Pilih Video Acak').item.json.id }}",
+            "URL": "={{ $('Upload Cloudinary').item.json.secure_url }}",
+            "caption": "={{ $json.choices[0].message.content }}",
+            "NamaAkun": "={{ $('Set Data Akun').item.json.namaAkun }}",
+            "Status": "Publishing",
+            "PostedAt": "={{ $now.toISO() }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "simpan-data-upload",
+      "name": "Simpan Data Upload",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2860,
+        1100
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v25.0",
+        "node": "={{ $('Set Data Akun').item.json.businessId }}",
+        "edge": "media",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "video_url",
+                "value": "={{ $('Simpan Data Upload').item.json.fields.URL }}"
+              },
+              {
+                "name": "media_type",
+                "value": "REELS"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $('Simpan Data Upload').item.json.fields.caption }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "buat-container-instagram",
+      "name": "Buat Container Instagram",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        1100
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "p2nV37T8gVHXU2m0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "GET",
+        "graphApiVersion": "v25.0",
+        "node": "={{ $('Buat Container Instagram').item.json.id }}",
+        "edge": "",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "fields",
+                "value": "status_code"
+              }
+            ]
+          }
+        }
+      },
+      "id": "cek-status-container",
+      "name": "Cek Status Container",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        1100
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "p2nV37T8gVHXU2m0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "tunggu-polling",
+      "name": "Tunggu Polling",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3300,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "1",
+                    "leftValue": "={{ $json.status_code }}",
+                    "rightValue": "FINISHED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Selesai"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "2",
+                    "leftValue": "={{ $json.status_code }}",
+                    "rightValue": "ERROR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Error"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "router-status-container",
+      "name": "Router Status Container",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3520,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v25.0",
+        "node": "={{ $('Set Data Akun').item.json.businessId }}",
+        "edge": "media_publish",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "creation_id",
+                "value": "={{ $('Buat Container Instagram').item.json.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "publikasikan-reels",
+      "name": "Publikasikan Reels",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        3740,
+        1100
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "p2nV37T8gVHXU2m0",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $('Simpan Data Upload').item.json.id }}",
+            "Status": "Completed",
+            "InstagramMediaID": "={{ $json.id }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "update-status-published",
+      "name": "Update Status Published",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        3960,
+        1100
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + $('Pilih Video Acak').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "addParents",
+              "value": "={{ $('Set Data Akun').item.json.folderArsip }}"
+            },
+            {
+              "name": "removeParents",
+              "value": "={{ $('Set Data Akun').item.json.folderSumber }}"
+            },
+            {
+              "name": "fields",
+              "value": "id,name,parents,webViewLink"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pindahkan-ke-arsip",
+      "name": "Pindahkan ke Arsip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4180,
+        1100
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "0sZ3AhgRR0qUwBTb",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "asset",
+        "operation": "deleteAssets",
+        "publicIds": "={{ $('Upload Cloudinary').item.json.public_id }}",
+        "resourceType": "video",
+        "deleteOptions": {}
+      },
+      "id": "hapus-file-cloudinary",
+      "name": "Hapus File Cloudinary",
+      "type": "n8n-nodes-cloudinary.cloudinary",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        1100
+      ],
+      "credentials": {
+        "cloudinaryApi": {
+          "id": "ENvXgfaMDbnlpfHW",
+          "name": "Cloudinary account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7896674035",
+        "text": "=✅ <b>INSTAGRAM REELS AUTOMATION</b>\n\n👤 Akun: {{ $('Set Data Akun').item.json.namaAkun }}\n🎬 Video: {{ $('Pilih Video Acak').item.json.name }}\n📝 Caption: {{ $('Simpan Data Upload').item.json.fields.caption }}\n📌 Status: Published\n🆔 Execution ID: {{ $execution.id }}\n⏰ Selesai: {{ $now.format('dd MMM yyyy • HH:mm:ss') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📸 Lihat Reels",
+                    "additionalFields": {
+                      "url": "={{ 'https://instagram.com/reel/' + $('Update Status Published').item.json.fields.InstagramMediaID }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🗄️ Lihat Airtable",
+                    "additionalFields": {
+                      "url": "https://airtable.com/appafQ1viq4sJXOve"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🚀 Upload Lagi",
+                    "additionalFields": {
+                      "callback_data": "upload_now"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "kirim-laporan-sukses",
+      "name": "Kirim Laporan Sukses",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4620,
+        1100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "selesai",
+      "name": "Selesai",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        4840,
+        1100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1620
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appafQ1viq4sJXOve",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBAgS2enNJfFo5R",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $('Simpan Data Upload') ? $('Simpan Data Upload').item.json.id : '' }}",
+            "Status": "Failed",
+            "ErrorMessage": "={{ $json.execution ? $json.execution.error.message : $json.error?.message || 'Unknown error' }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "update-status-gagal",
+      "name": "Update Status Gagal",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        1620
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "AbYqCc6ZdNGvzBSy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7896674035",
+        "text": "=❌ <b>WORKFLOW GAGAL</b>\n\n⚠️ Error: {{ $json.execution ? $json.execution.error.message : ($json.error?.message || 'Terjadi kesalahan') }}\n🆔 Execution ID: {{ $execution.id }}\n⏰ Waktu: {{ $now.format('dd MMM yyyy • HH:mm:ss') }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔁 Retry",
+                    "additionalFields": {
+                      "callback_data": "upload_now"
+                    }
+                  },
+                  {
+                    "text": "🔍 Lihat Error",
+                    "additionalFields": {
+                      "url": "https://airtable.com/appafQ1viq4sJXOve"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "kirim-laporan-gagal",
+      "name": "Kirim Laporan Gagal",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        1620
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "l1sKxkGYf5u23N3N",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Jadwal Otomatis": {
+      "main": [
+        [
+          {
+            "node": "Mode Otomatis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mode Otomatis": {
+      "main": [
+        [
+          {
+            "node": "Ambil Akun Aktif",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Masuk": {
+      "main": [
+        [
+          {
+            "node": "Cek Perintah Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Perintah Menu": {
+      "main": [
+        [
+          {
+            "node": "Menu Utama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cek Aktivasi Akun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Aktivasi Akun": {
+      "main": [
+        [
+          {
+            "node": "Aktifkan Akun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Router Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aktifkan Akun": {
+      "main": [
+        [
+          {
+            "node": "Konfirmasi Aktivasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Menu": {
+      "main": [
+        [
+          {
+            "node": "Mode Manual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Info Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Antrian",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Semua Akun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Instruksi Tambah Akun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Akun Untuk Ganti",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Statistik",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Riwayat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Pengaturan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Status Server",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kirim Tentang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mode Manual": {
+      "main": [
+        [
+          {
+            "node": "Ambil Akun Aktif",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Semua Akun": {
+      "main": [
+        [
+          {
+            "node": "Format Daftar Akun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Daftar Akun": {
+      "main": [
+        [
+          {
+            "node": "Kirim Daftar Akun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Akun Untuk Ganti": {
+      "main": [
+        [
+          {
+            "node": "Kirim Pilihan Akun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Antrian": {
+      "main": [
+        [
+          {
+            "node": "Kirim Antrian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Statistik": {
+      "main": [
+        [
+          {
+            "node": "Hitung Statistik",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hitung Statistik": {
+      "main": [
+        [
+          {
+            "node": "Kirim Statistik",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Riwayat": {
+      "main": [
+        [
+          {
+            "node": "Kirim Riwayat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Akun Aktif": {
+      "main": [
+        [
+          {
+            "node": "Set Data Akun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Data Akun": {
+      "main": [
+        [
+          {
+            "node": "Cek Antrian Berjalan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Antrian Berjalan": {
+      "main": [
+        [
+          {
+            "node": "IF Ada Proses Berjalan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Ada Proses Berjalan": {
+      "main": [
+        [
+          {
+            "node": "Kirim Info Sedang Proses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ambil Daftar Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil Daftar Video": {
+      "main": [
+        [
+          {
+            "node": "Pilih Video Acak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pilih Video Acak": {
+      "main": [
+        [
+          {
+            "node": "Unduh Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unduh Video": {
+      "main": [
+        [
+          {
+            "node": "Upload Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Prompt Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Prompt Caption": {
+      "main": [
+        [
+          {
+            "node": "Buat Caption AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buat Caption AI": {
+      "main": [
+        [
+          {
+            "node": "Simpan Data Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simpan Data Upload": {
+      "main": [
+        [
+          {
+            "node": "Buat Container Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buat Container Instagram": {
+      "main": [
+        [
+          {
+            "node": "Cek Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Status Container": {
+      "main": [
+        [
+          {
+            "node": "Router Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Status Container": {
+      "main": [
+        [
+          {
+            "node": "Publikasikan Reels",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status Gagal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tunggu Polling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tunggu Polling": {
+      "main": [
+        [
+          {
+            "node": "Cek Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publikasikan Reels": {
+      "main": [
+        [
+          {
+            "node": "Update Status Published",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status Published": {
+      "main": [
+        [
+          {
+            "node": "Pindahkan ke Arsip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pindahkan ke Arsip": {
+      "main": [
+        [
+          {
+            "node": "Hapus File Cloudinary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hapus File Cloudinary": {
+      "main": [
+        [
+          {
+            "node": "Kirim Laporan Sukses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kirim Laporan Sukses": {
+      "main": [
+        [
+          {
+            "node": "Selesai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status Gagal": {
+      "main": [
+        [
+          {
+            "node": "Kirim Laporan Gagal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Update Status Gagal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c2f7fc800e8f942e459a536a1c35644e54d007b227caebbcad93db95243301c4"
+  }
+}

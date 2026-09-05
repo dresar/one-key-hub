@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Hexagon Background -->
+  <path d="M50 5 L93.3 30 V80 L50 105 L6.7 80 V30 Z" fill="url(#grad)" stroke="white" stroke-width="2" transform="scale(0.9) translate(5.5, -2.5)" filter="url(#glow)" opacity="0.9" />
+  
+  <!-- Key Shape Cutout -->
+  <path d="M42 35 A12 12 0 1 0 58 35 A12 12 0 1 0 42 35 M50 47 V75 M50 55 H58 M50 65 H58" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)" />
+</svg>
